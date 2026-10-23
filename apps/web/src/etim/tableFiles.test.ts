@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ETIM_LABEL_TABLES } from '@akeneo-etim/core';
-import { assignFiles, matchTableName, missingTables } from './tableFiles.js';
+import { assignFiles, isOtherEtimTable, matchTableName, missingTables } from './tableFiles.js';
 
 describe('matchTableName', () => {
   it('matches exact names case-insensitively, ignoring the extension', () => {
@@ -15,6 +15,14 @@ describe('matchTableName', () => {
       kind: 'matched',
       table: 'ETIMARTCLASSFEATUREVALUEMAP',
     });
+  });
+
+  it('does not match a table name that runs on into a longer ETIM table name', () => {
+    expect(matchTableName('ETIMARTCLASSSYNONYMMAP.csv')).toEqual({ kind: 'unknown' });
+    expect(matchTableName('ETIMFEATUREGROUP.csv')).toEqual({ kind: 'unknown' });
+    expect(isOtherEtimTable('ETIMFEATUREGROUP.csv')).toBe(true);
+    expect(isOtherEtimTable('products.csv')).toBe(false);
+    expect(isOtherEtimTable('ETIMFEATURE.csv')).toBe(false);
   });
 
   it('allows text around the table name', () => {
@@ -53,6 +61,26 @@ describe('assignFiles', () => {
     expect(result.unrecognized.map((f) => f.id)).toEqual([2]);
     expect(result.replaced.map((f) => f.id)).toEqual([1]);
     expect(missingTables(result.byTable, ETIM_LABEL_TABLES)).toEqual(['ETIMFEATURE', 'ETIMVALUE', 'ETIMARTGROUP']);
+  });
+
+  it('assigns a full ETIM 10 export folder, ignoring the tables it does not read', () => {
+    const names = [
+      'ETIMARTCLASS.csv',
+      'ETIMARTCLASSFEATUREMAP.csv',
+      'ETIMARTCLASSFEATUREVALUEMAP.csv',
+      'ETIMARTCLASSSYNONYMMAP.csv',
+      'ETIMARTGROUP.csv',
+      'ETIMFEATURE.csv',
+      'ETIMFEATUREGROUP.csv',
+      'ETIMUNIT.csv',
+      'ETIMVALUE.csv',
+    ];
+    const result = assignFiles(names.map((name) => ({ name })));
+    expect(result.byTable.ETIMARTCLASS?.name).toBe('ETIMARTCLASS.csv');
+    expect(result.byTable.ETIMFEATURE?.name).toBe('ETIMFEATURE.csv');
+    expect(result.notNeeded.map((f) => f.name)).toEqual(['ETIMARTCLASSSYNONYMMAP.csv', 'ETIMFEATUREGROUP.csv']);
+    expect(result.unrecognized).toEqual([]);
+    expect(result.replaced).toEqual([]);
   });
 
   it('keeps files for tables that are not needed apart', () => {

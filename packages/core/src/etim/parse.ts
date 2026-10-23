@@ -19,7 +19,7 @@ const COLUMNS = {
   ETIMUNIT: ['UNITOFMEASID', 'UNITDESC'],
   ETIMARTCLASSFEATUREMAP: ['ARTCLASSFEATURENR', 'ARTCLASSID', 'FEATUREID', 'FEATURETYPE', 'UNITOFMEASID', 'SORTNR'],
   ETIMARTCLASSFEATUREVALUEMAP: ['ARTCLASSFEATURENR', 'VALUEID', 'SORTNR'],
-  ETIMARTGROUP: ['ARTGROUPID', 'ARTGROUPDESC'],
+  ETIMARTGROUP: ['ARTGROUPID', 'GROUPDESC'],
 } as const satisfies Record<EtimTableName, readonly string[]>;
 
 /** Tables holding descriptions, with their id and description columns. */
@@ -28,7 +28,7 @@ const LABEL_TABLES = {
   ETIMFEATURE: { id: 'FEATUREID', desc: 'FEATUREDESC', target: 'features' },
   ETIMVALUE: { id: 'VALUEID', desc: 'VALUEDESC', target: 'values' },
   ETIMUNIT: { id: 'UNITOFMEASID', desc: 'UNITDESC', target: 'units' },
-  ETIMARTGROUP: { id: 'ARTGROUPID', desc: 'ARTGROUPDESC', target: 'groups' },
+  ETIMARTGROUP: { id: 'ARTGROUPID', desc: 'GROUPDESC', target: 'groups' },
 } as const;
 
 type LabelTable = keyof typeof LABEL_TABLES;

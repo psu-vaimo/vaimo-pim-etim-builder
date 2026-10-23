@@ -118,7 +118,7 @@ describe('parseEtimExport problems', () => {
     expect(without.issues).toEqual([]);
     expect(without.release.groups).toEqual({});
 
-    const { issues } = parseEtimExport({ ...base, ETIMARTGROUP: 'ARTGROUPID;ARTGROUPDESC\nEG000002;Other\n' }, 'en_US');
+    const { issues } = parseEtimExport({ ...base, ETIMARTGROUP: 'ARTGROUPID;GROUPDESC\nEG000002;Other\n' }, 'en_US');
     expect(issues).toEqual([{ severity: 'warning', table: 'ETIMARTCLASS', message: 'Unknown groups: EG000001' }]);
   });
 
