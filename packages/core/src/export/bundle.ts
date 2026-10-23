@@ -43,7 +43,7 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
   const { codes } = project.settings;
 
   const issues: ExportIssue[] = [
-    ...validateSettings(project.settings).map(({ field: _field, ...i }) => ({ ...i, step: 'settings' as const })),
+    ...validateSettings(project.settings).map(({ field: _field, detail: _detail, ...i }) => ({ ...i, step: 'settings' as const })),
     ...attrs.issues.map((i) => ({ ...i, step: 'attributes' as const })),
     ...records.issues.map((i) => ({ ...i, step: 'records' as const })),
     ...rules.issues.map((i) => ({ ...i, step: 'rules' as const })),

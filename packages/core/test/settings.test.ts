@@ -14,7 +14,7 @@ describe('validateSettings', () => {
     s.groups.mapped = 'etim mapped';
     s.rulePriority = 1.5;
     expect(validateSettings(s).map((i) => i.field)).toEqual(['codes.attributePrefix', 'codes.classEntity', 'groups.mapped', 'rulePriority']);
-    expect(validateSettings(s)[1]).toEqual({ severity: 'error', field: 'codes.classEntity', message: 'Setting codes.classEntity "": Code is empty' });
+    expect(validateSettings(s)[1]).toEqual({ severity: 'error', field: 'codes.classEntity', detail: 'Code is empty', message: 'Setting codes.classEntity "": Code is empty' });
   });
 
   it('makes the export report settings errors', () => {

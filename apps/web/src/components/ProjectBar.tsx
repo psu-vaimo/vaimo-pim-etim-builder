@@ -1,6 +1,8 @@
 import { Button, FileButton, Group, TextInput } from '@mantine/core';
+import { useState } from 'react';
 import { parseProjectFile, projectFileName, serializeProject } from '@akeneo-etim/core';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
+import { SettingsPanel } from './settings/SettingsPanel.js';
 
 export type ProjectNotice = { color: 'red' | 'green'; message: string };
 
@@ -13,10 +15,11 @@ function download(name: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-/** Project name plus save and load of the project JSON file. */
+/** Project name, settings, and save and load of the project JSON file. */
 export function ProjectBar({ onNotice }: { onNotice: (notice: ProjectNotice) => void }) {
   const { project } = useAppState();
   const dispatch = useAppDispatch();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   async function load(file: File | null) {
     if (!file) return;
@@ -39,6 +42,9 @@ export function ProjectBar({ onNotice }: { onNotice: (notice: ProjectNotice) => 
         size="xs"
         w={220}
       />
+      <Button size="xs" variant="default" onClick={() => setSettingsOpen(true)} data-testid="open-settings">
+        Settings
+      </Button>
       <FileButton onChange={(f) => void load(f)} accept="application/json,.json">
         {(props) => (
           <Button {...props} size="xs" variant="default" data-testid="load-project">
@@ -49,6 +55,7 @@ export function ProjectBar({ onNotice }: { onNotice: (notice: ProjectNotice) => 
       <Button size="xs" onClick={() => download(projectFileName(project), serializeProject(project))} data-testid="save-project">
         Save project
       </Button>
+      <SettingsPanel opened={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </Group>
   );
 }
