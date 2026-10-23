@@ -26,6 +26,16 @@ describe('api', () => {
     expect(body.issues).toContainEqual({ severity: 'error', table: 'ETIMARTCLASS', message: 'Missing table ETIMARTCLASS' });
   });
 
+  it('POST /etim/parse accepts the optional ETIMARTGROUP table', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/etim/parse',
+      payload: { locale: 'en_US', tables: { ETIMARTGROUP: 'ARTGROUPID;GROUPDESC\nEG000001;Fixings\n' } },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().release.groups.EG000001.labels).toEqual({ en_US: 'Fixings' });
+  });
+
   it('POST /etim/parse rejects unknown tables', async () => {
     const res = await app.inject({
       method: 'POST',
