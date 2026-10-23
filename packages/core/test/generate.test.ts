@@ -174,8 +174,7 @@ describe('generateAttributes', () => {
     expect(issues).toContainEqual({
       severity: 'warning',
       featureKey: 'EF015003',
-      classId: 'EC000028',
-      message: 'EF015003 is type A in EC000028 but L in EC000009, using L',
+      message: 'EF015003 has different ETIM types, L in EC000009, A in EC000028, using L',
     });
   });
 });

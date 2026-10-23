@@ -1,13 +1,7 @@
-import { stringify } from 'yaml';
 import type { AkeneoAttribute, AkeneoDependency, AkeneoRecord, AkeneoRule } from '../akeneo/types.js';
 import type { Project } from '../project/types.js';
 import { flag, type Table } from './table.js';
-
-/**
- * No anchors or aliases, and YAML 1.1 quoting so strings like `yes`, `no`,
- * `on` are not read as booleans by older parsers.
- */
-const YAML_OPTIONS = { lineWidth: 0, aliasDuplicateObjects: false, version: '1.1' } as const;
+import { toYaml } from './yaml.js';
 
 const labelColumns = (project: Project) => project.locales.map((l) => `label-${l}`);
 
@@ -100,7 +94,7 @@ export function rulesYaml(rules: AkeneoRule[]): string {
       ]),
     ),
   };
-  return stringify(doc, YAML_OPTIONS);
+  return toYaml(doc);
 }
 
 /** One dependency in the prototype's format (`akn_dependencies`). */
@@ -117,5 +111,5 @@ function dependencyDoc(d: AkeneoDependency) {
 
 /** Dependencies YAML for the Akeneo dependency import, keyed by code under `dependencies`. */
 export function dependenciesYaml(dependencies: AkeneoDependency[]): string {
-  return stringify({ dependencies: Object.fromEntries(dependencies.map((d) => [d.code, dependencyDoc(d)])) }, YAML_OPTIONS);
+  return toYaml({ dependencies: Object.fromEntries(dependencies.map((d) => [d.code, dependencyDoc(d)])) });
 }

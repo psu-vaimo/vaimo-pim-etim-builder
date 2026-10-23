@@ -10,7 +10,6 @@ import {
   groupExportFiles,
   isFamilyStep,
   mimeType,
-  readmeSteps,
   summarizeIssues,
   zipFileName,
 } from './exportFiles.js';
@@ -49,12 +48,9 @@ describe('export files', () => {
     expect(zipFileName(project({ name: 'Bygg & Järn AB' }))).toBe('bygg-jarn-ab-etim-export.zip');
   });
 
-  it('reads the manual steps from the README', () => {
-    const steps = readmeSteps(files);
-    expect(steps.length).toBeGreaterThanOrEqual(5);
+  it('finds the family step in the manual steps', () => {
+    const steps = buildExport(release, project()).manualSteps;
     expect(steps.filter(isFamilyStep)).toHaveLength(1);
-    expect(readmeSteps([{ path: 'README.txt', content: 'Hello\nSteps in Akeneo:\n  1. One\n  2. Two\n\nLater' }])).toEqual(['One', 'Two']);
-    expect(readmeSteps([])).toEqual([]);
   });
 
   it('gives download names and types', () => {

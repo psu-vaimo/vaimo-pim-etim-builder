@@ -19,7 +19,8 @@ export function featureKey(featureId: string, unitId?: string): FeatureKey {
 /**
  * Collects the unique feature+unit combinations over the selected classes,
  * sorted by key. A combination used with different ETIM types keeps the first
- * type and gets a warning, since the type is not part of the attribute code.
+ * type and gets one warning listing the types and classes, since the type is
+ * not part of the attribute code.
  */
 export function collectProjectFeatures(
   release: EtimRelease,
@@ -27,6 +28,8 @@ export function collectProjectFeatures(
 ): { features: ProjectFeature[]; issues: GenerateIssue[] } {
   const issues: GenerateIssue[] = [];
   const byKey = new Map<FeatureKey, ProjectFeature>();
+  /** Per feature key, the classes using each ETIM type, only filled once a second type shows up. */
+  const conflicts = new Map<FeatureKey, Map<EtimFeatureType, string[]>>();
 
   for (const classId of project.classIds) {
     const cls = release.classes[classId];
@@ -47,16 +50,20 @@ export function collectProjectFeatures(
         });
         continue;
       }
-      if (existing.type !== cf.type) {
-        issues.push({
-          severity: 'warning',
-          featureKey: key,
-          classId,
-          message: `${key} is type ${cf.type} in ${classId} but ${existing.type} in ${existing.classIds[0]}, using ${existing.type}`,
-        });
+      if (existing.type !== cf.type || conflicts.has(key)) {
+        const byType = conflicts.get(key) ?? new Map([[existing.type, [...existing.classIds]]]);
+        if (!byType.get(cf.type)?.includes(classId)) byType.set(cf.type, [...(byType.get(cf.type) ?? []), classId]);
+        conflicts.set(key, byType);
       }
       if (!existing.classIds.includes(classId)) existing.classIds.push(classId);
     }
+  }
+
+  for (const [key, byType] of conflicts) {
+    if (byType.size < 2) continue;
+    const used = byKey.get(key)!.type;
+    const parts = [...byType].map(([type, ids]) => `${type} in ${ids.slice(0, 3).join(', ')}${ids.length > 3 ? ` and ${ids.length - 3} more` : ''}`);
+    issues.push({ severity: 'warning', featureKey: key, message: `${key} has different ETIM types, ${parts.join(', ')}, using ${used}` });
   }
 
   const features = [...byKey.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));

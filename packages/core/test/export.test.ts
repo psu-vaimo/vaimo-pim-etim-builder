@@ -58,7 +58,7 @@ describe('writeXlsx', () => {
 });
 
 describe('buildExport', () => {
-  const { files, issues, hasErrors } = buildExport(release(), mappedProject());
+  const { files, issues, hasErrors, manualSteps } = buildExport(release(), mappedProject());
 
   it('lists all files', () => {
     expect(files.map((f) => f.path)).toEqual([
@@ -156,6 +156,8 @@ describe('buildExport', () => {
   });
 
   it('writes a report and README with the manual steps', () => {
+    expect(manualSteps).toContain('Add the ETIM attributes to the families. This is required and not part of the export.');
+    expect(manualSteps.every((step) => text(files, 'README.txt').includes(step))).toBe(true);
     const report = unzipSync(file(files, 'mapping_report.xlsx') as Uint8Array);
     expect(strFromU8(report['xl/workbook.xml']!)).toContain('name="Summary"');
     expect(strFromU8(report['xl/worksheets/sheet1.xml']!)).toContain('Add the ETIM attributes to the families');

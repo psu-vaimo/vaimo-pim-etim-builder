@@ -24,6 +24,8 @@ export interface ExportResult {
   files: ExportFile[];
   issues: ExportIssue[];
   hasErrors: boolean;
+  /** What the consultant must do by hand in Akeneo, in order. Same as in README.txt. */
+  manualSteps: string[];
 }
 
 /**
@@ -67,7 +69,7 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
     },
     { path: projectFileName(project), content: serializeProject(project) },
   ];
-  return { files, issues, hasErrors: issues.some((i) => i.severity === 'error') };
+  return { files, issues, hasErrors: issues.some((i) => i.severity === 'error'), manualSteps };
 }
 
 /** All export files in one zip, deterministic for the same input. */

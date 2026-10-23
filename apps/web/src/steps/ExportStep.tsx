@@ -9,7 +9,6 @@ import {
   groupExportFiles,
   isFamilyStep,
   mimeType,
-  readmeSteps,
   summarizeIssues,
   zipFileName,
 } from '../export/exportFiles.js';
@@ -74,7 +73,7 @@ export function ExportStep() {
 
   const shown = result ?? previous;
   const groups = useMemo(() => (shown ? groupExportFiles(shown.files) : []), [shown]);
-  const steps = useMemo(() => (shown ? readmeSteps(shown.files) : []), [shown]);
+  const steps = shown?.manualSteps ?? [];
   const summary = useMemo(() => (shown ? summarizeIssues(shown.issues) : undefined), [shown]);
 
   if (!release) return <Text mt="md">Import an ETIM export first.</Text>;

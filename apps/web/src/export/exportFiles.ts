@@ -84,26 +84,6 @@ export function mimeType(path: string): string {
   return 'text/plain;charset=utf-8';
 }
 
-/**
- * The numbered manual steps from the README (`Steps in Akeneo:` and the
- * `  1. ...` lines after it). Core does not export the steps list itself, so
- * reading the README keeps the UI in line with the file the consultant gets.
- */
-export function readmeSteps(files: readonly ExportFile[]): string[] {
-  const readme = files.find((f) => fileGroup(f.path) === 'readme');
-  if (!readme || typeof readme.content !== 'string') return [];
-  const lines = readme.content.split(/\r?\n/);
-  const start = lines.findIndex((l) => l.trim().toLowerCase() === 'steps in akeneo:');
-  if (start === -1) return [];
-  const steps: string[] = [];
-  for (const line of lines.slice(start + 1)) {
-    const match = /^\s*\d+\.\s+(.*)$/.exec(line);
-    if (!match) break;
-    steps.push((match[1] ?? '').trim());
-  }
-  return steps;
-}
-
 /** True for the manual step about adding attributes to families, highlighted in the UI. */
 export function isFamilyStep(step: string): boolean {
   return /famil/i.test(step);

@@ -146,10 +146,10 @@ Run `pnpm test` and `pnpm typecheck` before committing.
 - Project file type and defaults: `packages/core/src/project`.
 
 ## Export (`packages/core/src/export`)
-- `buildExport(release, project)` returns all files plus issues, `zipExport(files)` zips them. Runs in the browser, output is deterministic.
+- `buildExport(release, project)` returns all files, issues and the manual Akeneo steps, `zipExport(files)` zips them. Runs in a web worker in the browser (about 2 s for 6000 classes), output is deterministic.
 - Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml` (root key `dependencies`, imported as a file), `mapping_report.xlsx`, the project file.
 - XLSX via a small writer on `fflate` (`writeXlsx`), no spreadsheet library in the bundle.
-- YAML: no anchors/aliases, YAML 1.1 quoting (`"yes"`), so PHP parsers read strings as strings.
+- YAML via a small writer (`export/yaml.ts`), the `yaml` package is only used in tests. Block style, no anchors/aliases, anything but simple codes double quoted, YAML 1.1 words like `yes` quoted, so PHP parsers read strings as strings.
 - No attribute options file: ETIM values are reference entity records, there are no select attributes.
 
 ## Open decisions
