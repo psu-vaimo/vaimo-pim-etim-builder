@@ -22,8 +22,8 @@ export function defaultSettings(): ProjectSettings {
     rulePriority: 99,
     unitMap: {},
     labelTexts: {
-      en_US: { from: 'from', description: 'Description', min: 'Min', max: 'Max' },
-      sv_SE: { from: 'från', description: 'Beskrivning', min: 'Min', max: 'Max' },
+      en_US: { from: 'from', description: 'Description', min: 'Min', max: 'Max', classAttribute: 'ETIM class' },
+      sv_SE: { from: 'från', description: 'Beskrivning', min: 'Min', max: 'Max', classAttribute: 'ETIM-klass' },
     },
   };
 }

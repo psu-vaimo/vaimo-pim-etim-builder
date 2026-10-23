@@ -58,20 +58,24 @@ Key tabs:
 - Code prefixes are configurable per project (feature, value and class codes, reference entity and `etim_class` attribute codes). Prototype codes are the defaults.
 - One attribute per feature+unit combination across all selected classes (not per class).
 - Label: `EF000008 - Width [mm]` / `EF000008 - Bredd [mm]` (feature code, description, unit in brackets).
+- Mapped attributes (any type) are read only and get the suffix `(from: att_a, att_b)`, listing all sources in preference order. Swedish: `(från: ...)`.
+- Locale specific words (`from`, `Description`, `Min`, `Max`, class attribute label) are project settings per locale.
 - Locales: configurable per project (prototype uses `en_US`, `sv_SE`).
 - Attribute groups: `etim_mapped` for features mapped from a customer source attribute, `etim_unmapped` for the rest. Not scopable, not localizable, not unique.
 
 ### ETIM type to Akeneo type
 | ETIM | Akeneo |
 |---|---|
-| A (alphanumeric) | `akeneo_reference_entity` linked to `etim_value` |
+| A (alphanumeric) | unmapped: `akeneo_reference_entity` linked to `etim_value`. Mapped: read only `pim_catalog_text` holding the ETIM value code, plus a `_label` text attribute |
 | N (numeric) | `pim_catalog_number` or `pim_catalog_metric`, chosen per feature+unit (decimals and negatives allowed) |
 | L (logical) | `pim_catalog_boolean` |
-| R (range) | one of: two number attributes (`_min`, `_max`), one text attribute (`10-20`), or measurement. Setups can be mixed in one project |
+| R (range) | `text` (one text attribute, `10-20`), `minmax-number` or `minmax-metric` (two attributes `<code>_min`, `<code>_max`). Setups can be mixed in one project |
 
 Number vs metric and the range setup have a project default, overridable per feature.
 
-Units: an ETIM class defines one unit per feature, so the unit is never a user choice. It is always part of the code and label, also for metric attributes.
+Units: an ETIM class defines one unit per feature, so the unit is never a user choice. It is always part of the code and label, also for metric attributes. Metric needs an ETIM unit to Akeneo measurement family+unit mapping (project `unitMap`), without it the attribute falls back to number with an error.
+
+The class attribute (`etim_class`, reference entity link) is generated first, in group `etim` (assumed, not in the prototype).
 
 ### Reference entities
 - `etim_class`: one record per selected class (`ec000009`, labels en/sv).
@@ -79,7 +83,7 @@ Units: an ETIM class defines one unit per feature, so the unit is never a user c
 - Products carry an `etim_class` attribute that drives dependencies.
 
 ### Label attributes
-- An A feature gets a companion text attribute `<code>_label` only when it is mapped from a customer source attribute. It holds the value label and is filled by rules.
+- An A feature gets a companion text attribute `<code>_label` only when it is mapped from a customer source attribute. It holds the value label and is filled by rules. Read only, label `EF000139 - Surface protection - Description` (no `from` suffix).
 
 ### Dependencies (per class)
 Native Akeneo SaaS attribute dependencies:
@@ -120,11 +124,18 @@ pnpm typecheck    # all packages
 Run `pnpm test` and `pnpm typecheck` before committing.
 
 ## ETIM parser (`packages/core/src/etim`)
+- Parsing runs in the browser (web worker), the API endpoint is kept for scripts.
+- `decodeEtimFile(bytes)` decodes uploads. ETIM CSV exports are UTF-16, one file per table, UTF-8 also works.
 - Input: the six ETIM CSV tables (`ETIMARTCLASS`, `ETIMFEATURE`, `ETIMVALUE`, `ETIMUNIT`, `ETIMARTCLASSFEATUREMAP`, `ETIMARTCLASSFEATUREVALUEMAP`) as raw text. Delimiter detected, headers case-insensitive, extra columns ignored.
 - `parseEtimExport(tables, locale)` builds an `EtimRelease` (JSON serializable). Descriptions become labels for `locale`.
 - `mergeEtimTranslations(release, tables, locale)` adds labels from an export in another language.
 - Problems are returned as `issues`, never thrown. Missing table or column is an error, rows with broken references are skipped with a warning.
-- Excel (XLSX) input is not supported yet.
+- Excel (XLSX) input in different forms is on the roadmap.
+
+## Generators (`packages/core/src/akeneo`)
+- `collectProjectFeatures` finds unique feature+unit combinations over the selected classes.
+- `generateAttributes(release, project)` and `generateRecords(release, project)` return output plus `issues`, same pattern as the parser.
+- Project file type and defaults: `packages/core/src/project`.
 
 ## Open decisions
 - None right now. Add new ones here as they come up.

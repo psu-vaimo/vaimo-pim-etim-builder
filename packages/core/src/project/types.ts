@@ -30,6 +30,8 @@ export interface LabelTexts {
   description: string;
   min: string;
   max: string;
+  /** Label of the class attribute. */
+  classAttribute: string;
 }
 
 export interface AkeneoUnit {

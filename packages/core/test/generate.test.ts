@@ -1,0 +1,204 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import {
+  createProject,
+  generateAttributes,
+  generateRecords,
+  mergeEtimTranslations,
+  parseEtimExport,
+  type EtimRelease,
+  type EtimTableName,
+  type EtimTables,
+  type Project,
+} from '../src/index.js';
+
+function loadTables(dir: string): EtimTables {
+  const path = join(import.meta.dirname, 'fixtures', dir);
+  const tables: EtimTables = {};
+  for (const file of readdirSync(path)) {
+    tables[file.replace(/\.csv$/, '') as EtimTableName] = readFileSync(join(path, file), 'utf8');
+  }
+  return tables;
+}
+
+/** Fixture release in en_US and sv_SE, plus an R feature with unit on EC000009. */
+function release(): EtimRelease {
+  const en = parseEtimExport(loadTables('en'), 'en_US').release;
+  const r = mergeEtimTranslations(en, loadTables('sv'), 'sv_SE').release;
+  r.features.EF000100 = { id: 'EF000100', labels: { en_US: 'Temperature range', sv_SE: 'Temperaturområde' } };
+  r.units.EU570073 = { id: 'EU570073', labels: { en_US: '°C' } };
+  r.classes.EC000009!.features.push({ nr: '999', featureId: 'EF000100', type: 'R', unitId: 'EU570073', sortNr: 5, valueIds: [] });
+  return r;
+}
+
+function project(patch: Partial<Project> = {}): Project {
+  return { ...createProject('test', ['en_US', 'sv_SE']), classIds: ['EC000009', 'EC000028'], ...patch };
+}
+
+const byCode = <T extends { code: string }>(attrs: T[]): Record<string, T> => Object.fromEntries(attrs.map((a) => [a.code, a]));
+
+describe('generateAttributes', () => {
+  it('generates the class attribute first, then features sorted by code', () => {
+    const { attributes } = generateAttributes(release(), project());
+    expect(attributes.map((a) => [a.sortOrder, a.code, a.type])).toEqual([
+      [1, 'etim_class', 'akeneo_reference_entity'],
+      [2, 'ef000007', 'akeneo_reference_entity'],
+      [3, 'ef000100_eu570073', 'pim_catalog_text'],
+      [4, 'ef000139', 'akeneo_reference_entity'],
+      [5, 'ef005644', 'akeneo_reference_entity'],
+      [6, 'ef015003', 'pim_catalog_boolean'],
+      [7, 'ef015006_eu570448', 'pim_catalog_number'],
+    ]);
+  });
+
+  it('matches the prototype for unmapped attributes', () => {
+    const a = byCode(generateAttributes(release(), project()).attributes);
+    expect(a.etim_class).toMatchObject({
+      labels: { en_US: 'ETIM class', sv_SE: 'ETIM-klass' },
+      group: 'etim',
+      referenceDataName: 'etim_class',
+      origin: { kind: 'class' },
+    });
+    expect(a.ef000139).toEqual({
+      code: 'ef000139',
+      type: 'akeneo_reference_entity',
+      labels: { en_US: 'EF000139 - Surface protection', sv_SE: 'EF000139 - Ytskydd' },
+      group: 'etim_unmapped',
+      sortOrder: 4,
+      readOnly: false,
+      referenceDataName: 'etim_value',
+      origin: { kind: 'feature', key: 'EF000139', featureId: 'EF000139', part: 'value' },
+    });
+    expect(a.ef015006_eu570448).toMatchObject({
+      labels: { en_US: 'EF015006 - Max. clamping thickness [mm]' },
+      decimalsAllowed: true,
+      negativeAllowed: true,
+      origin: { unitId: 'EU570448' },
+    });
+  });
+
+  it('matches the prototype for a mapped A feature', () => {
+    const p = project({ features: { EF000139: { sources: [{ attribute: 'att_surface_treatment' }] } } });
+    const a = byCode(generateAttributes(release(), p).attributes);
+    expect(a.ef000139).toMatchObject({
+      type: 'pim_catalog_text',
+      labels: {
+        en_US: 'EF000139 - Surface protection (from: att_surface_treatment)',
+        sv_SE: 'EF000139 - Ytskydd (från: att_surface_treatment)',
+      },
+      group: 'etim_mapped',
+      readOnly: true,
+    });
+    expect(a.ef000139).not.toHaveProperty('referenceDataName');
+    expect(a.ef000139_label).toMatchObject({
+      type: 'pim_catalog_text',
+      labels: { en_US: 'EF000139 - Surface protection - Description', sv_SE: 'EF000139 - Ytskydd - Beskrivning' },
+      group: 'etim_mapped',
+      readOnly: true,
+      origin: { part: 'label' },
+    });
+    expect(a.ef000139_label!.sortOrder).toBe(a.ef000139!.sortOrder + 1);
+  });
+
+  it('lists all sources in order in the label of a mapped non-A feature', () => {
+    const p = project({ features: { EF015006_EU570448: { sources: [{ attribute: 'att_a' }, { attribute: 'att_b' }] } } });
+    const a = byCode(generateAttributes(release(), p).attributes);
+    expect(a.ef015006_eu570448).toMatchObject({
+      type: 'pim_catalog_number',
+      labels: { en_US: 'EF015006 - Max. clamping thickness [mm] (from: att_a, att_b)' },
+      readOnly: true,
+      group: 'etim_mapped',
+    });
+    expect(a).not.toHaveProperty('ef015006_eu570448_label');
+  });
+
+  it('uses metric when the unit is mapped and falls back to number with an error otherwise', () => {
+    const p = project();
+    p.settings.numeric = 'metric';
+    p.settings.unitMap.EU570448 = { family: 'Length', unit: 'MILLIMETER' };
+    expect(byCode(generateAttributes(release(), p).attributes).ef015006_eu570448).toMatchObject({
+      type: 'pim_catalog_metric',
+      metricFamily: 'Length',
+      defaultMetricUnit: 'MILLIMETER',
+    });
+
+    p.settings.unitMap = {};
+    const { attributes, issues } = generateAttributes(release(), p);
+    expect(byCode(attributes).ef015006_eu570448?.type).toBe('pim_catalog_number');
+    expect(issues).toContainEqual({
+      severity: 'error',
+      featureKey: 'EF015006_EU570448',
+      message: 'Unit EU570448 has no Akeneo measurement mapping, ef015006_eu570448 falls back to number',
+    });
+  });
+
+  it('generates min/max for ranges, with per feature override and unit label fallback', () => {
+    const p = project({ features: { EF000100_EU570073: { range: 'minmax-number' } } });
+    const a = byCode(generateAttributes(release(), p).attributes);
+    expect(a).not.toHaveProperty('ef000100_eu570073');
+    expect(a.ef000100_eu570073_min).toMatchObject({
+      type: 'pim_catalog_number',
+      labels: { en_US: 'EF000100 - Temperature range - Min [°C]', sv_SE: 'EF000100 - Temperaturområde - Min [°C]' },
+      origin: { part: 'min' },
+    });
+    expect(a.ef000100_eu570073_max?.labels.en_US).toBe('EF000100 - Temperature range - Max [°C]');
+  });
+
+  it('applies the attribute prefix and validates codes', () => {
+    const p = project();
+    p.settings.codes.attributePrefix = 'etim_';
+    expect(byCode(generateAttributes(release(), p).attributes)).toHaveProperty('etim_ef000139');
+
+    p.settings.codes.attributePrefix = 'bad-';
+    expect(generateAttributes(release(), p).issues).toContainEqual({
+      severity: 'error',
+      message: 'Invalid Akeneo attribute code "bad-ef000007"',
+    });
+  });
+
+  it('warns about missing labels and unknown classes', () => {
+    const { issues } = generateAttributes(release(), project({ classIds: ['EC000009', 'EC404'] }));
+    expect(issues).toContainEqual({
+      severity: 'warning',
+      classId: 'EC404',
+      message: 'Class EC404 is not in the ETIM release, skipped',
+    });
+    expect(issues).toContainEqual({
+      severity: 'warning',
+      featureKey: 'EF015003',
+      message: 'No EF015003 label for sv_SE, label left empty',
+    });
+  });
+
+  it('warns when a feature has different types across classes', () => {
+    const r = release();
+    r.classes.EC000028!.features.push({ nr: '998', featureId: 'EF015003', type: 'A', sortNr: 9, valueIds: [] });
+    const { attributes, issues } = generateAttributes(r, project());
+    expect(byCode(attributes).ef015003?.type).toBe('pim_catalog_boolean');
+    expect(issues).toContainEqual({
+      severity: 'warning',
+      featureKey: 'EF015003',
+      classId: 'EC000028',
+      message: 'EF015003 is type A in EC000028 but L in EC000009, using L',
+    });
+  });
+});
+
+describe('generateRecords', () => {
+  it('generates class records and sorted value records for selected classes', () => {
+    const { classes, values, issues } = generateRecords(release(), project());
+    expect(classes).toEqual([
+      { entity: 'etim_class', code: 'ec000009', labels: { en_US: 'Hammer set anchor', sv_SE: 'Slagankare' } },
+      { entity: 'etim_class', code: 'ec000028', labels: { en_US: 'Threaded rod', sv_SE: 'Gängad stång' } },
+    ]);
+    expect(values.map((v) => v.code)).toEqual(['ev000072', 'ev000154', 'ev008325', 'ev008374', 'ev023258']);
+    expect(values[0]).toEqual({ entity: 'etim_value', code: 'ev000072', labels: { en_US: 'Aluminium' } });
+    expect(issues).toEqual([{ severity: 'warning', message: '5 etim_value records have no sv_SE label' }]);
+  });
+
+  it('only includes values of selected classes', () => {
+    const { values } = generateRecords(release(), project({ classIds: ['EC000028'] }));
+    expect(values.map((v) => v.code)).toEqual(['ev000072']);
+  });
+});

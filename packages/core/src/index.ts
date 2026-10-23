@@ -3,3 +3,7 @@ export { parseEtimExport, mergeEtimTranslations } from './etim/parse.js';
 export { decodeEtimFile } from './etim/decode.js';
 export * from './project/types.js';
 export { createProject, defaultSettings } from './project/defaults.js';
+export * from './akeneo/types.js';
+export { collectProjectFeatures, featureKey, type ProjectFeature } from './akeneo/features.js';
+export { generateAttributes } from './akeneo/attributes.js';
+export { generateRecords } from './akeneo/records.js';
