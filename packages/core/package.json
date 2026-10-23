@@ -1,0 +1,24 @@
+{
+  "name": "@akeneo-etim/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "papaparse": "^5.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/papaparse": "^5.5.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5",
+    "yaml": "^2.9.1"
+  }
+}
