@@ -101,7 +101,7 @@ Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `
 | R 2:1 | concat two source values as `10-20` (no spaces, no unit) |
 | L | `true` when source matches a "yes" value, `false` for any other value, empty when source is empty |
 
-Several source attributes can map to one feature. The consultant orders them, and rules get descending priorities from the project default so the first non-empty source wins.
+Several source attributes can map to one feature. The consultant orders them by preference. Akeneo runs higher priority rules first and later rules overwrite, so the preferred source gets the lowest priority (runs last) and wins when not empty. Verify this ordering against current Akeneo docs when implementing.
 
 ## Tech stack
 - TypeScript monorepo.
