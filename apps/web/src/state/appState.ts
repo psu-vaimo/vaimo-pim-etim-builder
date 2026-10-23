@@ -5,13 +5,16 @@ import {
   type EtimClass,
   type EtimRelease,
   type FeatureConfig,
+  type EtimFeatureType,
   type FeatureKey,
   type NumericSetup,
   type ParseIssue,
   type ParseResult,
   type Project,
   type RangeSetup,
+  type SourceMapping,
 } from '@akeneo-etim/core';
+import { normalizeSources } from '../mapping/sourceMappings.js';
 
 /** One upload of ETIM files, the base export or a translation. */
 export interface ImportEntry {
@@ -48,7 +51,12 @@ export type AppAction =
   /** `null` means project default, the override is removed. */
   | { type: 'setFeatureRange'; key: FeatureKey; value: RangeSetup | null }
   /** `null` removes the mapping. */
-  | { type: 'setUnitMapping'; unitId: string; mapping: AkeneoUnit | null };
+  | { type: 'setUnitMapping'; unitId: string; mapping: AkeneoUnit | null }
+  /**
+   * Sources in preference order, normalized for `featureType` (see `normalizeSources`).
+   * An empty list removes `sources`, and the feature entry when nothing else is left.
+   */
+  | { type: 'setFeatureSources'; key: FeatureKey; featureType: EtimFeatureType; sources: readonly SourceMapping[] };
 
 export function initialState(): AppState {
   return { release: undefined, imports: [], project: createProject(''), displayLocale: undefined };
@@ -122,6 +130,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         project: { ...state.project, features: withFeatureField(state.project.features, action.key, 'range', action.value) },
       };
+    case 'setFeatureSources': {
+      const sources = normalizeSources(action.sources, action.featureType);
+      return {
+        ...state,
+        project: {
+          ...state.project,
+          features: withFeatureField(state.project.features, action.key, 'sources', sources.length === 0 ? null : sources),
+        },
+      };
+    }
     case 'setUnitMapping': {
       const { [action.unitId]: _removed, ...rest } = state.project.settings.unitMap;
       const family = action.mapping?.family.trim() ?? '';
@@ -141,7 +159,7 @@ function withSettings(state: AppState, patch: Partial<Project['settings']>): App
  * Sets or removes (`null`) one override field of a feature. An entry left
  * without fields is removed, so the project file only lists real overrides.
  */
-function withFeatureField<F extends 'numeric' | 'range'>(
+function withFeatureField<F extends keyof FeatureConfig>(
   features: Project['features'],
   key: FeatureKey,
   field: F,

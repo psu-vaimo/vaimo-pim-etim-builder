@@ -178,3 +178,42 @@ describe('class rows', () => {
     expect(labelFor({}, 'sv_SE')).toBe('');
   });
 });
+
+describe('setFeatureSources', () => {
+  const set = (state: ReturnType<typeof initialState>, key: string, featureType: 'A' | 'N' | 'L' | 'R', sources: { attribute: string; second?: string; yesValues?: string[] }[]) =>
+    appReducer(state, { type: 'setFeatureSources', key, featureType, sources });
+
+  it('stores normalized sources in preference order', () => {
+    const state = set(initialState(), 'EF1', 'L', [
+      { attribute: ' att_a ', second: 'att_x', yesValues: [' yes ', ''] },
+      { attribute: '' },
+      { attribute: 'att_b' },
+    ]);
+    expect(state.project.features).toEqual({ EF1: { sources: [{ attribute: 'att_a', yesValues: ['yes'] }, { attribute: 'att_b' }] } });
+  });
+
+  it('keeps second only for R features', () => {
+    const state = set(initialState(), 'EF2_EU1', 'R', [{ attribute: 'att_from', second: 'att_to', yesValues: ['y'] }]);
+    expect(state.project.features).toEqual({ EF2_EU1: { sources: [{ attribute: 'att_from', second: 'att_to' }] } });
+  });
+
+  it('removes sources, and the entry when nothing else is left', () => {
+    let state = appReducer(initialState(), { type: 'setFeatureRange', key: 'EF2_EU1', value: 'minmax-number' });
+    state = set(state, 'EF2_EU1', 'R', [{ attribute: 'att_from' }]);
+    state = set(state, 'EF3', 'A', [{ attribute: 'att_colour' }]);
+    expect(state.project.features).toEqual({
+      EF2_EU1: { range: 'minmax-number', sources: [{ attribute: 'att_from' }] },
+      EF3: { sources: [{ attribute: 'att_colour' }] },
+    });
+    state = set(state, 'EF2_EU1', 'R', []);
+    state = set(state, 'EF3', 'A', [{ attribute: '  ' }]);
+    expect(state.project.features).toEqual({ EF2_EU1: { range: 'minmax-number' } });
+  });
+
+  it('keeps sources when an override is reset', () => {
+    let state = set(initialState(), 'EF4_EU1', 'N', [{ attribute: 'att_w' }]);
+    state = appReducer(state, { type: 'setFeatureNumeric', key: 'EF4_EU1', value: 'metric' });
+    state = appReducer(state, { type: 'setFeatureNumeric', key: 'EF4_EU1', value: null });
+    expect(state.project.features).toEqual({ EF4_EU1: { sources: [{ attribute: 'att_w' }] } });
+  });
+});

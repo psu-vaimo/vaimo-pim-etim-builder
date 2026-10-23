@@ -4,6 +4,7 @@ import { ProjectBar, type ProjectNotice } from './components/ProjectBar.js';
 import { ClassesStep } from './steps/ClassesStep.js';
 import { FeaturesStep } from './steps/FeaturesStep.js';
 import { ImportStep } from './steps/ImportStep.js';
+import { MappingStep } from './steps/MappingStep.js';
 import { useAppState } from './state/AppStateContext.js';
 import { hasSelectedClasses, isReleaseReady } from './state/appState.js';
 
@@ -21,6 +22,7 @@ function StepContent({ index, label }: { index: number; label: string }) {
   if (index === 0) return <ImportStep />;
   if (index === 1) return <ClassesStep />;
   if (index === 2) return <FeaturesStep />;
+  if (index === 3) return <MappingStep />;
   return (
     <Text c="dimmed" mt="md">
       {label}: not built yet.
