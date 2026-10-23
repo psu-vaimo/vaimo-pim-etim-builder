@@ -1,0 +1,259 @@
+import type { EtimRelease, Project } from '@akeneo-etim/core';
+import { Alert, Badge, Button, Group, List, Loader, Modal, Paper, Stack, Table, Text, Title } from '@mantine/core';
+import { useEffect, useMemo, useState } from 'react';
+import { GenerateIssues } from '../components/features/GenerateIssues.js';
+import { downloadFile } from '../export/download.js';
+import {
+  baseName,
+  formatBytes,
+  groupExportFiles,
+  isFamilyStep,
+  mimeType,
+  readmeSteps,
+  summarizeIssues,
+  zipFileName,
+} from '../export/exportFiles.js';
+import type { ExportJobResult } from '../export/exportJob.js';
+import { runExportJob } from '../export/runExportJob.js';
+import { useAppState } from '../state/AppStateContext.js';
+
+/** Wait after the last project change before building, typing the project name should not start a build per key. */
+const BUILD_DELAY_MS = 300;
+
+interface Built {
+  release: EtimRelease;
+  project: Project;
+  result: ExportJobResult;
+}
+
+type Download = { kind: 'zip' } | { kind: 'file'; path: string };
+
+/** Builds the export in a worker whenever the release or project changes while the step is open. */
+function useExportBuild(release: EtimRelease | undefined, project: Project) {
+  const [built, setBuilt] = useState<Built | undefined>();
+  const [error, setError] = useState<string | undefined>();
+  const [building, setBuilding] = useState(false);
+
+  useEffect(() => {
+    if (!release) return;
+    setBuilding(true);
+    setError(undefined);
+    let cancel: (() => void) | undefined;
+    let active = true;
+    const timer = setTimeout(() => {
+      const job = runExportJob({ release, project });
+      cancel = job.cancel;
+      job.promise.then(
+        (result) => {
+          if (!active) return;
+          setBuilt({ release, project, result });
+          setBuilding(false);
+        },
+        (e: unknown) => {
+          if (!active) return;
+          setError(e instanceof Error ? e.message : String(e));
+          setBuilding(false);
+        },
+      );
+    }, BUILD_DELAY_MS);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      cancel?.();
+    };
+  }, [release, project]);
+
+  const current = built && built.release === release && built.project === project ? built.result : undefined;
+  return { result: current, previous: built?.result, building, error };
+}
+
+export function ExportStep() {
+  const { release, project } = useAppState();
+  const { result, previous, building, error } = useExportBuild(release, project);
+  const [confirm, setConfirm] = useState<Download | undefined>();
+
+  const shown = result ?? previous;
+  const groups = useMemo(() => (shown ? groupExportFiles(shown.files) : []), [shown]);
+  const steps = useMemo(() => (shown ? readmeSteps(shown.files) : []), [shown]);
+  const summary = useMemo(() => (shown ? summarizeIssues(shown.issues) : undefined), [shown]);
+
+  if (!release) return <Text mt="md">Import an ETIM export first.</Text>;
+
+  const zipName = zipFileName(project);
+  const totalSize = groups.reduce((sum, g) => sum + g.files.reduce((s, f) => s + f.size, 0), 0);
+
+  const run = (d: Download) => {
+    if (!result) return;
+    if (d.kind === 'zip') {
+      downloadFile(zipName, result.zip, mimeType(zipName));
+      return;
+    }
+    const file = result.files.find((f) => f.path === d.path);
+    if (file) downloadFile(baseName(file.path), file.content, mimeType(file.path));
+  };
+  const request = (d: Download) => {
+    if (result?.hasErrors) setConfirm(d);
+    else run(d);
+  };
+
+  return (
+    <Stack gap="lg" mt="md">
+      <Alert color="blue" title="Manual steps in Akeneo" data-testid="manual-steps">
+        {steps.length === 0 ? (
+          <Text size="sm">The steps are listed once the export is ready.</Text>
+        ) : (
+          <List type="ordered" spacing={4} size="sm">
+            {steps.map((step, i) => (
+              <List.Item key={i}>
+                {isFamilyStep(step) ? (
+                  <Group gap="xs" wrap="nowrap" data-testid="family-step">
+                    <Text size="sm" fw={700}>
+                      {step}
+                    </Text>
+                    <Badge color="orange" size="sm" style={{ flexShrink: 0 }}>
+                      Required
+                    </Badge>
+                  </Group>
+                ) : (
+                  step
+                )}
+              </List.Item>
+            ))}
+          </List>
+        )}
+        <Text size="xs" c="dimmed" mt="sm">
+          The same steps are in README.txt in the zip.
+        </Text>
+      </Alert>
+
+      <Paper withBorder p="md" radius="md">
+        <Group justify="space-between" align="center">
+          <Stack gap={2}>
+            <Title order={4}>Export files</Title>
+            <Text size="sm" c="dimmed" data-testid="export-status">
+              {building
+                ? 'Preparing the export...'
+                : result
+                  ? `${result.files.length} files, ${formatBytes(totalSize)}, zipped ${formatBytes(result.zip.byteLength)}`
+                  : error
+                    ? 'The export failed'
+                    : 'Preparing the export...'}
+            </Text>
+          </Stack>
+          <Group gap="sm">
+            {building && <Loader size="sm" data-testid="export-loading" />}
+            <Button onClick={() => request({ kind: 'zip' })} disabled={!result || building} data-testid="download-zip">
+              Download zip
+            </Button>
+          </Group>
+        </Group>
+        {result && (
+          <Text size="xs" c="dimmed" mt={4} data-testid="export-zip-name">
+            {zipName}, built in {((result.buildMs + result.zipMs) / 1000).toFixed(1)} s
+          </Text>
+        )}
+      </Paper>
+
+      {error && (
+        <Alert color="red" title="The export could not be built" data-testid="export-error">
+          {error}
+        </Alert>
+      )}
+
+      {summary && summary.errors > 0 && (
+        <Text size="sm" c="red" fw={600} data-testid="export-has-errors">
+          The export has {summary.errors === 1 ? '1 error' : `${summary.errors} errors`}. Files are still generated, check them before
+          importing into Akeneo.
+        </Text>
+      )}
+      {shown && <GenerateIssues issues={shown.issues} />}
+
+      {groups.length > 0 && (
+        <Table withTableBorder verticalSpacing={6} data-testid="export-files" style={building ? { opacity: 0.6 } : undefined}>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>File</Table.Th>
+              <Table.Th w={110} ta="right">
+                Size
+              </Table.Th>
+              <Table.Th w={120} />
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {groups.map((g) => [
+              <Table.Tr key={g.id} bg="var(--mantine-color-gray-light)">
+                <Table.Td colSpan={3}>
+                  <Text size="sm" fw={600}>
+                    {g.label}
+                  </Text>
+                </Table.Td>
+              </Table.Tr>,
+              ...g.files.map((f) => (
+                <Table.Tr key={f.file.path} data-testid="export-file">
+                  <Table.Td ff="monospace" pl="lg" data-testid="export-file-path">
+                    {f.file.path}
+                  </Table.Td>
+                  <Table.Td ta="right">{formatBytes(f.size)}</Table.Td>
+                  <Table.Td ta="right">
+                    <Button
+                      size="xs"
+                      variant="default"
+                      disabled={!result || building}
+                      onClick={() => request({ kind: 'file', path: f.file.path })}
+                      data-testid={`download-${f.file.path}`}
+                    >
+                      Download
+                    </Button>
+                  </Table.Td>
+                </Table.Tr>
+              )),
+            ])}
+          </Table.Tbody>
+        </Table>
+      )}
+
+      <Modal
+        opened={confirm !== undefined}
+        onClose={() => setConfirm(undefined)}
+        title={<Text fw={700}>Download with errors?</Text>}
+        data-testid="confirm-download"
+      >
+        {summary && (
+          <Stack gap="sm">
+            <Text size="sm" data-testid="confirm-error-count">
+              The export has {summary.errors === 1 ? '1 error' : `${summary.errors} errors`}. The files may not import cleanly into
+              Akeneo.
+            </Text>
+            <Stack gap={2}>
+              {summary.firstErrors.map((e, i) => (
+                <Text key={i} size="xs" c="red">
+                  {e.message}
+                </Text>
+              ))}
+              {summary.errors > summary.firstErrors.length && (
+                <Text size="xs" c="dimmed">
+                  {summary.errors - summary.firstErrors.length} more, see the list on this page
+                </Text>
+              )}
+            </Stack>
+            <Group justify="flex-end" mt="sm">
+              <Button variant="default" onClick={() => setConfirm(undefined)} data-testid="confirm-cancel">
+                Cancel
+              </Button>
+              <Button
+                color="red"
+                onClick={() => {
+                  if (confirm) run(confirm);
+                  setConfirm(undefined);
+                }}
+                data-testid="confirm-download-anyway"
+              >
+                Download anyway
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
+    </Stack>
+  );
+}

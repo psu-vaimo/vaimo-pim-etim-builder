@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { FeatureRow } from '../features/featureRows.js';
 import {
   codeError,
+  draftsDiffer,
   filterMappingRows,
   formatAction,
   formatSource,
@@ -12,6 +13,7 @@ import {
   ruleConditions,
   toDrafts,
   validateDrafts,
+  withoutSources,
 } from './sourceMappings.js';
 
 const draft = (attribute: string, second = '', yesValues: string[] = []) => ({ attribute, second, yesValues });
@@ -137,5 +139,38 @@ describe('mapping rows', () => {
     expect(orphanMappings(features, { EF1: { sources: [{ attribute: 'a' }] }, EF9: { sources: [{ attribute: 'b' }] }, EF8: { range: 'text' } })).toEqual([
       'EF9',
     ]);
+  });
+});
+
+describe('draftsDiffer', () => {
+  const saved = [{ attribute: 'att_a' }, { attribute: 'att_b', second: 'att_c' }];
+  it('ignores whitespace, empty rows and fields the type does not use', () => {
+    expect(draftsDiffer(toDrafts(saved), saved, 'R')).toBe(false);
+    expect(draftsDiffer([draft(' att_a '), draft(''), draft('att_b', 'att_c ')], saved, 'R')).toBe(false);
+    expect(draftsDiffer([draft('att_a', 'x')], [{ attribute: 'att_a' }], 'N')).toBe(false);
+    expect(draftsDiffer([draft('')], [], 'A')).toBe(false);
+  });
+  it('sees changed codes, order and yes values', () => {
+    expect(draftsDiffer([draft('att_b', 'att_c'), draft('att_a')], saved, 'R')).toBe(true);
+    expect(draftsDiffer([draft('att_a')], saved, 'R')).toBe(true);
+    expect(draftsDiffer([draft('att_x')], [], 'A')).toBe(true);
+    expect(draftsDiffer([draft('att_l', '', ['yes'])], [{ attribute: 'att_l' }], 'L')).toBe(true);
+  });
+});
+
+describe('withoutSources', () => {
+  it('removes only sources and drops entries left empty', () => {
+    const config = {
+      EF1: { sources: [{ attribute: 'a' }] },
+      EF2_EU1: { numeric: 'metric' as const, sources: [{ attribute: 'b' }] },
+      EF3: { sources: [{ attribute: 'c' }] },
+      EF4: { range: 'text' as const },
+    };
+    expect(withoutSources(config, ['EF1', 'EF2_EU1', 'EF4'])).toEqual({
+      EF2_EU1: { numeric: 'metric' },
+      EF3: { sources: [{ attribute: 'c' }] },
+      EF4: { range: 'text' },
+    });
+    expect(withoutSources(config, [])).toEqual(config);
   });
 });

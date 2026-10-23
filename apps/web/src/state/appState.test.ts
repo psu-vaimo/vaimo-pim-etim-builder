@@ -216,4 +216,13 @@ describe('setFeatureSources', () => {
     state = appReducer(state, { type: 'setFeatureNumeric', key: 'EF4_EU1', value: null });
     expect(state.project.features).toEqual({ EF4_EU1: { sources: [{ attribute: 'att_w' }] } });
   });
+
+  it('removes the sources of unused features and keeps their overrides', () => {
+    let state = set(initialState(), 'EF9', 'A', [{ attribute: 'att_old' }]);
+    state = set(state, 'EF8_EU1', 'N', [{ attribute: 'att_w' }]);
+    state = appReducer(state, { type: 'setFeatureNumeric', key: 'EF8_EU1', value: 'metric' });
+    state = set(state, 'EF1', 'L', [{ attribute: 'att_keep' }]);
+    state = appReducer(state, { type: 'removeSources', keys: ['EF9', 'EF8_EU1'] });
+    expect(state.project.features).toEqual({ EF8_EU1: { numeric: 'metric' }, EF1: { sources: [{ attribute: 'att_keep' }] } });
+  });
 });

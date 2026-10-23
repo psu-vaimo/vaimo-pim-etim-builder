@@ -1,5 +1,6 @@
 import {
   akeneoCodeError,
+  normalizeSources,
   type AkeneoRule,
   type EtimFeatureType,
   type FeatureConfig,
@@ -25,6 +26,14 @@ export function emptyDraft(): SourceDraft {
 
 export function toDrafts(sources: readonly SourceMapping[] | undefined): SourceDraft[] {
   return (sources ?? []).map((s) => ({ attribute: s.attribute, second: s.second ?? '', yesValues: [...(s.yesValues ?? [])] }));
+}
+
+/**
+ * True when the drafts, once normalized as on save, differ from the stored
+ * sources. Empty rows and whitespace do not count as a change.
+ */
+export function draftsDiffer(drafts: readonly SourceDraft[], sources: readonly SourceMapping[], type: EtimFeatureType): boolean {
+  return JSON.stringify(normalizeSources(drafts, type)) !== JSON.stringify(normalizeSources(sources, type));
 }
 
 /** Error for one attribute code, `undefined` when valid. Empty is valid here, callers decide if it is required. */
@@ -158,4 +167,25 @@ export function orphanMappings(features: readonly ProjectFeature[], config: Read
     .filter(([key, c]) => !used.has(key) && (c.sources?.length ?? 0) > 0)
     .map(([key]) => key)
     .sort();
+}
+
+/**
+ * Removes the `sources` of the given features, numeric and range overrides
+ * stay. Entries left without fields are dropped.
+ */
+export function withoutSources(
+  config: Readonly<Record<FeatureKey, FeatureConfig>>,
+  keys: readonly FeatureKey[],
+): Record<FeatureKey, FeatureConfig> {
+  const remove = new Set(keys);
+  const out: Record<FeatureKey, FeatureConfig> = {};
+  for (const [key, c] of Object.entries(config)) {
+    if (!remove.has(key)) {
+      out[key] = c;
+      continue;
+    }
+    const { sources: _sources, ...rest } = c;
+    if (Object.keys(rest).length > 0) out[key] = rest;
+  }
+  return out;
 }

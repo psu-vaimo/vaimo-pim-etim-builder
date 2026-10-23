@@ -25,9 +25,10 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ATTRIBUTE_TYPE_LABELS, ETIM_TYPE_LABELS, RANGE_LABELS } from '../../features/featureRows.js';
 import {
+  draftsDiffer,
   emptyDraft,
   formatAction,
   hasDraftErrors,
@@ -48,8 +49,11 @@ interface Props {
   release: EtimRelease;
   project: Project;
   locale: string | undefined;
+  /** Asked to close, by the close button, Escape, the overlay or Cancel. The parent decides whether to ask about unsaved changes. */
   onClose: () => void;
   onSave: (row: MappingRow, sources: SourceMapping[]) => void;
+  /** Called when the drafts start or stop differing from the saved sources, and with `false` when the editor closes. */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 /** Drawer to edit the sources of one feature, with a live preview of its attributes and rules. */
@@ -125,7 +129,7 @@ function IssueAlerts({ issues }: { issues: readonly GenerateIssue[] }) {
   );
 }
 
-function EditorBody({ row, release, project, locale, onClose, onSave }: Omit<Props, 'row'> & { row: MappingRow }) {
+function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyChange }: Omit<Props, 'row'> & { row: MappingRow }) {
   const [drafts, setDrafts] = useState<SourceDraft[]>(() => {
     const initial = toDrafts(row.sources);
     return initial.length > 0 ? initial : [emptyDraft()];
@@ -133,7 +137,11 @@ function EditorBody({ row, release, project, locale, onClose, onSave }: Omit<Pro
   const errors = useMemo(() => validateDrafts(drafts, row.type), [drafts, row.type]);
   const normalized = useMemo(() => normalizeSources(drafts, row.type), [drafts, row.type]);
   const deferred = useDeferredValue(normalized);
-  const dirty = JSON.stringify(normalized) !== JSON.stringify(row.sources);
+  const dirty = useMemo(() => draftsDiffer(drafts, row.sources, row.type), [drafts, row.sources, row.type]);
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
   // Only the first class using the feature is needed: attributes and rules are per feature, not per class.
   const preview = useMemo(() => {

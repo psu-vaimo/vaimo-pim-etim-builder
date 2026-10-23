@@ -15,6 +15,7 @@ import {
   type RangeSetup,
   type SourceMapping,
 } from '@akeneo-etim/core';
+import { withoutSources } from '../mapping/sourceMappings.js';
 
 /** One upload of ETIM files, the base export or a translation. */
 export interface ImportEntry {
@@ -56,7 +57,9 @@ export type AppAction =
    * Sources in preference order, normalized for `featureType` (see `normalizeSources`).
    * An empty list removes `sources`, and the feature entry when nothing else is left.
    */
-  | { type: 'setFeatureSources'; key: FeatureKey; featureType: EtimFeatureType; sources: readonly SourceMapping[] };
+  | { type: 'setFeatureSources'; key: FeatureKey; featureType: EtimFeatureType; sources: readonly SourceMapping[] }
+  /** Removes the sources of these features, other overrides stay. Used for mappings of features no longer selected. */
+  | { type: 'removeSources'; keys: readonly FeatureKey[] };
 
 export function initialState(): AppState {
   return { release: undefined, imports: [], project: createProject(''), displayLocale: undefined };
@@ -140,6 +143,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         },
       };
     }
+    case 'removeSources':
+      return { ...state, project: { ...state.project, features: withoutSources(state.project.features, action.keys) } };
     case 'setUnitMapping': {
       const { [action.unitId]: _removed, ...rest } = state.project.settings.unitMap;
       const family = action.mapping?.family.trim() ?? '';
