@@ -1,4 +1,6 @@
-import { defaultSettings, type EtimRelease, type Project, type ProjectSettings } from '@akeneo-etim/core';
+import type { EtimRelease } from '../etim/types.js';
+import { defaultSettings } from './defaults.js';
+import type { Project, ProjectSettings } from './types.js';
 
 export type ProjectFileResult = { ok: true; project: Project } | { ok: false; error: string };
 

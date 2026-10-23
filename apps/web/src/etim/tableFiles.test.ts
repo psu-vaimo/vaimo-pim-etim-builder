@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { assignFiles, ETIM_LABEL_TABLES, matchTableName, missingTables } from './tableFiles.js';
+import { ETIM_LABEL_TABLES } from '@akeneo-etim/core';
+import { assignFiles, matchTableName, missingTables } from './tableFiles.js';
 
 describe('matchTableName', () => {
   it('matches exact names case-insensitively, ignoring the extension', () => {
@@ -51,7 +52,7 @@ describe('assignFiles', () => {
     expect(result.byTable.ETIMUNIT?.id).toBe(4);
     expect(result.unrecognized.map((f) => f.id)).toEqual([2]);
     expect(result.replaced.map((f) => f.id)).toEqual([1]);
-    expect(missingTables(result.byTable, ETIM_LABEL_TABLES)).toEqual(['ETIMFEATURE', 'ETIMVALUE']);
+    expect(missingTables(result.byTable, ETIM_LABEL_TABLES)).toEqual(['ETIMFEATURE', 'ETIMVALUE', 'ETIMARTGROUP']);
   });
 
   it('keeps files for tables that are not needed apart', () => {

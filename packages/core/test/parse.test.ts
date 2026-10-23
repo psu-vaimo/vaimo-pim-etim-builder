@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { mergeEtimTranslations, parseEtimExport, type EtimTableName, type EtimTables } from '../src/index.js';
+import { labelFor, mergeEtimTranslations, parseEtimExport, type EtimTableName, type EtimTables } from '../src/index.js';
 
 function loadTables(dir: string): EtimTables {
   const path = join(import.meta.dirname, 'fixtures', dir);
@@ -49,6 +49,10 @@ describe('parseEtimExport', () => {
       valueIds: [],
     });
     expect(features[1]).not.toHaveProperty('unitId');
+  });
+
+  it('reads optional group names', () => {
+    expect(release.groups.EG000001?.labels).toEqual({ en_US: 'Fixings' });
   });
 
   it('orders allowed values by SORTNR', () => {
@@ -108,6 +112,16 @@ describe('parseEtimExport problems', () => {
     expect(features[0]?.valueIds).toEqual(['EV023258']);
   });
 
+  it('works without ETIMARTGROUP and warns about unknown groups when present', () => {
+    const { ETIMARTGROUP: _, ...withoutGroups } = base;
+    const without = parseEtimExport(withoutGroups, 'en_US');
+    expect(without.issues).toEqual([]);
+    expect(without.release.groups).toEqual({});
+
+    const { issues } = parseEtimExport({ ...base, ETIMARTGROUP: 'ARTGROUPID;ARTGROUPDESC\nEG000002;Other\n' }, 'en_US');
+    expect(issues).toEqual([{ severity: 'warning', table: 'ETIMARTCLASS', message: 'Unknown groups: EG000001' }]);
+  });
+
   it('warns on duplicate ids and keeps the first', () => {
     const { release, issues } = parseEtimExport(
       { ...base, ETIMUNIT: 'UNITOFMEASID;UNITDESC\nEU570448;mm\nEU570448;millimetre\n' },
@@ -120,6 +134,14 @@ describe('parseEtimExport problems', () => {
   });
 });
 
+describe('labelFor', () => {
+  it('falls back to the first non-empty label', () => {
+    expect(labelFor({ en_US: 'Colour', sv_SE: 'Färg' }, 'sv_SE')).toBe('Färg');
+    expect(labelFor({ en_US: '', sv_SE: 'Färg' }, 'de_DE')).toBe('Färg');
+    expect(labelFor({}, undefined)).toBe('');
+  });
+});
+
 describe('mergeEtimTranslations', () => {
   const { release } = parseEtimExport(loadTables('en'), 'en_US');
   const { release: merged, issues } = mergeEtimTranslations(release, loadTables('sv'), 'sv_SE');
@@ -128,6 +150,7 @@ describe('mergeEtimTranslations', () => {
     expect(merged.locales).toEqual(['en_US', 'sv_SE']);
     expect(merged.classes.EC000028?.labels).toEqual({ en_US: 'Threaded rod', sv_SE: 'Gängad stång' });
     expect(merged.features.EF005644?.labels).toEqual({ en_US: 'Fastening provision', sv_SE: 'Fästanordning' });
+    expect(merged.groups.EG000001?.labels).toEqual({ en_US: 'Fixings', sv_SE: 'Infästning' });
   });
 
   it('leaves labels missing where the translation has no row', () => {

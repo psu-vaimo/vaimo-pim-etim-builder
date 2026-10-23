@@ -1,6 +1,14 @@
-import { createProject, defaultSettings, type EtimRelease } from '@akeneo-etim/core';
 import { describe, expect, it } from 'vitest';
-import { missingClassIds, missingLocales, parseProjectFile, projectFileName, serializeProject } from './projectFile.js';
+import {
+  createProject,
+  defaultSettings,
+  missingClassIds,
+  missingLocales,
+  parseProjectFile,
+  projectFileName,
+  serializeProject,
+  type EtimRelease,
+} from '../src/index.js';
 
 describe('project file', () => {
   it('round trips a project', () => {
@@ -56,6 +64,7 @@ describe('project file', () => {
       features: {},
       values: {},
       units: {},
+      groups: {},
     };
     const project = { ...createProject('x', ['en_US', 'sv_SE']), classIds: ['EC000009', 'EC999999'] };
     expect(missingClassIds(project, release)).toEqual(['EC999999']);

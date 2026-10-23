@@ -1,6 +1,6 @@
 import { Alert, Button, Code, Group, Text } from '@mantine/core';
 import { useMemo } from 'react';
-import { missingClassIds, missingLocales } from '../project/projectFile.js';
+import { missingClassIds, missingLocales } from '@akeneo-etim/core';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 
 const MAX_LISTED = 50;

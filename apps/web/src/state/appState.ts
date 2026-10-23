@@ -1,4 +1,4 @@
-import { createProject, type EtimClass, type EtimRelease, type Labels, type ParseIssue, type ParseResult, type Project } from '@akeneo-etim/core';
+import { createProject, labelFor, type EtimClass, type EtimRelease, type Labels, type ParseIssue, type ParseResult, type Project } from '@akeneo-etim/core';
 
 /** One upload of ETIM files, the base export or a translation. */
 export interface ImportEntry {
@@ -105,15 +105,6 @@ export function displayLocale(state: AppState): string | undefined {
   const locales = state.release?.locales ?? [];
   if (state.displayLocale !== undefined && locales.includes(state.displayLocale)) return state.displayLocale;
   return locales[0];
-}
-
-/** Label in `locale`, else the first label there is, else empty. */
-export function labelFor(labels: Labels, locale: string | undefined): string {
-  if (locale !== undefined) {
-    const label = labels[locale];
-    if (label) return label;
-  }
-  return Object.values(labels).find((l) => l !== '') ?? '';
 }
 
 export interface ClassRow {

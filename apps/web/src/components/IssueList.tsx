@@ -1,7 +1,7 @@
 import { Accordion, Badge, Group, ScrollArea, Stack, Text } from '@mantine/core';
 import type { EtimTableName, ParseIssue } from '@akeneo-etim/core';
 import { useMemo } from 'react';
-import { ETIM_TABLES } from '../etim/tableFiles.js';
+import { ETIM_TABLES } from '@akeneo-etim/core';
 
 /** Rows rendered per table, real exports can have thousands of warnings. */
 const MAX_ROWS = 200;

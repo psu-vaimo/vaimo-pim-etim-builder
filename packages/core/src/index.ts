@@ -7,3 +7,5 @@ export * from './akeneo/types.js';
 export { collectProjectFeatures, featureKey, type ProjectFeature } from './akeneo/features.js';
 export { generateAttributes } from './akeneo/attributes.js';
 export { generateRecords } from './akeneo/records.js';
+export { labelFor } from './etim/labels.js';
+export * from './project/file.js';

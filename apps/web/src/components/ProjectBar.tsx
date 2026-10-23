@@ -1,5 +1,5 @@
 import { Button, FileButton, Group, TextInput } from '@mantine/core';
-import { parseProjectFile, projectFileName, serializeProject } from '../project/projectFile.js';
+import { parseProjectFile, projectFileName, serializeProject } from '@akeneo-etim/core';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 
 export type ProjectNotice = { color: 'red' | 'green'; message: string };

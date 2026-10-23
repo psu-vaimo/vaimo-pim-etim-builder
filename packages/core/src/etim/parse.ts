@@ -19,6 +19,7 @@ const COLUMNS = {
   ETIMUNIT: ['UNITOFMEASID', 'UNITDESC'],
   ETIMARTCLASSFEATUREMAP: ['ARTCLASSFEATURENR', 'ARTCLASSID', 'FEATUREID', 'FEATURETYPE', 'UNITOFMEASID', 'SORTNR'],
   ETIMARTCLASSFEATUREVALUEMAP: ['ARTCLASSFEATURENR', 'VALUEID', 'SORTNR'],
+  ETIMARTGROUP: ['ARTGROUPID', 'ARTGROUPDESC'],
 } as const satisfies Record<EtimTableName, readonly string[]>;
 
 /** Tables holding descriptions, with their id and description columns. */
@@ -27,6 +28,7 @@ const LABEL_TABLES = {
   ETIMFEATURE: { id: 'FEATUREID', desc: 'FEATUREDESC', target: 'features' },
   ETIMVALUE: { id: 'VALUEID', desc: 'VALUEDESC', target: 'values' },
   ETIMUNIT: { id: 'UNITOFMEASID', desc: 'UNITDESC', target: 'units' },
+  ETIMARTGROUP: { id: 'ARTGROUPID', desc: 'ARTGROUPDESC', target: 'groups' },
 } as const;
 
 type LabelTable = keyof typeof LABEL_TABLES;
@@ -102,7 +104,7 @@ function readLabelRows<T extends { id: string; labels: Labels }>(
  */
 export function parseEtimExport(tables: EtimTables, locale: string): ParseResult {
   const issues = new Issues();
-  const release: EtimRelease = { locales: [locale], classes: {}, features: {}, values: {}, units: {} };
+  const release: EtimRelease = { locales: [locale], classes: {}, features: {}, values: {}, units: {}, groups: {} };
 
   const featureRows = readTable(tables, 'ETIMFEATURE', issues);
   if (featureRows) {
@@ -115,6 +117,13 @@ export function parseEtimExport(tables: EtimTables, locale: string): ParseResult
   const unitRows = readTable(tables, 'ETIMUNIT', issues);
   if (unitRows) {
     release.units = readLabelRows(unitRows, 'ETIMUNIT', locale, issues, (_, id, labels) => ({ id, labels }));
+  }
+  // Optional, only gives group names.
+  if (tables.ETIMARTGROUP !== undefined) {
+    const groupRows = readTable(tables, 'ETIMARTGROUP', issues);
+    if (groupRows) {
+      release.groups = readLabelRows(groupRows, 'ETIMARTGROUP', locale, issues, (_, id, labels) => ({ id, labels }));
+    }
   }
   const classRows = readTable(tables, 'ETIMARTCLASS', issues);
   if (classRows) {
@@ -129,6 +138,15 @@ export function parseEtimExport(tables: EtimTables, locale: string): ParseResult
         features: [],
       };
     });
+    const hasGroups = Object.keys(release.groups).length > 0;
+    const unknownGroups = new Set(
+      Object.values(release.classes)
+        .map((c) => c.groupId)
+        .filter((g) => hasGroups && g && !release.groups[g]),
+    );
+    if (unknownGroups.size > 0) {
+      issues.warn('ETIMARTCLASS', `Unknown groups: ${[...unknownGroups].sort().join(', ')}`);
+    }
   }
 
   const byNr = readClassFeatures(tables, release, issues);

@@ -1,6 +1,7 @@
 import type { EtimRelease, ParseResult } from '@akeneo-etim/core';
 import { describe, expect, it } from 'vitest';
-import { appReducer, classRows, displayLocale, filterClassRows, initialState, isReleaseReady, labelFor } from './appState.js';
+import { appReducer, classRows, displayLocale, filterClassRows, initialState, isReleaseReady } from './appState.js';
+import { labelFor } from '@akeneo-etim/core';
 
 const release: EtimRelease = {
   locales: ['en_US'],
@@ -17,6 +18,7 @@ const release: EtimRelease = {
   features: {},
   values: {},
   units: {},
+  groups: {},
 };
 
 const ok = (r: EtimRelease): ParseResult => ({ release: r, issues: [] });

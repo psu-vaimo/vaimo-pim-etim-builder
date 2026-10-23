@@ -1,17 +1,4 @@
-import type { EtimTableName } from '@akeneo-etim/core';
-
-/** All ETIM tables, in the order shown in the UI. */
-export const ETIM_TABLES: readonly EtimTableName[] = [
-  'ETIMARTCLASS',
-  'ETIMFEATURE',
-  'ETIMVALUE',
-  'ETIMUNIT',
-  'ETIMARTCLASSFEATUREMAP',
-  'ETIMARTCLASSFEATUREVALUEMAP',
-];
-
-/** Tables with descriptions, the only ones needed for a translation. */
-export const ETIM_LABEL_TABLES: readonly EtimTableName[] = ['ETIMARTCLASS', 'ETIMFEATURE', 'ETIMVALUE', 'ETIMUNIT'];
+import { ETIM_TABLES, type EtimTableName } from '@akeneo-etim/core';
 
 export type TableMatch =
   | { kind: 'matched'; table: EtimTableName }

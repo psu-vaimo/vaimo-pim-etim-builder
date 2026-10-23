@@ -1,9 +1,9 @@
 import { Alert, Autocomplete, Badge, Button, Group, LoadingOverlay, Stack, Table, Text } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
-import type { EtimTableName } from '@akeneo-etim/core';
+import { ETIM_LABEL_TABLES, ETIM_REQUIRED_TABLES, ETIM_TABLES, type EtimTableName } from '@akeneo-etim/core';
 import { useMemo, useState } from 'react';
 import { isLocaleCode, LOCALE_SUGGESTIONS } from '../etim/locales.js';
-import { assignFiles, ETIM_LABEL_TABLES, ETIM_TABLES, missingTables } from '../etim/tableFiles.js';
+import { assignFiles, missingTables } from '../etim/tableFiles.js';
 
 export type TableFiles = Partial<Record<EtimTableName, File>>;
 
@@ -28,8 +28,8 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
   const [files, setFiles] = useState<File[]>([]);
   const tables = mode === 'base' ? ETIM_TABLES : ETIM_LABEL_TABLES;
   const assignment = useMemo(() => assignFiles(files, tables), [files, tables]);
-  const missing = missingTables(assignment.byTable, tables);
-  const found = tables.length - missing.length;
+  const missing = missingTables(assignment.byTable, mode === 'base' ? ETIM_REQUIRED_TABLES : tables);
+  const found = tables.filter((t) => assignment.byTable[t]).length;
 
   const localeError = locale !== '' && !isLocaleCode(locale) ? 'Use an Akeneo locale code like en_US or sv_SE' : undefined;
   const ready = isLocaleCode(locale) && (mode === 'base' ? missing.length === 0 : found > 0);
@@ -60,8 +60,8 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
           <Text fw={600}>Drop ETIM CSV files here, or click to choose</Text>
           <Text size="sm" c="dimmed">
             {mode === 'base'
-              ? 'All six tables, one file per table, named like the table (ETIMARTCLASS.csv and so on)'
-              : 'The description tables ETIMARTCLASS, ETIMFEATURE, ETIMVALUE and ETIMUNIT, any of them can be left out'}
+              ? 'One file per table, named like the table (ETIMARTCLASS.csv and so on), ETIMARTGROUP is optional and gives group names'
+              : 'The description tables ETIMARTCLASS, ETIMFEATURE, ETIMVALUE, ETIMUNIT and ETIMARTGROUP, any of them can be left out'}
           </Text>
         </Stack>
       </Dropzone>
@@ -87,8 +87,8 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
                       </Text>
                     </Group>
                   ) : (
-                    <Badge color={mode === 'base' ? 'red' : 'gray'} variant="light">
-                      {mode === 'base' ? 'Missing' : 'Not added'}
+                    <Badge color={missing.includes(table) && mode === 'base' ? 'red' : 'gray'} variant="light">
+                      {mode === 'translation' ? 'Not added' : missing.includes(table) ? 'Missing' : 'Optional'}
                     </Badge>
                   )}
                 </Table.Td>

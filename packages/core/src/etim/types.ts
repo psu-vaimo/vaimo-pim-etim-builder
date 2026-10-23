@@ -21,6 +21,11 @@ export interface EtimUnit {
   labels: Labels;
 }
 
+export interface EtimGroup {
+  id: string;
+  labels: Labels;
+}
+
 /** One feature as used by one class (a row in ETIMARTCLASSFEATUREMAP). */
 export interface EtimClassFeature {
   /** ARTCLASSFEATURENR, unique per class+feature. */
@@ -50,15 +55,28 @@ export interface EtimRelease {
   features: Record<string, EtimFeature>;
   values: Record<string, EtimValue>;
   units: Record<string, EtimUnit>;
+  /** Empty when the export had no ETIMARTGROUP table. */
+  groups: Record<string, EtimGroup>;
 }
 
-export type EtimTableName =
-  | 'ETIMARTCLASS'
-  | 'ETIMFEATURE'
-  | 'ETIMVALUE'
-  | 'ETIMUNIT'
-  | 'ETIMARTCLASSFEATUREMAP'
-  | 'ETIMARTCLASSFEATUREVALUEMAP';
+/** The ETIM tables, in display order. ETIMARTGROUP is optional. */
+export const ETIM_TABLES = [
+  'ETIMARTCLASS',
+  'ETIMFEATURE',
+  'ETIMVALUE',
+  'ETIMUNIT',
+  'ETIMARTCLASSFEATUREMAP',
+  'ETIMARTCLASSFEATUREVALUEMAP',
+  'ETIMARTGROUP',
+] as const;
+
+export type EtimTableName = (typeof ETIM_TABLES)[number];
+
+/** Tables a full export must have. */
+export const ETIM_REQUIRED_TABLES: readonly EtimTableName[] = ETIM_TABLES.filter((t) => t !== 'ETIMARTGROUP');
+
+/** Tables with descriptions, the only ones read for a translation. */
+export const ETIM_LABEL_TABLES: readonly EtimTableName[] = ['ETIMARTCLASS', 'ETIMFEATURE', 'ETIMVALUE', 'ETIMUNIT', 'ETIMARTGROUP'];
 
 /** Raw CSV text per ETIM table. */
 export type EtimTables = Partial<Record<EtimTableName, string>>;
