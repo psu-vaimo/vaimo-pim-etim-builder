@@ -7,6 +7,7 @@ import { generateRules } from '../akeneo/rules.js';
 import type { GenerateIssue } from '../akeneo/types.js';
 import type { EtimRelease } from '../etim/types.js';
 import { projectFileName, serializeProject } from '../project/file.js';
+import { validateSettings } from '../project/settings.js';
 import type { Project } from '../project/types.js';
 import { attributeGroupsTable, attributesTable, dependenciesYaml, recordsTable, rulesYaml } from './akeneo.js';
 import { reportTables } from './report.js';
@@ -18,7 +19,7 @@ export interface ExportFile {
   content: string | Uint8Array;
 }
 
-export type ExportIssue = GenerateIssue & { step: 'attributes' | 'records' | 'rules' };
+export type ExportIssue = GenerateIssue & { step: 'settings' | 'attributes' | 'records' | 'rules' };
 
 export interface ExportResult {
   files: ExportFile[];
@@ -42,6 +43,7 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
   const { codes } = project.settings;
 
   const issues: ExportIssue[] = [
+    ...validateSettings(project.settings).map(({ field: _field, ...i }) => ({ ...i, step: 'settings' as const })),
     ...attrs.issues.map((i) => ({ ...i, step: 'attributes' as const })),
     ...records.issues.map((i) => ({ ...i, step: 'records' as const })),
     ...rules.issues.map((i) => ({ ...i, step: 'rules' as const })),

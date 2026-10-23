@@ -226,3 +226,26 @@ describe('setFeatureSources', () => {
     expect(state.project.features).toEqual({ EF8_EU1: { numeric: 'metric' }, EF1: { sources: [{ attribute: 'att_keep' }] } });
   });
 });
+
+describe('updateSettings', () => {
+  it('patches codes, groups, label words and priority, and resets naming', () => {
+    let state = appReducer(initialState(), { type: 'setNumericDefault', value: 'metric' });
+    state = appReducer(state, {
+      type: 'updateSettings',
+      patch: { codes: { attributePrefix: 'etim_' }, groups: { mapped: 'mapped' }, rulePriority: 50, labelTexts: { de_DE: { from: 'von' }, sv_SE: { min: 'Minst' } } },
+    });
+    const s = state.project.settings;
+    expect(s.codes.attributePrefix).toBe('etim_');
+    expect(s.codes.classEntity).toBe('etim_class');
+    expect(s.groups).toEqual({ general: 'etim', mapped: 'mapped', unmapped: 'etim_unmapped' });
+    expect(s.rulePriority).toBe(50);
+    expect(s.labelTexts.de_DE).toEqual({ from: 'von', description: 'Description', min: 'Min', max: 'Max', classAttribute: 'ETIM class' });
+    expect(s.labelTexts.sv_SE?.min).toBe('Minst');
+    expect(s.labelTexts.sv_SE?.from).toBe('från');
+
+    state = appReducer(state, { type: 'resetNamingSettings' });
+    expect(state.project.settings.codes.attributePrefix).toBe('');
+    expect(state.project.settings.labelTexts.de_DE).toBeUndefined();
+    expect(state.project.settings.numeric).toBe('metric');
+  });
+});

@@ -23,3 +23,4 @@ export { buildExport, zipExport, type ExportFile, type ExportIssue, type ExportR
 export { toCsv, type Cell, type Table } from './export/table.js';
 export { writeXlsx } from './export/xlsx.js';
 export { AKENEO_CODE_MAX, akeneoCodeError, normalizeSources, withSources, type SourceInput } from './project/sources.js';
+export { validateSettings, type SettingsIssue } from './project/settings.js';

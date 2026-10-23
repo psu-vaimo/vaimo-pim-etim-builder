@@ -1,5 +1,6 @@
 import {
   createProject,
+  defaultSettings,
   labelFor,
   normalizeSources,
   type AkeneoUnit,
@@ -8,10 +9,12 @@ import {
   type FeatureConfig,
   type EtimFeatureType,
   type FeatureKey,
+  type LabelTexts,
   type NumericSetup,
   type ParseIssue,
   type ParseResult,
   type Project,
+  type ProjectSettings,
   type RangeSetup,
   type SourceMapping,
 } from '@akeneo-etim/core';
@@ -59,7 +62,19 @@ export type AppAction =
    */
   | { type: 'setFeatureSources'; key: FeatureKey; featureType: EtimFeatureType; sources: readonly SourceMapping[] }
   /** Removes the sources of these features, other overrides stay. Used for mappings of features no longer selected. */
-  | { type: 'removeSources'; keys: readonly FeatureKey[] };
+  | { type: 'removeSources'; keys: readonly FeatureKey[] }
+  /** Patches code, group and label settings and the rule priority. Values are stored as typed, validation is shown in the UI. */
+  | { type: 'updateSettings'; patch: SettingsPatch }
+  /** Resets codes, groups, label words and rule priority to the defaults, keeps number/range defaults and unit mappings. */
+  | { type: 'resetNamingSettings' };
+
+export interface SettingsPatch {
+  codes?: Partial<ProjectSettings['codes']>;
+  groups?: Partial<ProjectSettings['groups']>;
+  rulePriority?: number;
+  /** Per locale, partial label words. */
+  labelTexts?: Record<string, Partial<LabelTexts>>;
+}
 
 export function initialState(): AppState {
   return { release: undefined, imports: [], project: createProject(''), displayLocale: undefined };
@@ -152,6 +167,24 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       // Only complete mappings are stored, a half filled one would give a metric attribute without unit.
       const unitMap = family && unit ? { ...rest, [action.unitId]: { family, unit } } : rest;
       return withSettings(state, { unitMap });
+    }
+    case 'updateSettings': {
+      const { codes, groups, labelTexts } = state.project.settings;
+      const { patch } = action;
+      const nextTexts = { ...labelTexts };
+      for (const [locale, texts] of Object.entries(patch.labelTexts ?? {})) {
+        nextTexts[locale] = { ...(labelTexts[locale] ?? labelTexts.en_US ?? defaultSettings().labelTexts.en_US!), ...texts };
+      }
+      return withSettings(state, {
+        codes: { ...codes, ...patch.codes },
+        groups: { ...groups, ...patch.groups },
+        labelTexts: nextTexts,
+        ...(patch.rulePriority !== undefined ? { rulePriority: patch.rulePriority } : {}),
+      });
+    }
+    case 'resetNamingSettings': {
+      const d = defaultSettings();
+      return withSettings(state, { codes: d.codes, groups: d.groups, labelTexts: d.labelTexts, rulePriority: d.rulePriority });
     }
   }
 }
