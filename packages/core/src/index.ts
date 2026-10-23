@@ -19,3 +19,6 @@ export { labelFor } from './etim/labels.js';
 export * from './project/file.js';
 export { generateDependencies } from './akeneo/dependencies.js';
 export { generateRules } from './akeneo/rules.js';
+export { buildExport, zipExport, type ExportFile, type ExportIssue, type ExportResult } from './export/bundle.js';
+export { toCsv, type Cell, type Table } from './export/table.js';
+export { writeXlsx } from './export/xlsx.js';

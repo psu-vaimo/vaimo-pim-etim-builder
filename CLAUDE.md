@@ -104,14 +104,14 @@ Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `
 | A | copy `etim_value` from source reference entity to feature, copy `etim_label` to `<code>_label` (record attribute names are project settings) |
 | N | copy value |
 | R text, 1 source | copy value |
-| R text, 2 sources (`second`) | concatenate as `10-20` (no spaces, no unit). The `{text: '-'}` item must be verified against Akeneo SaaS |
+| R text, 2 sources (`second`) | concatenate `[field, {text: '-'}, field]` as `10-20`. Akeneo docs: a space is only added between two field blocks, not next to a text block |
 | R min/max | copy `attribute` to `_min`, `second` (or the same source) to `_max` |
 | L with `yesValues` | rule `_true`: source IN yes values, set true. Rule `_false`: source NOT EMPTY and NOT IN, set false. Empty source stays empty |
 | L without `yesValues` | copy (source is a boolean) |
 
 Rule code `etim_<attribute code>`, with `_1`, `_2` per source when there are several (1 = preferred), label `EF000139 - Surface protection` (plus `(from: source)` when several). Field names follow the prototype's rules YAML.
 
-Several source attributes can map to one feature. The consultant orders them by preference. Akeneo runs higher priority rules first and later rules overwrite, so the preferred source gets the lowest priority (runs last) and wins when not empty. Verify this ordering against current Akeneo docs when implementing.
+Several source attributes can map to one feature. The consultant orders them by preference. Akeneo runs higher priority rules first (confirmed in the Akeneo rule docs) and later rules overwrite, so the preferred source gets the lowest priority (runs last) and wins when not empty.
 
 ## Tech stack
 - TypeScript monorepo, pnpm workspaces, Node 22, Vitest.
@@ -145,8 +145,16 @@ Run `pnpm test` and `pnpm typecheck` before committing.
 - Generated objects carry an `origin` (feature key, ETIM type, class) for the UI and reports.
 - Project file type and defaults: `packages/core/src/project`.
 
+## Export (`packages/core/src/export`)
+- `buildExport(release, project)` returns all files plus issues, `zipExport(files)` zips them. Runs in the browser, output is deterministic.
+- Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml/.json`, `mapping_report.xlsx`, the project file.
+- XLSX via a small writer on `fflate` (`writeXlsx`), no spreadsheet library in the bundle.
+- YAML: no anchors/aliases, YAML 1.1 quoting (`"yes"`), so PHP parsers read strings as strings.
+- No attribute options file: ETIM values are reference entity records, there are no select attributes.
+
 ## Open decisions
-- None right now. Add new ones here as they come up.
+- Rules YAML format: the export follows the prototype (`operator: AND` condition groups, `execution_type`, `triggers`, `reference_entity_attribute` on copy). Akeneo's public rule docs (on-prem) show a flat condition list and no such keys. Verify with a real SaaS import.
+- Dependencies file: the root key `attribute_dependencies` is assumed, the prototype only shows the entries. Verify how dependencies are imported in SaaS.
 
 ## Conventions
 - Keep generated Akeneo codes deterministic, the same ETIM input must always produce the same codes.
