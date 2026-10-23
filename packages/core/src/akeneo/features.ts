@@ -1,5 +1,5 @@
 import type { EtimFeatureType, EtimRelease } from '../etim/types.js';
-import type { FeatureKey, Project } from '../project/types.js';
+import type { AkeneoUnit, FeatureKey, NumericSetup, Project, ProjectSettings, RangeSetup } from '../project/types.js';
 import type { GenerateIssue } from './types.js';
 
 /** One feature+unit combination used by the selected classes. */
@@ -61,4 +61,29 @@ export function collectProjectFeatures(
 
   const features = [...byKey.values()].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   return { features, issues };
+}
+
+export function effectiveNumeric(project: Project, key: FeatureKey): NumericSetup {
+  return project.features[key]?.numeric ?? project.settings.numeric;
+}
+
+export function effectiveRange(project: Project, key: FeatureKey): RangeSetup {
+  return project.features[key]?.range ?? project.settings.range;
+}
+
+/**
+ * True when the feature is meant to become metric attribute(s), so its unit
+ * needs a mapping. Features without a unit always use number.
+ */
+export function resolvesToMetric(feature: ProjectFeature, project: Project): boolean {
+  if (!feature.unitId) return false;
+  if (feature.type === 'N') return effectiveNumeric(project, feature.key) === 'metric';
+  if (feature.type === 'R') return effectiveRange(project, feature.key) === 'minmax-metric';
+  return false;
+}
+
+/** The Akeneo measurement for an ETIM unit, only when both family and unit are filled in. */
+export function unitMapping(settings: ProjectSettings, unitId: string | undefined): AkeneoUnit | undefined {
+  const unit = unitId ? settings.unitMap[unitId] : undefined;
+  return unit && unit.family.trim() && unit.unit.trim() ? { family: unit.family.trim(), unit: unit.unit.trim() } : undefined;
 }

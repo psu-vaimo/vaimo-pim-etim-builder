@@ -1,5 +1,6 @@
 import {
   labelFor,
+  resolvesToMetric,
   type AkeneoAttribute,
   type AkeneoAttributeType,
   type EtimFeatureType,
@@ -37,21 +38,6 @@ export const RANGE_LABELS: Record<RangeSetup, string> = {
   'minmax-number': 'Min and max, number',
   'minmax-metric': 'Min and max, metric',
 };
-
-export function effectiveNumeric(project: Project, key: FeatureKey): NumericSetup {
-  return project.features[key]?.numeric ?? project.settings.numeric;
-}
-
-export function effectiveRange(project: Project, key: FeatureKey): RangeSetup {
-  return project.features[key]?.range ?? project.settings.range;
-}
-
-/** True when the feature becomes metric attribute(s) and so needs a unit mapping. */
-export function resolvesToMetric(feature: ProjectFeature, project: Project): boolean {
-  if (feature.type === 'N') return effectiveNumeric(project, feature.key) === 'metric';
-  if (feature.type === 'R') return effectiveRange(project, feature.key) === 'minmax-metric';
-  return false;
-}
 
 export interface FeatureRow {
   key: FeatureKey;

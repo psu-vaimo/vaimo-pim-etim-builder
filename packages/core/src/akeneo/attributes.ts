@@ -1,7 +1,7 @@
 import type { EtimRelease, Labels } from '../etim/types.js';
 import { defaultSettings } from '../project/defaults.js';
-import type { FeatureKey, LabelTexts, NumericSetup, Project, ProjectSettings } from '../project/types.js';
-import { collectProjectFeatures, type ProjectFeature } from './features.js';
+import type { AkeneoUnit, FeatureKey, LabelTexts, NumericSetup, Project, ProjectSettings } from '../project/types.js';
+import { collectProjectFeatures, effectiveNumeric, effectiveRange, unitMapping, type ProjectFeature } from './features.js';
 import type { AkeneoAttribute, AkeneoAttributeType, FeaturePart, GenerateIssue } from './types.js';
 
 const AKENEO_CODE = /^[a-zA-Z0-9_]+$/;
@@ -45,8 +45,16 @@ export function generateAttributes(
     },
   ];
 
+  const missingLabels = new Map<string, string[]>();
   for (const feature of features) {
-    drafts.push(...featureAttributes(feature, release, project, textsFor, issues));
+    drafts.push(...featureAttributes(feature, release, project, textsFor, issues, missingLabels));
+  }
+  for (const [locale, ids] of missingLabels) {
+    const shown = ids.slice(0, 5).join(', ') + (ids.length > 5 ? ` and ${ids.length - 5} more` : '');
+    issues.push({
+      severity: 'warning',
+      message: `${ids.length} features have no ${locale} label, their attribute labels are left empty: ${shown}`,
+    });
   }
 
   const seen = new Set<string>();
@@ -67,6 +75,7 @@ function featureAttributes(
   project: Project,
   textsFor: (locale: string) => LabelTexts,
   issues: GenerateIssue[],
+  missingLabels: Map<string, string[]>,
 ): Draft[] {
   const { settings } = project;
   const config = project.features[feature.key] ?? {};
@@ -76,13 +85,8 @@ function featureAttributes(
 
   const featureLabels = release.features[feature.featureId]?.labels ?? {};
   const unitLabels = feature.unitId ? (release.units[feature.unitId]?.labels ?? {}) : undefined;
-  const missing = project.locales.filter((l) => !featureLabels[l]);
-  if (missing.length > 0) {
-    issues.push({
-      severity: 'warning',
-      featureKey: feature.key,
-      message: `No ${feature.featureId} label for ${missing.join(', ')}, label left empty`,
-    });
+  for (const locale of project.locales) {
+    if (!featureLabels[locale]) missingLabels.set(locale, [...(missingLabels.get(locale) ?? []), feature.featureId]);
   }
 
   const labels = (part: FeaturePart): Labels => {
@@ -121,23 +125,33 @@ function featureAttributes(
     },
   });
 
-  const numeric = (part: FeaturePart, attrCode: string, setup: NumericSetup): Draft => {
-    const unit = feature.unitId ? settings.unitMap[feature.unitId] : undefined;
-    if (setup === 'metric' && !unit) {
+  // Metric needs a unit and its mapping. A feature without a unit quietly uses
+  // number under a metric project default, an explicit override is an error.
+  const metricUnit = (setup: NumericSetup, explicit: boolean) => {
+    if (setup !== 'metric') return undefined;
+    if (!feature.unitId) {
+      if (explicit) {
+        issues.push({ severity: 'error', featureKey: feature.key, message: `${feature.key} has no unit, metric is not possible, using number` });
+      }
+      return undefined;
+    }
+    const unit = unitMapping(settings, feature.unitId);
+    if (!unit) {
       issues.push({
         severity: 'error',
         featureKey: feature.key,
-        message: feature.unitId
-          ? `Unit ${feature.unitId} has no Akeneo measurement mapping, ${attrCode} falls back to number`
-          : `${feature.key} has no unit, ${attrCode} falls back to number`,
+        message: `Unit ${feature.unitId} has no Akeneo measurement mapping, ${code} falls back to number`,
       });
     }
-    const metric = setup === 'metric' && unit;
+    return unit;
+  };
+
+  const numeric = (part: FeaturePart, attrCode: string, unit: AkeneoUnit | undefined): Draft => {
     return {
-      ...base(part, attrCode, metric ? 'pim_catalog_metric' : 'pim_catalog_number'),
+      ...base(part, attrCode, unit ? 'pim_catalog_metric' : 'pim_catalog_number'),
       decimalsAllowed: true,
       negativeAllowed: true,
-      ...(metric ? { metricFamily: unit.family, defaultMetricUnit: unit.unit } : {}),
+      ...(unit ? { metricFamily: unit.family, defaultMetricUnit: unit.unit } : {}),
     };
   };
 
@@ -148,14 +162,14 @@ function featureAttributes(
       }
       return [base('value', code, 'pim_catalog_text'), base('label', code + settings.codes.labelSuffix, 'pim_catalog_text')];
     case 'N':
-      return [numeric('value', code, config.numeric ?? settings.numeric)];
+      return [numeric('value', code, metricUnit(effectiveNumeric(project, feature.key), config.numeric !== undefined))];
     case 'L':
       return [base('value', code, 'pim_catalog_boolean')];
     case 'R': {
-      const range = config.range ?? settings.range;
+      const range = effectiveRange(project, feature.key);
       if (range === 'text') return [base('value', code, 'pim_catalog_text')];
-      const setup: NumericSetup = range === 'minmax-metric' ? 'metric' : 'number';
-      return [numeric('min', `${code}_min`, setup), numeric('max', `${code}_max`, setup)];
+      const unit = metricUnit(range === 'minmax-metric' ? 'metric' : 'number', config.range !== undefined);
+      return [numeric('min', `${code}_min`, unit), numeric('max', `${code}_max`, unit)];
     }
   }
 }

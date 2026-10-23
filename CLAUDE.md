@@ -73,7 +73,7 @@ Key tabs:
 
 Number vs metric and the range setup have a project default, overridable per feature.
 
-Units: an ETIM class defines one unit per feature, so the unit is never a user choice. It is always part of the code and label, also for metric attributes. Metric needs an ETIM unit to Akeneo measurement family+unit mapping (project `unitMap`), without it the attribute falls back to number with an error.
+Units: an ETIM class defines one unit per feature, so the unit is never a user choice. It is always part of the code and label, also for metric attributes. Metric needs an ETIM unit to Akeneo measurement family+unit mapping (project `unitMap`), without it the attribute falls back to number with an error. A feature without a unit always uses number (quietly under a metric project default, an error for an explicit metric override). Unit mappings are kept in the project file even when no longer used.
 
 The class attribute (`etim_class`, reference entity link) is generated first, in group `etim` (assumed, not in the prototype).
 

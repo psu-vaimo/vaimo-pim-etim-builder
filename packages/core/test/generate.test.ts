@@ -97,6 +97,38 @@ describe('generateAttributes', () => {
     });
   });
 
+  it('quietly uses number for a unitless N under a metric default, errors on an explicit override', () => {
+    const r = release();
+    r.classes.EC000028!.features.push({ nr: '997', featureId: 'EF015006', type: 'N', sortNr: 9, valueIds: [] });
+    const p = project();
+    p.settings.numeric = 'metric';
+    p.settings.unitMap.EU570448 = { family: 'Length', unit: 'MILLIMETER' };
+    const quiet = generateAttributes(r, p);
+    expect(byCode(quiet.attributes).ef015006?.type).toBe('pim_catalog_number');
+    expect(quiet.issues.filter((i) => i.severity === 'error')).toEqual([]);
+
+    p.features.EF015006 = { numeric: 'metric' };
+    expect(generateAttributes(r, p).issues).toContainEqual({
+      severity: 'error',
+      featureKey: 'EF015006',
+      message: 'EF015006 has no unit, metric is not possible, using number',
+    });
+  });
+
+  it('treats a half filled unit mapping as missing and reports a min/max range once', () => {
+    const p = project({ features: { EF000100_EU570073: { range: 'minmax-metric' } } });
+    p.settings.unitMap.EU570073 = { family: 'Temperature', unit: ' ' };
+    const { attributes, issues } = generateAttributes(release(), p);
+    expect(byCode(attributes).ef000100_eu570073_min?.type).toBe('pim_catalog_number');
+    expect(issues.filter((i) => i.featureKey === 'EF000100_EU570073')).toEqual([
+      {
+        severity: 'error',
+        featureKey: 'EF000100_EU570073',
+        message: 'Unit EU570073 has no Akeneo measurement mapping, ef000100_eu570073 falls back to number',
+      },
+    ]);
+  });
+
   it('generates min/max for ranges, with per feature override and unit label fallback', () => {
     const p = project({ features: { EF000100_EU570073: { range: 'minmax-number' } } });
     const a = byCode(generateAttributes(release(), p).attributes);
@@ -130,8 +162,7 @@ describe('generateAttributes', () => {
     });
     expect(issues).toContainEqual({
       severity: 'warning',
-      featureKey: 'EF015003',
-      message: 'No EF015003 label for sv_SE, label left empty',
+      message: '2 features have no sv_SE label, their attribute labels are left empty: EF015003, EF015006',
     });
   });
 

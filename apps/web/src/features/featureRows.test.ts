@@ -2,15 +2,13 @@ import { collectProjectFeatures, createProject, generateAttributes, type EtimRel
 import { describe, expect, it } from 'vitest';
 import {
   countBy,
-  effectiveNumeric,
-  effectiveRange,
   featureRows,
   filterFeatureRows,
   metricUnitRows,
-  resolvesToMetric,
   suggestUnitMapping,
   unitSuggestions,
 } from './featureRows.js';
+import { effectiveNumeric, effectiveRange, resolvesToMetric } from '@akeneo-etim/core';
 
 const release: EtimRelease = {
   locales: ['en_US', 'sv_SE'],
