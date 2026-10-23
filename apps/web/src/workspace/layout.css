@@ -1,0 +1,68 @@
+/* Header: one row from md up, two rows below (title and mode switch, then the project bar). */
+.app-header {
+  height: 100%;
+  padding: 6px var(--mantine-spacing-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.app-header-main {
+  min-width: 0;
+}
+
+.app-title {
+  white-space: nowrap;
+  font-size: var(--mantine-font-size-lg);
+}
+
+/* The project bar scrolls inside its own box rather than widening the page. */
+.app-project-bar {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Below sm the project bar wraps, the name input takes the first row and the buttons the second. */
+@media (max-width: 47.99em) {
+  .app-project-bar > .mantine-Group-root {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .app-project-bar .mantine-TextInput-root {
+    flex: 1 1 100%;
+    width: auto !important;
+  }
+}
+
+.app-project-bar .mantine-Button-root {
+  flex-shrink: 0;
+}
+
+@media (min-width: 62em) {
+  .app-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mantine-spacing-md);
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .app-title {
+    font-size: var(--mantine-h3-font-size);
+  }
+}
+
+.app-main {
+  min-width: 0;
+}
+
+/* Wide tables in a step scroll inside the step, never the page. */
+.app-step {
+  min-width: 0;
+  overflow-x: auto;
+}

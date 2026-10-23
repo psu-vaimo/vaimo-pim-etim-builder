@@ -118,6 +118,9 @@ Several source attributes can map to one feature. The consultant orders them by 
 - `packages/core` (`@akeneo-etim/core`): shared, framework-free ETIM to Akeneo logic (parsing, code/label generation, attributes, dependencies, rules, exporters). Most logic and tests live here. Consumed as TypeScript source (no build step).
 - `apps/api` (`@akeneo-etim/api`): Fastify, port 3001. `buildApp()` in `src/app.ts`, tests use `app.inject`.
 - `apps/web` (`@akeneo-etim/web`): React + Vite + Mantine (Stepper for the wizard). Dev server proxies `/api/*` to the API.
+  - Two modes: Wizard (Stepper, steps in order) and Workspace (sidebar, same six screens in any order, status per section). Same guards in both: steps after Import need a release without errors, steps after Classes a selected class. The mode is remembered in localStorage. The workspace is free navigation only, generated output is never edited directly.
+  - Settings drawer from the project bar: codes, groups, label words per locale, rule priority, validated by `validateSettings` in core.
+  - State: `useReducer` + context in `apps/web/src/state`. Heavy work (ETIM import, export) runs in web workers.
 
 ## Commands
 ```sh

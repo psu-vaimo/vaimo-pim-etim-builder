@@ -4,7 +4,8 @@ import { parseProjectFile, projectFileName, serializeProject } from '@akeneo-eti
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { SettingsPanel } from './settings/SettingsPanel.js';
 
-export type ProjectNotice = { color: 'red' | 'green'; message: string };
+/** `loaded` means a project file was read into the app. */
+export type ProjectNotice = { kind: 'loaded' | 'loadFailed'; color: 'red' | 'green'; message: string };
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -25,11 +26,11 @@ export function ProjectBar({ onNotice }: { onNotice: (notice: ProjectNotice) => 
     if (!file) return;
     const result = parseProjectFile(await file.text());
     if (!result.ok) {
-      onNotice({ color: 'red', message: `${file.name} could not be loaded. ${result.error}` });
+      onNotice({ kind: 'loadFailed', color: 'red', message: `${file.name} could not be loaded. ${result.error}` });
       return;
     }
     dispatch({ type: 'projectLoaded', project: result.project });
-    onNotice({ color: 'green', message: `Loaded project ${result.project.name || file.name}.` });
+    onNotice({ kind: 'loaded', color: 'green', message: `Loaded project ${result.project.name || file.name}.` });
   }
 
   return (
