@@ -56,7 +56,7 @@ Key tabs:
 - Code: lower-case feature code, plus unit code when the feature has a unit: `ef000003`, `ef000008_eu570448`.
 - One attribute per feature+unit combination across all selected classes (not per class).
 - Label: `EF000008 - Width [mm]` / `EF000008 - Bredd [mm]` (feature code, description, unit in brackets).
-- Locales: `en_US`, `sv_SE`.
+- Locales: configurable per project (prototype uses `en_US`, `sv_SE`).
 - New attributes go to group `etim_unmapped`. Not scopable, not localizable, not unique.
 
 ### ETIM type to Akeneo type
