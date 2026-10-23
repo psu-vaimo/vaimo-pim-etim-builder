@@ -14,6 +14,7 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 - ETIM input by file upload (ETIM export, same tables as the prototype).
 - Select classes, configure locales per project (from what the ETIM export contains).
 - Generate attributes, reference entity records, dependencies and rules.
+- UI: a wizard for setup (import ETIM, select classes and locales, configure features, map source attributes, review, export), then a workspace for free editing of classes, attributes, rules and dependencies.
 - Customer source attributes for mapping are entered manually.
 - Projects saved and loaded as a JSON project file (no database).
 - Export files only:
@@ -54,10 +55,11 @@ Key tabs:
 
 ### Attribute codes and labels
 - Code: lower-case feature code, plus unit code when the feature has a unit: `ef000003`, `ef000008_eu570448`.
+- Code prefixes are configurable per project (feature, value and class codes, reference entity and `etim_class` attribute codes). Prototype codes are the defaults.
 - One attribute per feature+unit combination across all selected classes (not per class).
 - Label: `EF000008 - Width [mm]` / `EF000008 - Bredd [mm]` (feature code, description, unit in brackets).
 - Locales: configurable per project (prototype uses `en_US`, `sv_SE`).
-- New attributes go to group `etim_unmapped`. Not scopable, not localizable, not unique.
+- Attribute groups: `etim_mapped` for features mapped from a customer source attribute, `etim_unmapped` for the rest. Not scopable, not localizable, not unique.
 
 ### ETIM type to Akeneo type
 | ETIM | Akeneo |
@@ -65,7 +67,9 @@ Key tabs:
 | A (alphanumeric) | `akeneo_reference_entity` linked to `etim_value` |
 | N (numeric) | `pim_catalog_number` or `pim_catalog_metric`, chosen per feature+unit (decimals and negatives allowed) |
 | L (logical) | `pim_catalog_boolean` |
-| R (range) | one of: two number attributes (`_min`, `_max`), one text attribute (`10-20`), or measurement. Chosen per feature, setups can be mixed in one project |
+| R (range) | one of: two number attributes (`_min`, `_max`), one text attribute (`10-20`), or measurement. Setups can be mixed in one project |
+
+Number vs metric and the range setup have a project default, overridable per feature.
 
 Units: an ETIM class defines one unit per feature, so the unit is never a user choice. It is always part of the code and label, also for metric attributes.
 
@@ -85,17 +89,17 @@ Native Akeneo SaaS attribute dependencies:
 Generated per class:
 - Trigger: `etim_class IN [ECxxxxxx]`.
 - Every feature attribute in the class: `IS_DISPLAYED`.
-- A features not mapped from a customer attribute: `RESTRICTED_VALUES` to the class's allowed ETIM values.
+- A features not mapped from a customer attribute: `RESTRICTED_VALUES` to the class's allowed ETIM values, exactly as ETIM lists them (no special handling of generic values like `EV000154`).
 - Label attributes in the class: `IS_DISPLAYED`.
 
 ### Rules (auto enrichment)
-Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `triggered`, priority 99.
+Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `triggered`. Priority is a project default (prototype uses 99), editable.
 | ETIM type | Action |
 |---|---|
 | A | copy `etim_value` from source reference entity to feature, copy `etim_label` to `<code>_label` |
 | N, R 1:1 | copy value |
-| R 2:1 | concat two source values |
-| L | set `true` when source matches a "yes" value, default `false` |
+| R 2:1 | concat two source values as `10-20` (no spaces, no unit) |
+| L | `true` when source matches a "yes" value, `false` for any other value, empty when source is empty |
 
 ## Tech stack
 - TypeScript monorepo.
@@ -107,7 +111,7 @@ Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `
 - Hosting and auth.
 - Package manager, test runner, UI component library.
 - Exact Akeneo SaaS import file formats for dependencies (verify against current Akeneo docs).
-- Rule priorities and handling of conflicting mappings.
+- Handling of conflicting mappings (two sources for one feature).
 
 ## Conventions
 - Keep generated Akeneo codes deterministic, the same ETIM input must always produce the same codes.
