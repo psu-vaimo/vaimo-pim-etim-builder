@@ -1,6 +1,15 @@
 import type { EtimRelease, ParseResult } from '@akeneo-etim/core';
 import { describe, expect, it } from 'vitest';
-import { appReducer, classRows, displayLocale, filterClassRows, initialState, isReleaseReady } from './appState.js';
+import {
+  appReducer,
+  classRows,
+  displayLocale,
+  filterClassRows,
+  groupOptions,
+  hasSelectedClasses,
+  initialState,
+  isReleaseReady,
+} from './appState.js';
 import { labelFor } from '@akeneo-etim/core';
 
 const release: EtimRelease = {
@@ -75,7 +84,75 @@ describe('appReducer', () => {
   });
 });
 
+describe('feature settings', () => {
+  it('sets project defaults for numeric and range', () => {
+    let state = appReducer(initialState(), { type: 'setNumericDefault', value: 'metric' });
+    state = appReducer(state, { type: 'setRangeDefault', value: 'minmax-number' });
+    expect(state.project.settings.numeric).toBe('metric');
+    expect(state.project.settings.range).toBe('minmax-number');
+  });
+
+  it('sets and removes feature overrides, dropping empty entries', () => {
+    let state = appReducer(initialState(), { type: 'setFeatureNumeric', key: 'EF1_EU1', value: 'number' });
+    state = appReducer(state, { type: 'setFeatureRange', key: 'EF2_EU1', value: 'text' });
+    expect(state.project.features).toEqual({ EF1_EU1: { numeric: 'number' }, EF2_EU1: { range: 'text' } });
+    state = appReducer(state, { type: 'setFeatureNumeric', key: 'EF1_EU1', value: null });
+    expect(state.project.features).toEqual({ EF2_EU1: { range: 'text' } });
+    state = appReducer(state, { type: 'setFeatureRange', key: 'EF2_EU1', value: null });
+    expect(state.project.features).toEqual({});
+    // Removing an override that does not exist keeps the file clean too.
+    state = appReducer(state, { type: 'setFeatureRange', key: 'EF3', value: null });
+    expect(state.project.features).toEqual({});
+  });
+
+  it('keeps sources when an override is removed', () => {
+    let state = initialState();
+    state = { ...state, project: { ...state.project, features: { EF1: { numeric: 'metric', sources: [{ attribute: 'width' }] } } } };
+    state = appReducer(state, { type: 'setFeatureNumeric', key: 'EF1', value: null });
+    expect(state.project.features).toEqual({ EF1: { sources: [{ attribute: 'width' }] } });
+  });
+
+  it('stores complete unit mappings only, trimmed', () => {
+    let state = appReducer(initialState(), {
+      type: 'setUnitMapping',
+      unitId: 'EU570448',
+      mapping: { family: ' Length ', unit: 'MILLIMETER' },
+    });
+    expect(state.project.settings.unitMap).toEqual({ EU570448: { family: 'Length', unit: 'MILLIMETER' } });
+    state = appReducer(state, { type: 'setUnitMapping', unitId: 'EU570448', mapping: { family: 'Length', unit: '' } });
+    expect(state.project.settings.unitMap).toEqual({});
+    state = appReducer(state, { type: 'setUnitMapping', unitId: 'EU1', mapping: { family: 'Weight', unit: 'GRAM' } });
+    state = appReducer(state, { type: 'setUnitMapping', unitId: 'EU1', mapping: null });
+    expect(state.project.settings.unitMap).toEqual({});
+  });
+
+  it('needs a selected class from the release to leave step 2', () => {
+    let state = appReducer(initialState(), { type: 'baseImported', locale: 'en_US', fileNames: [], result: ok(release) });
+    expect(hasSelectedClasses(state)).toBe(false);
+    state = appReducer(state, { type: 'setClassIds', ids: ['EC999999'] });
+    expect(hasSelectedClasses(state)).toBe(false);
+    state = appReducer(state, { type: 'setClassIds', ids: ['EC000009'] });
+    expect(hasSelectedClasses(state)).toBe(true);
+  });
+});
+
 describe('class rows', () => {
+  it('shows group names, falling back to the id', () => {
+    const withGroups = { ...release, groups: { EG000001: { id: 'EG000001', labels: { en_US: 'Fixings' } } } };
+    const rows = classRows(withGroups, 'en_US');
+    expect(rows.map((r) => [r.groupId, r.groupLabel])).toEqual([
+      ['EG000002', ''],
+      ['EG000001', 'Fixings'],
+    ]);
+    expect(groupOptions(rows)).toEqual([
+      { value: 'EG000001', label: 'EG000001 Fixings (1)' },
+      { value: 'EG000002', label: 'EG000002 (1)' },
+    ]);
+    expect(filterClassRows(rows, { search: 'fixings', groupId: null, selection: 'all' }, new Set()).map((r) => r.id)).toEqual([
+      'EC000028',
+    ]);
+  });
+
   it('builds sorted rows and filters them', () => {
     const rows = classRows(release, 'en_US');
     expect(rows.map((r) => [r.id, r.label, r.featureCount])).toEqual([

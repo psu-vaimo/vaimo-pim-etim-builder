@@ -2,9 +2,10 @@ import { Alert, AppShell, Button, Group, Stepper, Text, Title } from '@mantine/c
 import { useState } from 'react';
 import { ProjectBar, type ProjectNotice } from './components/ProjectBar.js';
 import { ClassesStep } from './steps/ClassesStep.js';
+import { FeaturesStep } from './steps/FeaturesStep.js';
 import { ImportStep } from './steps/ImportStep.js';
 import { useAppState } from './state/AppStateContext.js';
-import { isReleaseReady } from './state/appState.js';
+import { hasSelectedClasses, isReleaseReady } from './state/appState.js';
 
 /** Setup wizard steps, see CLAUDE.md. Each step becomes its own component. */
 const STEPS = [
@@ -19,6 +20,7 @@ const STEPS = [
 function StepContent({ index, label }: { index: number; label: string }) {
   if (index === 0) return <ImportStep />;
   if (index === 1) return <ClassesStep />;
+  if (index === 2) return <FeaturesStep />;
   return (
     <Text c="dimmed" mt="md">
       {label}: not built yet.
@@ -31,8 +33,9 @@ export function App() {
   const [active, setActive] = useState(0);
   const [notice, setNotice] = useState<ProjectNotice | undefined>();
   const ready = isReleaseReady(state);
-  // Every step after the import needs a release without errors.
-  const canGoTo = (step: number) => step === 0 || ready;
+  const hasClasses = hasSelectedClasses(state);
+  // Every step after the import needs a release without errors, steps after the classes need a selected class.
+  const canGoTo = (step: number) => step === 0 || (ready && (step === 1 || hasClasses));
 
   return (
     <AppShell header={{ height: 56 }} padding="md">
@@ -72,6 +75,11 @@ export function App() {
           >
             Next
           </Button>
+          {active === 1 && ready && !hasClasses && (
+            <Text size="sm" c="dimmed" data-testid="next-hint">
+              Select at least one class to continue
+            </Text>
+          )}
         </Group>
       </AppShell.Main>
     </AppShell>

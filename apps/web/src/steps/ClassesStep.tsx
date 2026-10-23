@@ -16,7 +16,7 @@ import {
 import { useDeferredValue, useMemo, useState } from 'react';
 import { MissingClassesAlert } from '../components/MissingClassesAlert.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
-import { classRows, displayLocale, filterClassRows, type SelectionFilter } from '../state/appState.js';
+import { classRows, displayLocale, filterClassRows, groupOptions, type SelectionFilter } from '../state/appState.js';
 
 const PAGE_SIZE = 50;
 
@@ -34,13 +34,7 @@ export function ClassesStep() {
 
   const rows = useMemo(() => (release ? classRows(release, locale) : []), [release, locale]);
   const selected = useMemo(() => new Set(project.classIds), [project.classIds]);
-  const groups = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const row of rows) counts.set(row.groupId, (counts.get(row.groupId) ?? 0) + 1);
-    return [...counts.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([id, count]) => ({ value: id, label: `${id} (${count})` }));
-  }, [rows]);
+  const groups = useMemo(() => groupOptions(rows), [rows]);
   const filtered = useMemo(
     () => filterClassRows(rows, { search: deferredSearch, groupId, selection }, selected),
     [rows, deferredSearch, groupId, selection, selected],
@@ -119,7 +113,7 @@ export function ClassesStep() {
             }}
             searchable
             clearable
-            w={200}
+            w={280}
           />
           <SegmentedControl
             data={[
@@ -195,7 +189,7 @@ export function ClassesStep() {
               </Table.Th>
               <Table.Th w={120}>Class</Table.Th>
               <Table.Th>Label{locale ? ` (${locale})` : ''}</Table.Th>
-              <Table.Th w={120}>Group</Table.Th>
+              <Table.Th w={260}>Group</Table.Th>
               <Table.Th w={100} ta="right">
                 Features
               </Table.Th>
@@ -220,7 +214,16 @@ export function ClassesStep() {
                   </Table.Td>
                   <Table.Td ff="monospace">{row.id}</Table.Td>
                   <Table.Td>{row.label || <Text c="dimmed">No label</Text>}</Table.Td>
-                  <Table.Td ff="monospace">{row.groupId}</Table.Td>
+                  <Table.Td>
+                    <Text span ff="monospace" size="sm">
+                      {row.groupId}
+                    </Text>
+                    {row.groupLabel && (
+                      <Text span size="sm" c="dimmed" ml={6}>
+                        {row.groupLabel}
+                      </Text>
+                    )}
+                  </Table.Td>
                   <Table.Td ta="right">{row.featureCount}</Table.Td>
                 </Table.Tr>
               );

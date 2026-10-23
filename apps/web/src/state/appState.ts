@@ -1,4 +1,17 @@
-import { createProject, labelFor, type EtimClass, type EtimRelease, type Labels, type ParseIssue, type ParseResult, type Project } from '@akeneo-etim/core';
+import {
+  createProject,
+  labelFor,
+  type AkeneoUnit,
+  type EtimClass,
+  type EtimRelease,
+  type FeatureConfig,
+  type FeatureKey,
+  type NumericSetup,
+  type ParseIssue,
+  type ParseResult,
+  type Project,
+  type RangeSetup,
+} from '@akeneo-etim/core';
 
 /** One upload of ETIM files, the base export or a translation. */
 export interface ImportEntry {
@@ -27,7 +40,15 @@ export type AppAction =
   | { type: 'setClassesSelected'; ids: readonly string[]; selected: boolean }
   | { type: 'setClassIds'; ids: readonly string[] }
   | { type: 'setProjectLocales'; locales: readonly string[] }
-  | { type: 'setDisplayLocale'; locale: string };
+  | { type: 'setDisplayLocale'; locale: string }
+  | { type: 'setNumericDefault'; value: NumericSetup }
+  | { type: 'setRangeDefault'; value: RangeSetup }
+  /** `null` means project default, the override is removed. */
+  | { type: 'setFeatureNumeric'; key: FeatureKey; value: NumericSetup | null }
+  /** `null` means project default, the override is removed. */
+  | { type: 'setFeatureRange'; key: FeatureKey; value: RangeSetup | null }
+  /** `null` removes the mapping. */
+  | { type: 'setUnitMapping'; unitId: string; mapping: AkeneoUnit | null };
 
 export function initialState(): AppState {
   return { release: undefined, imports: [], project: createProject(''), displayLocale: undefined };
@@ -87,12 +108,60 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
     case 'setDisplayLocale':
       return { ...state, displayLocale: action.locale };
+    case 'setNumericDefault':
+      return withSettings(state, { numeric: action.value });
+    case 'setRangeDefault':
+      return withSettings(state, { range: action.value });
+    case 'setFeatureNumeric':
+      return {
+        ...state,
+        project: { ...state.project, features: withFeatureField(state.project.features, action.key, 'numeric', action.value) },
+      };
+    case 'setFeatureRange':
+      return {
+        ...state,
+        project: { ...state.project, features: withFeatureField(state.project.features, action.key, 'range', action.value) },
+      };
+    case 'setUnitMapping': {
+      const { [action.unitId]: _removed, ...rest } = state.project.settings.unitMap;
+      const family = action.mapping?.family.trim() ?? '';
+      const unit = action.mapping?.unit.trim() ?? '';
+      // Only complete mappings are stored, a half filled one would give a metric attribute without unit.
+      const unitMap = family && unit ? { ...rest, [action.unitId]: { family, unit } } : rest;
+      return withSettings(state, { unitMap });
+    }
   }
+}
+
+function withSettings(state: AppState, patch: Partial<Project['settings']>): AppState {
+  return { ...state, project: { ...state.project, settings: { ...state.project.settings, ...patch } } };
+}
+
+/**
+ * Sets or removes (`null`) one override field of a feature. An entry left
+ * without fields is removed, so the project file only lists real overrides.
+ */
+function withFeatureField<F extends 'numeric' | 'range'>(
+  features: Project['features'],
+  key: FeatureKey,
+  field: F,
+  value: NonNullable<FeatureConfig[F]> | null,
+): Project['features'] {
+  const { [key]: current, ...rest } = features;
+  const { [field]: _old, ...others } = current ?? {};
+  const next: FeatureConfig = value === null ? others : { ...others, [field]: value };
+  return Object.keys(next).length === 0 ? rest : { ...rest, [key]: next };
 }
 
 function rank(order: readonly string[], locale: string): number {
   const i = order.indexOf(locale);
   return i === -1 ? order.length : i;
+}
+
+/** True when at least one selected class is in the release, the condition to leave step 2. */
+export function hasSelectedClasses(state: AppState): boolean {
+  const { release } = state;
+  return release !== undefined && state.project.classIds.some((id) => release.classes[id] !== undefined);
 }
 
 /** True when the base import is loaded without errors, the condition to leave step 1. */
@@ -111,6 +180,8 @@ export interface ClassRow {
   id: string;
   label: string;
   groupId: string;
+  /** Group name in the display locale, `''` when the release has no name for it. */
+  groupLabel: string;
   featureCount: number;
   /** Lower-cased id and all labels, for search. */
   searchText: string;
@@ -118,13 +189,17 @@ export interface ClassRow {
 
 export function classRows(release: EtimRelease, locale: string | undefined): ClassRow[] {
   return Object.values(release.classes)
-    .map((c: EtimClass) => ({
-      id: c.id,
-      label: labelFor(c.labels, locale),
-      groupId: c.groupId,
-      featureCount: c.features.length,
-      searchText: [c.id, c.groupId, ...Object.values(c.labels)].join('\n').toLowerCase(),
-    }))
+    .map((c: EtimClass) => {
+      const groupLabels = release.groups[c.groupId]?.labels ?? {};
+      return {
+        id: c.id,
+        label: labelFor(c.labels, locale),
+        groupId: c.groupId,
+        groupLabel: labelFor(groupLabels, locale),
+        featureCount: c.features.length,
+        searchText: [c.id, c.groupId, ...Object.values(c.labels), ...Object.values(groupLabels)].join('\n').toLowerCase(),
+      };
+    })
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
@@ -136,7 +211,25 @@ export interface ClassFilter {
   selection: SelectionFilter;
 }
 
-/** Search matches class id, group id or a label in any locale. All words must match. */
+export interface GroupOption {
+  value: string;
+  label: string;
+}
+
+/** Group filter options with class counts, `EG000001 Fixings (12)`, or the id alone when the group has no name. */
+export function groupOptions(rows: readonly ClassRow[]): GroupOption[] {
+  const groups = new Map<string, { label: string; count: number }>();
+  for (const row of rows) {
+    const g = groups.get(row.groupId);
+    if (g) g.count += 1;
+    else groups.set(row.groupId, { label: row.groupLabel, count: 1 });
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([id, g]) => ({ value: id, label: `${id}${g.label ? ` ${g.label}` : ''} (${g.count})` }));
+}
+
+/** Search matches class id, group id or name, or a label in any locale. All words must match. */
 export function filterClassRows(rows: readonly ClassRow[], filter: ClassFilter, selected: ReadonlySet<string>): ClassRow[] {
   const words = filter.search.toLowerCase().split(/\s+/).filter(Boolean);
   return rows.filter((row) => {
