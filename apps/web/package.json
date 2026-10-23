@@ -13,6 +13,7 @@
   "dependencies": {
     "@akeneo-etim/core": "workspace:*",
     "@mantine/core": "^9.7.3",
+    "@mantine/dropzone": "^9.7.3",
     "@mantine/hooks": "^9.7.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

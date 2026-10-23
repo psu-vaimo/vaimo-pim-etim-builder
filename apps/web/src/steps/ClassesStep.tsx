@@ -1,0 +1,252 @@
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Group,
+  Pagination,
+  Paper,
+  SegmentedControl,
+  Select,
+  Stack,
+  Table,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
+import { useDeferredValue, useMemo, useState } from 'react';
+import { MissingClassesAlert } from '../components/MissingClassesAlert.js';
+import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
+import { classRows, displayLocale, filterClassRows, type SelectionFilter } from '../state/appState.js';
+
+const PAGE_SIZE = 50;
+
+export function ClassesStep() {
+  const state = useAppState();
+  const dispatch = useAppDispatch();
+  const { release, project } = state;
+  const locale = displayLocale(state);
+
+  const [search, setSearch] = useState('');
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<SelectionFilter>('all');
+  const [page, setPage] = useState(1);
+  const deferredSearch = useDeferredValue(search);
+
+  const rows = useMemo(() => (release ? classRows(release, locale) : []), [release, locale]);
+  const selected = useMemo(() => new Set(project.classIds), [project.classIds]);
+  const groups = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const row of rows) counts.set(row.groupId, (counts.get(row.groupId) ?? 0) + 1);
+    return [...counts.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([id, count]) => ({ value: id, label: `${id} (${count})` }));
+  }, [rows]);
+  const filtered = useMemo(
+    () => filterClassRows(rows, { search: deferredSearch, groupId, selection }, selected),
+    [rows, deferredSearch, groupId, selection, selected],
+  );
+
+  if (!release) return <Text mt="md">Import an ETIM export first.</Text>;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageSelected = pageRows.filter((r) => selected.has(r.id)).length;
+  const filteredSelected = filtered.filter((r) => selected.has(r.id)).length;
+  const inRelease = project.classIds.filter((id) => release.classes[id] !== undefined).length;
+  const isFiltered = filtered.length !== rows.length;
+
+  const setSelected = (ids: string[], value: boolean) => dispatch({ type: 'setClassesSelected', ids, selected: value });
+  const resetPage = () => setPage(1);
+
+  return (
+    <Stack gap="lg" mt="md">
+      <Paper withBorder p="md" radius="md">
+        <Title order={4} mb={4}>
+          Project locales
+        </Title>
+        <Text size="sm" c="dimmed" mb="sm">
+          Labels are generated for these locales. Add more languages in step 1.
+        </Text>
+        <Checkbox.Group
+          value={project.locales.filter((l) => release.locales.includes(l))}
+          onChange={(locales) =>
+            dispatch({
+              type: 'setProjectLocales',
+              // Keep project locales the release does not have, they are listed in the warning below.
+              locales: [...locales, ...project.locales.filter((l) => !release.locales.includes(l))],
+            })
+          }
+        >
+          <Group gap="lg">
+            {release.locales.map((l) => (
+              <Checkbox key={l} value={l} label={l} />
+            ))}
+          </Group>
+        </Checkbox.Group>
+      </Paper>
+
+      <MissingClassesAlert />
+
+      <Stack gap="sm">
+        <Group justify="space-between" align="flex-end">
+          <Title order={4}>Classes</Title>
+          <Badge size="lg" variant="light" data-testid="selected-count">
+            {inRelease.toLocaleString('en-US')} of {rows.length.toLocaleString('en-US')} selected
+          </Badge>
+        </Group>
+
+        <Group align="flex-end" gap="sm">
+          <TextInput
+            label="Search"
+            placeholder="Class id, group or label in any language"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.currentTarget.value);
+              resetPage();
+            }}
+            w={320}
+            data-testid="class-search"
+          />
+          <Select
+            label="ETIM group"
+            placeholder="All groups"
+            data={groups}
+            value={groupId}
+            onChange={(v) => {
+              setGroupId(v);
+              resetPage();
+            }}
+            searchable
+            clearable
+            w={200}
+          />
+          <SegmentedControl
+            data={[
+              { value: 'all', label: 'All' },
+              { value: 'selected', label: 'Selected' },
+              { value: 'unselected', label: 'Not selected' },
+            ]}
+            value={selection}
+            onChange={(v) => {
+              setSelection(v as SelectionFilter);
+              resetPage();
+            }}
+          />
+          {release.locales.length > 1 && (
+            <Select
+              label="Show labels in"
+              data={release.locales}
+              value={locale ?? null}
+              onChange={(v) => v && dispatch({ type: 'setDisplayLocale', locale: v })}
+              allowDeselect={false}
+              w={130}
+            />
+          )}
+        </Group>
+
+        <Group gap="xs">
+          <Text size="sm" c="dimmed" mr="sm">
+            {isFiltered
+              ? `${filtered.length.toLocaleString('en-US')} classes match, ${filteredSelected.toLocaleString('en-US')} of them selected`
+              : `${rows.length.toLocaleString('en-US')} classes`}
+          </Text>
+          <Button
+            size="xs"
+            variant="light"
+            disabled={filtered.length === 0 || filteredSelected === filtered.length}
+            onClick={() => setSelected(filtered.map((r) => r.id), true)}
+            data-testid="select-filtered"
+          >
+            {isFiltered ? `Select ${filtered.length.toLocaleString('en-US')} matching` : 'Select all'}
+          </Button>
+          <Button
+            size="xs"
+            variant="light"
+            color="gray"
+            disabled={filteredSelected === 0}
+            onClick={() => setSelected(filtered.map((r) => r.id), false)}
+          >
+            {isFiltered ? `Deselect ${filtered.length.toLocaleString('en-US')} matching` : 'Deselect all'}
+          </Button>
+          {isFiltered && project.classIds.length > 0 && (
+            <Button size="xs" variant="subtle" color="gray" onClick={() => dispatch({ type: 'setClassIds', ids: [] })}>
+              Clear whole selection
+            </Button>
+          )}
+        </Group>
+
+        <Table striped highlightOnHover withTableBorder verticalSpacing={6} data-testid="class-table">
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th w={40}>
+                <Checkbox
+                  aria-label="Select classes on this page"
+                  checked={pageRows.length > 0 && pageSelected === pageRows.length}
+                  indeterminate={pageSelected > 0 && pageSelected < pageRows.length}
+                  disabled={pageRows.length === 0}
+                  onChange={() =>
+                    setSelected(
+                      pageRows.map((r) => r.id),
+                      pageSelected < pageRows.length,
+                    )
+                  }
+                />
+              </Table.Th>
+              <Table.Th w={120}>Class</Table.Th>
+              <Table.Th>Label{locale ? ` (${locale})` : ''}</Table.Th>
+              <Table.Th w={120}>Group</Table.Th>
+              <Table.Th w={100} ta="right">
+                Features
+              </Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {pageRows.map((row) => {
+              const isSelected = selected.has(row.id);
+              return (
+                <Table.Tr
+                  key={row.id}
+                  style={{ cursor: 'pointer', ...(isSelected ? { background: 'var(--mantine-primary-color-light)' } : {}) }}
+                  onClick={() => setSelected([row.id], !isSelected)}
+                >
+                  <Table.Td>
+                    <Checkbox
+                      aria-label={`Select ${row.id}`}
+                      checked={isSelected}
+                      onChange={() => setSelected([row.id], !isSelected)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Table.Td>
+                  <Table.Td ff="monospace">{row.id}</Table.Td>
+                  <Table.Td>{row.label || <Text c="dimmed">No label</Text>}</Table.Td>
+                  <Table.Td ff="monospace">{row.groupId}</Table.Td>
+                  <Table.Td ta="right">{row.featureCount}</Table.Td>
+                </Table.Tr>
+              );
+            })}
+            {pageRows.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={5}>
+                  <Text c="dimmed" ta="center" py="md">
+                    No classes match the filters
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
+
+        {totalPages > 1 && (
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
+              Showing {((currentPage - 1) * PAGE_SIZE + 1).toLocaleString('en-US')} to{' '}
+              {Math.min(currentPage * PAGE_SIZE, filtered.length).toLocaleString('en-US')}
+            </Text>
+            <Pagination total={totalPages} value={currentPage} onChange={setPage} size="sm" />
+          </Group>
+        )}
+      </Stack>
+    </Stack>
+  );
+}
