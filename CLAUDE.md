@@ -104,12 +104,27 @@ Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `
 Several source attributes can map to one feature. The consultant orders them by preference. Akeneo runs higher priority rules first and later rules overwrite, so the preferred source gets the lowest priority (runs last) and wins when not empty. Verify this ordering against current Akeneo docs when implementing.
 
 ## Tech stack
-- TypeScript monorepo.
-- `core`: shared, framework-free ETIM to Akeneo logic (parsing, code/label generation, attributes, dependencies, rules, exporters). Most logic and tests live here.
-- `api`: Fastify.
-- `web`: React + Vite.
+- TypeScript monorepo, pnpm workspaces, Node 22, Vitest.
+- `packages/core` (`@akeneo-etim/core`): shared, framework-free ETIM to Akeneo logic (parsing, code/label generation, attributes, dependencies, rules, exporters). Most logic and tests live here. Consumed as TypeScript source (no build step).
+- `apps/api` (`@akeneo-etim/api`): Fastify, port 3001. `buildApp()` in `src/app.ts`, tests use `app.inject`.
+- `apps/web` (`@akeneo-etim/web`): React + Vite + Mantine (Stepper for the wizard). Dev server proxies `/api/*` to the API.
 
-- Tooling: pnpm workspaces, Vitest, Mantine (UI library, Stepper for the wizard).
+## Commands
+```sh
+pnpm install
+pnpm dev:api      # API on http://127.0.0.1:3001
+pnpm dev:web      # web on http://127.0.0.1:5173
+pnpm test         # all packages
+pnpm typecheck    # all packages
+```
+Run `pnpm test` and `pnpm typecheck` before committing.
+
+## ETIM parser (`packages/core/src/etim`)
+- Input: the six ETIM CSV tables (`ETIMARTCLASS`, `ETIMFEATURE`, `ETIMVALUE`, `ETIMUNIT`, `ETIMARTCLASSFEATUREMAP`, `ETIMARTCLASSFEATUREVALUEMAP`) as raw text. Delimiter detected, headers case-insensitive, extra columns ignored.
+- `parseEtimExport(tables, locale)` builds an `EtimRelease` (JSON serializable). Descriptions become labels for `locale`.
+- `mergeEtimTranslations(release, tables, locale)` adds labels from an export in another language.
+- Problems are returned as `issues`, never thrown. Missing table or column is an error, rows with broken references are skipped with a warning.
+- Excel (XLSX) input is not supported yet.
 
 ## Open decisions
 - None right now. Add new ones here as they come up.
