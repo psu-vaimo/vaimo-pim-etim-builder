@@ -1,6 +1,6 @@
 import type { EtimRelease, Labels } from '../etim/types.js';
 import { defaultSettings } from '../project/defaults.js';
-import type { LabelTexts, NumericSetup, Project } from '../project/types.js';
+import type { FeatureKey, LabelTexts, NumericSetup, Project, ProjectSettings } from '../project/types.js';
 import { collectProjectFeatures, type ProjectFeature } from './features.js';
 import type { AkeneoAttribute, AkeneoAttributeType, FeaturePart, GenerateIssue } from './types.js';
 
@@ -9,6 +9,11 @@ const AKENEO_CODE_MAX = 100;
 const FALLBACK_TEXTS = defaultSettings().labelTexts.en_US!;
 
 type Draft = Omit<AkeneoAttribute, 'sortOrder'>;
+
+/** Base attribute code for a feature key, `EF000008_EU570448` gives `ef000008_eu570448`. */
+export function attributeCode(settings: ProjectSettings, key: FeatureKey): string {
+  return settings.codes.attributePrefix + key.toLowerCase();
+}
 
 /**
  * Generates the Akeneo attributes for the selected classes: the class
@@ -67,7 +72,7 @@ function featureAttributes(
   const config = project.features[feature.key] ?? {};
   const sources = (config.sources ?? []).map((s) => s.attribute);
   const mapped = sources.length > 0;
-  const code = settings.codes.attributePrefix + feature.key.toLowerCase();
+  const code = attributeCode(settings, feature.key);
 
   const featureLabels = release.features[feature.featureId]?.labels ?? {};
   const unitLabels = feature.unitId ? (release.units[feature.unitId]?.labels ?? {}) : undefined;
@@ -111,6 +116,7 @@ function featureAttributes(
       key: feature.key,
       featureId: feature.featureId,
       ...(feature.unitId ? { unitId: feature.unitId } : {}),
+      etimType: feature.type,
       part,
     },
   });

@@ -11,6 +11,10 @@ export function defaultSettings(): ProjectSettings {
       valueEntity: 'etim_value',
       classAttribute: 'etim_class',
       labelSuffix: '_label',
+      rulePrefix: 'etim_',
+      dependencyPrefix: 'etim_',
+      sourceValueAttribute: 'etim_value',
+      sourceLabelAttribute: 'etim_label',
     },
     groups: {
       general: 'etim',

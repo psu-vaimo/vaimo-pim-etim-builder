@@ -13,6 +13,17 @@ export type RangeSetup = 'minmax-number' | 'minmax-metric' | 'text';
 /** A customer attribute that feeds an ETIM feature through rules. */
 export interface SourceMapping {
   attribute: string;
+  /**
+   * R only, a second source: with `text` the two values are concatenated as
+   * `10-20`, with min/max `attribute` fills min and `second` fills max.
+   */
+  second?: string;
+  /**
+   * L only, source values meaning yes. Given: `true` when the source is one of
+   * them, `false` for any other value. Not given: the source is a boolean and
+   * is copied.
+   */
+  yesValues?: string[];
 }
 
 export interface FeatureConfig {
@@ -52,6 +63,13 @@ export interface ProjectSettings {
     /** Product attribute linking to the class entity, drives dependencies. */
     classAttribute: string;
     labelSuffix: string;
+    /** Prepended to rule codes, `etim_` gives `etim_ef000139`. */
+    rulePrefix: string;
+    /** Prepended to dependency codes, `etim_` gives `etim_ec000009`. */
+    dependencyPrefix: string;
+    /** Attributes on the customer's source reference entities holding the ETIM value code and label. */
+    sourceValueAttribute: string;
+    sourceLabelAttribute: string;
   };
   groups: {
     /** Group for the class attribute. */

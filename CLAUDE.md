@@ -91,19 +91,25 @@ Native Akeneo SaaS attribute dependencies:
 - `RESTRICTED_VALUES`: once values are restricted for a simple select or reference entity attribute, only the listed values are shown when the conditions match.
 
 Generated per class:
-- Trigger: `etim_class IN [ECxxxxxx]`.
-- Every feature attribute in the class: `IS_DISPLAYED`.
-- A features not mapped from a customer attribute: `RESTRICTED_VALUES` to the class's allowed ETIM values, exactly as ETIM lists them (no special handling of generic values like `EV000154`).
-- Label attributes in the class: `IS_DISPLAYED`.
+- Code `etim_ec000009` (dependency prefix + class record code), label `EC000009 - Hammer set anchor`.
+- Trigger: `etim_class IN [ec000009]`. Uses the class record code (the prototype used `EC000009`, record codes are lower case).
+- Every feature attribute in the class, in ETIM order (both `_min` and `_max` for ranges): `IS_DISPLAYED`.
+- A features not mapped from a customer attribute: `RESTRICTED_VALUES` right after, to the class's allowed ETIM value record codes, exactly as ETIM lists them (no special handling of generic values like `EV000154`). No restriction when ETIM lists no values.
+- Label attributes in the class last: `IS_DISPLAYED`.
 
 ### Rules (auto enrichment)
 Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `triggered`. Priority is a project default (prototype uses 99), editable.
 | ETIM type | Action |
 |---|---|
-| A | copy `etim_value` from source reference entity to feature, copy `etim_label` to `<code>_label` |
-| N, R 1:1 | copy value |
-| R 2:1 | concat two source values as `10-20` (no spaces, no unit) |
-| L | `true` when source matches a "yes" value, `false` for any other value, empty when source is empty |
+| A | copy `etim_value` from source reference entity to feature, copy `etim_label` to `<code>_label` (record attribute names are project settings) |
+| N | copy value |
+| R text, 1 source | copy value |
+| R text, 2 sources (`second`) | concatenate as `10-20` (no spaces, no unit). The `{text: '-'}` item must be verified against Akeneo SaaS |
+| R min/max | copy `attribute` to `_min`, `second` (or the same source) to `_max` |
+| L with `yesValues` | rule `_true`: source IN yes values, set true. Rule `_false`: source NOT EMPTY and NOT IN, set false. Empty source stays empty |
+| L without `yesValues` | copy (source is a boolean) |
+
+Rule code `etim_<attribute code>`, with `_1`, `_2` per source when there are several (1 = preferred), label `EF000139 - Surface protection` (plus `(from: source)` when several). Field names follow the prototype's rules YAML.
 
 Several source attributes can map to one feature. The consultant orders them by preference. Akeneo runs higher priority rules first and later rules overwrite, so the preferred source gets the lowest priority (runs last) and wins when not empty. Verify this ordering against current Akeneo docs when implementing.
 
@@ -135,6 +141,8 @@ Run `pnpm test` and `pnpm typecheck` before committing.
 ## Generators (`packages/core/src/akeneo`)
 - `collectProjectFeatures` finds unique feature+unit combinations over the selected classes.
 - `generateAttributes(release, project)` and `generateRecords(release, project)` return output plus `issues`, same pattern as the parser.
+- `generateDependencies` and `generateRules` take the generated attributes as input, so codes stay consistent and attribute issues are reported once.
+- Generated objects carry an `origin` (feature key, ETIM type, class) for the UI and reports.
 - Project file type and defaults: `packages/core/src/project`.
 
 ## Open decisions

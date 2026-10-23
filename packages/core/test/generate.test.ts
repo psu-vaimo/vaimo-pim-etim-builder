@@ -1,42 +1,6 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import {
-  createProject,
-  generateAttributes,
-  generateRecords,
-  mergeEtimTranslations,
-  parseEtimExport,
-  type EtimRelease,
-  type EtimTableName,
-  type EtimTables,
-  type Project,
-} from '../src/index.js';
-
-function loadTables(dir: string): EtimTables {
-  const path = join(import.meta.dirname, 'fixtures', dir);
-  const tables: EtimTables = {};
-  for (const file of readdirSync(path)) {
-    tables[file.replace(/\.csv$/, '') as EtimTableName] = readFileSync(join(path, file), 'utf8');
-  }
-  return tables;
-}
-
-/** Fixture release in en_US and sv_SE, plus an R feature with unit on EC000009. */
-function release(): EtimRelease {
-  const en = parseEtimExport(loadTables('en'), 'en_US').release;
-  const r = mergeEtimTranslations(en, loadTables('sv'), 'sv_SE').release;
-  r.features.EF000100 = { id: 'EF000100', labels: { en_US: 'Temperature range', sv_SE: 'Temperaturområde' } };
-  r.units.EU570073 = { id: 'EU570073', labels: { en_US: '°C' } };
-  r.classes.EC000009!.features.push({ nr: '999', featureId: 'EF000100', type: 'R', unitId: 'EU570073', sortNr: 5, valueIds: [] });
-  return r;
-}
-
-function project(patch: Partial<Project> = {}): Project {
-  return { ...createProject('test', ['en_US', 'sv_SE']), classIds: ['EC000009', 'EC000028'], ...patch };
-}
-
-const byCode = <T extends { code: string }>(attrs: T[]): Record<string, T> => Object.fromEntries(attrs.map((a) => [a.code, a]));
+import { generateAttributes, generateRecords } from '../src/index.js';
+import { byCode, project, release } from './helpers.js';
 
 describe('generateAttributes', () => {
   it('generates the class attribute first, then features sorted by code', () => {
@@ -68,7 +32,7 @@ describe('generateAttributes', () => {
       sortOrder: 4,
       readOnly: false,
       referenceDataName: 'etim_value',
-      origin: { kind: 'feature', key: 'EF000139', featureId: 'EF000139', part: 'value' },
+      origin: { kind: 'feature', key: 'EF000139', featureId: 'EF000139', etimType: 'A', part: 'value' },
     });
     expect(a.ef015006_eu570448).toMatchObject({
       labels: { en_US: 'EF015006 - Max. clamping thickness [mm]' },
