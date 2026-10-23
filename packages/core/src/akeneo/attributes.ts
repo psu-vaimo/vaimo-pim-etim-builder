@@ -1,11 +1,10 @@
 import type { EtimRelease, Labels } from '../etim/types.js';
 import { defaultSettings } from '../project/defaults.js';
+import { akeneoCodeError } from '../project/sources.js';
 import type { AkeneoUnit, FeatureKey, LabelTexts, NumericSetup, Project, ProjectSettings } from '../project/types.js';
 import { collectProjectFeatures, effectiveNumeric, effectiveRange, unitMapping, type ProjectFeature } from './features.js';
 import type { AkeneoAttribute, AkeneoAttributeType, FeaturePart, GenerateIssue } from './types.js';
 
-const AKENEO_CODE = /^[a-zA-Z0-9_]+$/;
-const AKENEO_CODE_MAX = 100;
 const FALLBACK_TEXTS = defaultSettings().labelTexts.en_US!;
 
 type Draft = Omit<AkeneoAttribute, 'sortOrder'>;
@@ -59,7 +58,7 @@ export function generateAttributes(
 
   const seen = new Set<string>();
   for (const d of drafts) {
-    if (!AKENEO_CODE.test(d.code) || d.code.length > AKENEO_CODE_MAX) {
+    if (akeneoCodeError(d.code)) {
       issues.push({ severity: 'error', message: `Invalid Akeneo attribute code "${d.code}"` });
     }
     if (seen.has(d.code)) issues.push({ severity: 'error', message: `Duplicate attribute code ${d.code}` });

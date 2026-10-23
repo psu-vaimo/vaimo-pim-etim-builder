@@ -1,4 +1,4 @@
-import type { AkeneoRule, ProjectFeature } from '@akeneo-etim/core';
+import { normalizeSources, type AkeneoRule, type ProjectFeature } from '@akeneo-etim/core';
 import { describe, expect, it } from 'vitest';
 import type { FeatureRow } from '../features/featureRows.js';
 import {
@@ -8,12 +8,10 @@ import {
   formatSource,
   mappingRows,
   moveItem,
-  normalizeSources,
   orphanMappings,
   ruleConditions,
   toDrafts,
   validateDrafts,
-  withSources,
 } from './sourceMappings.js';
 
 const draft = (attribute: string, second = '', yesValues: string[] = []) => ({ attribute, second, yesValues });
@@ -48,29 +46,10 @@ describe('validateDrafts', () => {
   });
 });
 
-describe('normalizeSources', () => {
-  it('trims, drops empty sources and keeps second only for R and yes values only for L', () => {
-    const input = [draft(' att_a ', ' att_b ', [' yes ', '', 'yes', 'ja']), draft('  '), draft('att_c', '  ')];
-    expect(normalizeSources(input, 'R')).toEqual([{ attribute: 'att_a', second: 'att_b' }, { attribute: 'att_c' }]);
-    expect(normalizeSources(input, 'L')).toEqual([{ attribute: 'att_a', yesValues: ['yes', 'ja'] }, { attribute: 'att_c' }]);
-    expect(normalizeSources(input, 'A')).toEqual([{ attribute: 'att_a' }, { attribute: 'att_c' }]);
-    expect(normalizeSources([{ attribute: 'att_a', yesValues: [' '] }], 'L')).toEqual([{ attribute: 'att_a' }]);
-  });
-
+describe('normalizeSources with drafts', () => {
   it('round trips through drafts', () => {
     const sources = [{ attribute: 'att_a', second: 'att_b' }, { attribute: 'att_c' }];
     expect(normalizeSources(toDrafts(sources), 'R')).toEqual(sources);
-  });
-});
-
-describe('withSources', () => {
-  it('replaces sources and keeps other fields, leaves sources out when empty', () => {
-    expect(withSources({ range: 'text', sources: [{ attribute: 'a' }] }, [{ attribute: 'b' }])).toEqual({
-      range: 'text',
-      sources: [{ attribute: 'b' }],
-    });
-    expect(withSources({ range: 'text', sources: [{ attribute: 'a' }] }, [])).toEqual({ range: 'text' });
-    expect(withSources(undefined, [])).toEqual({});
   });
 });
 

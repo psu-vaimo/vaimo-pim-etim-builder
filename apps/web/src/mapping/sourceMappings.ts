@@ -1,19 +1,16 @@
-import type {
-  AkeneoRule,
-  EtimFeatureType,
-  FeatureConfig,
-  FeatureKey,
-  GenerateIssue,
-  ProjectFeature,
-  RuleAction,
-  RuleFieldCondition,
-  SourceMapping,
+import {
+  akeneoCodeError,
+  type AkeneoRule,
+  type EtimFeatureType,
+  type FeatureConfig,
+  type FeatureKey,
+  type GenerateIssue,
+  type ProjectFeature,
+  type RuleAction,
+  type RuleFieldCondition,
+  type SourceMapping,
 } from '@akeneo-etim/core';
 import type { FeatureRow } from '../features/featureRows.js';
-
-/** Akeneo attribute codes: letters, digits and underscores, at most 100 characters. */
-const AKENEO_CODE = /^[a-zA-Z0-9_]+$/;
-const AKENEO_CODE_MAX = 100;
 
 /** A source while it is edited, every field a plain string so inputs stay controlled. */
 export interface SourceDraft {
@@ -33,10 +30,7 @@ export function toDrafts(sources: readonly SourceMapping[] | undefined): SourceD
 /** Error for one attribute code, `undefined` when valid. Empty is valid here, callers decide if it is required. */
 export function codeError(code: string): string | undefined {
   const c = code.trim();
-  if (c === '') return undefined;
-  if (!AKENEO_CODE.test(c)) return 'Use only letters, digits and underscores';
-  if (c.length > AKENEO_CODE_MAX) return `At most ${AKENEO_CODE_MAX} characters`;
-  return undefined;
+  return c === '' ? undefined : akeneoCodeError(c);
 }
 
 export interface DraftErrors {
@@ -69,35 +63,6 @@ export function validateDrafts(drafts: readonly SourceDraft[], type: EtimFeature
 
 export function hasDraftErrors(errors: readonly DraftErrors[]): boolean {
   return errors.some((e) => e.attribute !== undefined || e.second !== undefined);
-}
-
-/**
- * Cleans a source list for a feature type: trims codes, drops sources without
- * an attribute, keeps `second` only for R and `yesValues` only for L (trimmed,
- * unique, empty ones dropped). Optional fields are left out when empty.
- */
-export function normalizeSources(
-  sources: readonly (SourceMapping | SourceDraft)[],
-  type: EtimFeatureType,
-): SourceMapping[] {
-  const out: SourceMapping[] = [];
-  for (const s of sources) {
-    const attribute = s.attribute.trim();
-    if (attribute === '') continue;
-    const mapping: SourceMapping = { attribute };
-    const second = s.second?.trim() ?? '';
-    if (type === 'R' && second !== '') mapping.second = second;
-    const yes = [...new Set((s.yesValues ?? []).map((v) => v.trim()).filter((v) => v !== ''))];
-    if (type === 'L' && yes.length > 0) mapping.yesValues = yes;
-    out.push(mapping);
-  }
-  return out;
-}
-
-/** Feature config with `sources` replaced, `sources` is left out when empty. */
-export function withSources(config: FeatureConfig | undefined, sources: readonly SourceMapping[]): FeatureConfig {
-  const { sources: _old, ...rest } = config ?? {};
-  return sources.length === 0 ? rest : { ...rest, sources: [...sources] };
 }
 
 /** Moves the item at `from` to `to`, out of range moves are ignored. */

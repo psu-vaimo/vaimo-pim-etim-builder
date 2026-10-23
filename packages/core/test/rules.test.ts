@@ -158,6 +158,14 @@ describe('generateRules', () => {
     ]);
   });
 
+  it('reports a source listed twice and skips its rule', () => {
+    const { rules, issues } = generate({ EF015006_EU570448: { sources: [{ attribute: 'att_a' }, { attribute: 'att_a' }] } });
+    expect(rules.map((r) => r.code)).toEqual(['etim_ef015006_eu570448_1']);
+    expect(issues).toEqual([
+      { severity: 'error', featureKey: 'EF015006_EU570448', message: 'Source att_a is listed twice for EF015006_EU570448, its rule could never win' },
+    ]);
+  });
+
   it('ignores features without sources and unselected features', () => {
     expect(generate({ EF999999: { sources: [{ attribute: 'att_x' }] } }).rules).toEqual([]);
   });

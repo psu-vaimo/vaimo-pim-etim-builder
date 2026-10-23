@@ -22,3 +22,4 @@ export { generateRules } from './akeneo/rules.js';
 export { buildExport, zipExport, type ExportFile, type ExportIssue, type ExportResult } from './export/bundle.js';
 export { toCsv, type Cell, type Table } from './export/table.js';
 export { writeXlsx } from './export/xlsx.js';
+export { AKENEO_CODE_MAX, akeneoCodeError, normalizeSources, withSources, type SourceInput } from './project/sources.js';

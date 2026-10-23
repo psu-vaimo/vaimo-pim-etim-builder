@@ -1,6 +1,7 @@
 import {
   createProject,
   labelFor,
+  normalizeSources,
   type AkeneoUnit,
   type EtimClass,
   type EtimRelease,
@@ -14,7 +15,6 @@ import {
   type RangeSetup,
   type SourceMapping,
 } from '@akeneo-etim/core';
-import { normalizeSources } from '../mapping/sourceMappings.js';
 
 /** One upload of ETIM files, the base export or a translation. */
 export interface ImportEntry {

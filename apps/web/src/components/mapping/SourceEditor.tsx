@@ -33,14 +33,13 @@ import {
   hasDraftErrors,
   issuesFor,
   moveItem,
-  normalizeSources,
   ruleConditions,
   toDrafts,
   validateDrafts,
-  withSources,
   type MappingRow,
   type SourceDraft,
 } from '../../mapping/sourceMappings.js';
+import { normalizeSources, withSources } from '@akeneo-etim/core';
 
 const MONO_INPUT = { input: { fontFamily: 'var(--mantine-font-family-monospace)' } };
 

@@ -1,6 +1,7 @@
 import type { EtimRelease, Labels } from '../etim/types.js';
 import type { FeatureKey, Project, SourceMapping } from '../project/types.js';
 import { defaultSettings } from '../project/defaults.js';
+import { akeneoCodeError } from '../project/sources.js';
 import { attributeCode } from './attributes.js';
 import type {
   AkeneoAttribute,
@@ -12,7 +13,6 @@ import type {
   RuleFieldCondition,
 } from './types.js';
 
-const AKENEO_CODE = /^[a-zA-Z0-9_]+$/;
 const FALLBACK_FROM = defaultSettings().labelTexts.en_US!.from;
 
 /**
@@ -57,10 +57,16 @@ export function generateRules(
     const featureLabels = release.features[featureId]?.labels ?? {};
     const base = codes.rulePrefix + attributeCode(settings, key);
 
+    const seen = new Set<string>();
     sources.forEach((source, i) => {
+      if (seen.has(source.attribute)) {
+        issues.push({ severity: 'error', featureKey: key, message: `Source ${source.attribute} is listed twice for ${key}, its rule could never win` });
+        return;
+      }
+      seen.add(source.attribute);
       const second = featureType === 'R' ? source.second : undefined;
       const fields = [source.attribute, ...(second ? [second] : [])];
-      const bad = fields.filter((f) => !AKENEO_CODE.test(f));
+      const bad = fields.filter((f) => akeneoCodeError(f) !== undefined);
       if (bad.length > 0) {
         issues.push({ severity: 'error', featureKey: key, message: `Invalid source attribute code "${bad.join('", "')}"` });
         return;
