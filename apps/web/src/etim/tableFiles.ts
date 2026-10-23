@@ -8,29 +8,36 @@ export type TableMatch =
 /**
  * Finds the ETIM table a file belongs to from its name. Case-insensitive, the
  * extension is ignored and text around the table name is allowed
- * (`2024_ETIMFEATURE_sv.csv`). When one table name is part of another
- * (`ETIMARTCLASS` in `ETIMARTCLASSFEATUREMAP`) the longest wins. A name with
- * two separate table names is ambiguous.
+ * (`2024_ETIMFEATURE_sv.csv`). The table name must not run on into other
+ * letters, so `ETIMARTCLASSSYNONYMMAP` is not `ETIMARTCLASS` and
+ * `ETIMFEATUREGROUP` is not `ETIMFEATURE`. A name with two table names is ambiguous.
  */
 export function matchTableName(fileName: string): TableMatch {
-  const base = fileName
-    .replace(/^.*[\\/]/, '')
-    .replace(/\.[^.]*$/, '')
-    .toUpperCase();
-  const found = ETIM_TABLES.filter((t) => base.includes(t));
-  // Drop names that only matched as part of a longer matched name.
-  const candidates = found.filter((t) => !found.some((other) => other !== t && other.includes(t)));
+  const base = baseName(fileName);
+  const candidates = ETIM_TABLES.filter((t) => new RegExp(`(?<![A-Z])${t}(?![A-Z])`).test(base));
   const [first, ...rest] = candidates;
   if (first === undefined) return { kind: 'unknown' };
   if (rest.length > 0) return { kind: 'ambiguous', tables: candidates };
   return { kind: 'matched', table: first };
 }
 
+/** True for ETIM tables this app does not read, like ETIMARTCLASSSYNONYMMAP or ETIMFEATUREGROUP. */
+export function isOtherEtimTable(fileName: string): boolean {
+  return matchTableName(fileName).kind === 'unknown' && /(?<![A-Z])ETIM[A-Z]+(?![A-Z])/.test(baseName(fileName));
+}
+
+function baseName(fileName: string): string {
+  return fileName
+    .replace(/^.*[\\/]/, '')
+    .replace(/\.[^.]*$/, '')
+    .toUpperCase();
+}
+
 export interface FileAssignment<F extends { name: string }> {
   byTable: Partial<Record<EtimTableName, F>>;
   /** Files whose name matches no table, or more than one. */
   unrecognized: F[];
-  /** Files for a table that is not needed here, e.g. a map table for a translation. */
+  /** Files for a table that is not needed here, e.g. a map table for a translation, or an ETIM table the app does not read. */
   notNeeded: F[];
   /** Earlier files replaced by a later file for the same table. */
   replaced: F[];
@@ -48,7 +55,7 @@ export function assignFiles<F extends { name: string }>(
   for (const file of files) {
     const match = matchTableName(file.name);
     if (match.kind !== 'matched') {
-      out.unrecognized.push(file);
+      (isOtherEtimTable(file.name) ? out.notNeeded : out.unrecognized).push(file);
       continue;
     }
     if (!allowed.includes(match.table)) {

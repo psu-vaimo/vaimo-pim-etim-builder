@@ -107,7 +107,7 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
       )}
       {assignment.notNeeded.length > 0 && (
         <Text size="sm" c="dimmed">
-          Not needed for a translation, ignored: {assignment.notNeeded.map((f) => f.name).join(', ')}
+          Not needed here, ignored: {assignment.notNeeded.map((f) => f.name).join(', ')}
         </Text>
       )}
 
