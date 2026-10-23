@@ -6,7 +6,7 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 
 - Users: Vaimo consultants, one project per customer.
 - Target: Akeneo SaaS (Serenity).
-- Hosting and auth: undecided, build so it runs locally first.
+- Hosting: runs locally, no auth. Keep the API stateless so hosting and SSO can be added later.
 
 ## Scope
 
@@ -20,7 +20,7 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 - Export files only:
   - Akeneo import XLSX/CSV (attributes, attribute options, reference entity records)
   - Rules YAML (Akeneo rules import format)
-  - Dependencies YAML/JSON (prototype format)
+  - Dependencies YAML/JSON, using the prototype format in `akn_dependencies` as is
   - Mapping report XLSX for customer review
 
 ### Roadmap
@@ -101,17 +101,18 @@ Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `
 | R 2:1 | concat two source values as `10-20` (no spaces, no unit) |
 | L | `true` when source matches a "yes" value, `false` for any other value, empty when source is empty |
 
+Several source attributes can map to one feature. The consultant orders them, and rules get descending priorities from the project default so the first non-empty source wins.
+
 ## Tech stack
 - TypeScript monorepo.
 - `core`: shared, framework-free ETIM to Akeneo logic (parsing, code/label generation, attributes, dependencies, rules, exporters). Most logic and tests live here.
 - `api`: Fastify.
 - `web`: React + Vite.
 
+- Tooling: pnpm workspaces, Vitest, Mantine (UI library, Stepper for the wizard).
+
 ## Open decisions
-- Hosting and auth.
-- Package manager, test runner, UI component library.
-- Exact Akeneo SaaS import file formats for dependencies (verify against current Akeneo docs).
-- Handling of conflicting mappings (two sources for one feature).
+- None right now. Add new ones here as they come up.
 
 ## Conventions
 - Keep generated Akeneo codes deterministic, the same ETIM input must always produce the same codes.
