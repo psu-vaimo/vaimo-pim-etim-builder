@@ -8,7 +8,7 @@ import type { GenerateIssue } from '../akeneo/types.js';
 import type { EtimRelease } from '../etim/types.js';
 import { projectFileName, serializeProject } from '../project/file.js';
 import type { Project } from '../project/types.js';
-import { attributeGroupsTable, attributesTable, dependenciesJson, dependenciesYaml, recordsTable, rulesYaml } from './akeneo.js';
+import { attributeGroupsTable, attributesTable, dependenciesYaml, recordsTable, rulesYaml } from './akeneo.js';
 import { reportTables } from './report.js';
 import { toCsv, type Table } from './table.js';
 import { writeXlsx } from './xlsx.js';
@@ -59,7 +59,6 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
     ...tables.map(([file, t]) => ({ path: `csv/${file}.csv`, content: toCsv(t.rows) })),
     { path: '05_rules.yml', content: rulesYaml(rules.rules) },
     { path: '06_attribute_dependencies.yml', content: dependenciesYaml(dependencies) },
-    { path: '06_attribute_dependencies.json', content: dependenciesJson(dependencies) },
     {
       path: 'mapping_report.xlsx',
       content: writeXlsx(
@@ -85,7 +84,7 @@ function manualStepsFor(project: Project, usesSourceRecords: boolean): string[] 
     `Create the reference entities ${codes.classEntity} and ${codes.valueEntity} in Akeneo before importing records and attributes.`,
     'Import 01_attribute_groups, then 02_attributes, then the 03 and 04 record files.',
     'Import 05_rules.yml with the rule import job (YML).',
-    'Create the attribute dependencies from 06_attribute_dependencies.',
+    'Import 06_attribute_dependencies.yml with the dependency import.',
     'Add the ETIM attributes to the families. This is required and not part of the export.',
     ...(usesSourceRecords
       ? [`Make sure the source reference entities of mapped A features have the record attributes ${codes.sourceValueAttribute} and ${codes.sourceLabelAttribute} filled.`]
@@ -100,14 +99,12 @@ function readme(project: Project, manualSteps: string[]): string {
     'Files:',
     '  xlsx/ and csv/   Akeneo import files, same content in both formats',
     '  05_rules.yml     enrichment rules',
-    '  06_attribute_dependencies.yml / .json   one dependency per ETIM class',
+    '  06_attribute_dependencies.yml   one dependency per ETIM class',
     '  mapping_report.xlsx   review report for the customer',
     '  *.etim-project.json   the project file, load it in the app to continue',
     '',
     'Steps in Akeneo:',
     ...manualSteps.map((s, i) => `  ${i + 1}. ${s}`),
     '',
-    'To verify on first use: the rules YAML and dependency files follow the prototype format, check them against the Akeneo SaaS import.',
-    '',
-  ].join('\n');
+      ].join('\n');
 }

@@ -78,9 +78,9 @@ export function recordsTable(project: Project, name: string, records: AkeneoReco
 }
 
 /**
- * Rules YAML in the prototype's format (`esv_map_akn_rules`): AND condition
- * groups, `execution_type: triggered`. Akeneo's on-prem docs show a flat
- * condition list instead, verify against the SaaS import.
+ * Rules YAML in the prototype's format (`esv_map_akn_rules`), proven on SaaS:
+ * AND condition groups, `execution_type: triggered`. Akeneo's on-prem docs
+ * show a flat condition list instead, that format is not used here.
  */
 export function rulesYaml(rules: AkeneoRule[]): string {
   const doc = {
@@ -115,12 +115,7 @@ function dependencyDoc(d: AkeneoDependency) {
   };
 }
 
-/** Dependencies YAML, keyed by code under `attribute_dependencies` (the root key is not in the prototype). */
+/** Dependencies YAML for the Akeneo dependency import, keyed by code under `dependencies`. */
 export function dependenciesYaml(dependencies: AkeneoDependency[]): string {
-  return stringify({ attribute_dependencies: Object.fromEntries(dependencies.map((d) => [d.code, dependencyDoc(d)])) }, YAML_OPTIONS);
-}
-
-/** Dependencies as a JSON array, same objects as the YAML. */
-export function dependenciesJson(dependencies: AkeneoDependency[]): string {
-  return `${JSON.stringify(dependencies.map(dependencyDoc), null, 2)}\n`;
+  return stringify({ dependencies: Object.fromEntries(dependencies.map((d) => [d.code, dependencyDoc(d)])) }, YAML_OPTIONS);
 }

@@ -20,7 +20,7 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 - Export files only:
   - Akeneo import XLSX/CSV (attributes, attribute options, reference entity records)
   - Rules YAML (Akeneo rules import format)
-  - Dependencies YAML/JSON, using the prototype format in `akn_dependencies` as is
+  - Dependencies YAML (root `dependencies`), using the prototype format in `akn_dependencies` as is
   - Mapping report XLSX for customer review
 
 ### Roadmap
@@ -147,14 +147,15 @@ Run `pnpm test` and `pnpm typecheck` before committing.
 
 ## Export (`packages/core/src/export`)
 - `buildExport(release, project)` returns all files plus issues, `zipExport(files)` zips them. Runs in the browser, output is deterministic.
-- Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml/.json`, `mapping_report.xlsx`, the project file.
+- Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml` (root key `dependencies`, imported as a file), `mapping_report.xlsx`, the project file.
 - XLSX via a small writer on `fflate` (`writeXlsx`), no spreadsheet library in the bundle.
 - YAML: no anchors/aliases, YAML 1.1 quoting (`"yes"`), so PHP parsers read strings as strings.
 - No attribute options file: ETIM values are reference entity records, there are no select attributes.
 
 ## Open decisions
-- Rules YAML format: the export follows the prototype (`operator: AND` condition groups, `execution_type`, `triggers`, `reference_entity_attribute` on copy). Akeneo's public rule docs (on-prem) show a flat condition list and no such keys. Verify with a real SaaS import.
-- Dependencies file: the root key `attribute_dependencies` is assumed, the prototype only shows the entries. Verify how dependencies are imported in SaaS.
+- None right now. Add new ones here as they come up.
+
+Decided: the rules YAML keeps the prototype format (`operator: AND` condition groups, `execution_type`, `triggers`, `reference_entity_attribute` on copy), it is proven on SaaS, even though Akeneo's public on-prem docs show a flat condition list. Dependencies are imported as a YAML file with root key `dependencies`.
 
 ## Conventions
 - Keep generated Akeneo codes deterministic, the same ETIM input must always produce the same codes.

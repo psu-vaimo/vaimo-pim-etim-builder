@@ -73,7 +73,6 @@ describe('buildExport', () => {
       'csv/04_records_etim_value.csv',
       '05_rules.yml',
       '06_attribute_dependencies.yml',
-      '06_attribute_dependencies.json',
       'mapping_report.xlsx',
       'essve.etim-project.json',
     ]);
@@ -139,11 +138,11 @@ describe('buildExport', () => {
     expect(parse(yaml, { version: '1.1' }).rules.etim_ef015003_true.conditions[0].value[1].value).toEqual(['yes', 'on']);
   });
 
-  it('writes dependencies YAML and JSON in the prototype format', () => {
+  it('writes dependencies YAML under the dependencies root in the prototype format', () => {
     const yaml = parse(text(files, '06_attribute_dependencies.yml'));
-    const json = JSON.parse(text(files, '06_attribute_dependencies.json'));
-    expect(json).toEqual(Object.values(yaml.attribute_dependencies));
-    expect(yaml.attribute_dependencies.etim_ec000028).toEqual({
+    expect(Object.keys(yaml)).toEqual(['dependencies']);
+    expect(Object.keys(yaml.dependencies)).toEqual(['etim_ec000009', 'etim_ec000028']);
+    expect(yaml.dependencies.etim_ec000028).toEqual({
       code: 'etim_ec000028',
       labels: { en_US: 'EC000028 - Threaded rod', sv_SE: 'EC000028 - Gängad stång' },
       is_enabled: true,
