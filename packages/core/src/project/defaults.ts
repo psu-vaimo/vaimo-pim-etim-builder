@@ -13,8 +13,7 @@ export function defaultSettings(): ProjectSettings {
       labelSuffix: '_label',
       rulePrefix: 'etim_',
       dependencyPrefix: 'etim_',
-      sourceValueAttribute: 'etim_value',
-      sourceLabelAttribute: 'etim_label',
+      sourceRecordAttributePrefix: 'ref_',
     },
     groups: {
       general: 'etim',

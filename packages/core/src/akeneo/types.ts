@@ -83,7 +83,8 @@ export interface AkeneoRule {
   actions: RuleAction[];
   labels: Labels;
   executionType: 'triggered';
-  origin: { key: FeatureKey; source: string };
+  /** The source attribute and the features the rule fills. */
+  origin: { source: string; keys: FeatureKey[] };
 }
 
 export type DependentAttribute =

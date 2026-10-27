@@ -104,7 +104,7 @@ describe('buildExport', () => {
   it('writes rules YAML in the prototype format', () => {
     expect(parse(text(files, '05_rules.yml'))).toEqual({
       rules: {
-        etim_ef000139: {
+        etim_att_surface_treatment: {
           type: 'product',
           priority: 99,
           enabled: true,
@@ -118,10 +118,10 @@ describe('buildExport', () => {
             },
           ],
           actions: [
-            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'etim_value' },
-            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'etim_label' },
+            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'ref_EF000139' },
+            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'ref_EF000139_label' },
           ],
-          labels: { en_US: 'EF000139 - Surface protection', sv_SE: 'EF000139 - Ytskydd' },
+          labels: { en_US: 'ETIM (from: att_surface_treatment)', sv_SE: 'ETIM (från: att_surface_treatment)' },
           triggers: {},
           execution_type: 'triggered',
         },
@@ -161,7 +161,9 @@ describe('buildExport', () => {
     const report = unzipSync(file(files, 'mapping_report.xlsx') as Uint8Array);
     expect(strFromU8(report['xl/workbook.xml']!)).toContain('name="Summary"');
     expect(strFromU8(report['xl/worksheets/sheet1.xml']!)).toContain('Add the ETIM attributes to the families');
-    expect(text(files, 'README.txt')).toContain('etim_value and etim_label filled');
+    expect(text(files, 'README.txt')).toContain('(ref_EF000139) and the value label (ref_EF000139_label)');
+    expect(strFromU8(report['xl/workbook.xml']!)).toContain('name="Sources"');
+    expect(strFromU8(report['xl/worksheets/sheet3.xml']!)).toContain('ref_EF000139, ref_EF000139_label');
   });
 
   it('zips deterministically and flags errors', () => {

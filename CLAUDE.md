@@ -11,11 +11,11 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 ## Scope
 
 ### Phase 1
-- ETIM input by file upload (ETIM export, same tables as the prototype).
+- ETIM input by file upload (ETIM export, same tables as the prototype), or picked from pre-loaded exports in `apps/web/etim-files/<release>/<locale>/` (listed by the dev server, files gitignored).
 - Select classes, configure locales per project (from what the ETIM export contains).
 - Generate attributes, reference entity records, dependencies and rules.
 - UI: a wizard for setup (import ETIM, select classes and locales, configure features, map source attributes, review, export), then a workspace for free editing of classes, attributes, rules and dependencies.
-- Customer source attributes for mapping are entered manually.
+- Customer source attributes for mapping: upload the customer's Akeneo attribute export (XLSX or CSV) to pick from a list and check types, or type codes by hand. The list is saved in the project file (`sourceAttributes`).
 - Projects saved and loaded as a JSON project file (no database).
 - Export files only:
   - Akeneo import XLSX/CSV (attributes, attribute options, reference entity records)
@@ -26,7 +26,6 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 ### Roadmap
 - ETIM API as input source.
 - Akeneo REST API: push config, read existing attributes for mapping.
-- Upload Akeneo attribute export for mapping.
 - Family assignment (see below).
 - ETIM version upgrades with a diff of changed classes, features and values. Keep the data model versioned so this is possible.
 
@@ -58,7 +57,7 @@ Key tabs:
 - Code prefixes are configurable per project (feature, value and class codes, reference entity and `etim_class` attribute codes). Prototype codes are the defaults.
 - One attribute per feature+unit combination across all selected classes (not per class).
 - Label: `EF000008 - Width [mm]` / `EF000008 - Bredd [mm]` (feature code, description, unit in brackets).
-- Mapped attributes (any type) are read only and get the suffix `(from: att_a, att_b)`, listing all sources in preference order. Swedish: `(från: ...)`.
+- Mapped attributes (any type) are read only and get the suffix `(from: att_a)`. Swedish: `(från: ...)`.
 - Locale specific words (`from`, `Description`, `Min`, `Max`, class attribute label) are project settings per locale.
 - Locales: configurable per project (prototype uses `en_US`, `sv_SE`).
 - Attribute groups: `etim_mapped` for features mapped from a customer source attribute, `etim_unmapped` for the rest. Not scopable, not localizable, not unique.
@@ -98,20 +97,25 @@ Generated per class:
 - Label attributes in the class last: `IS_DISPLAYED`.
 
 ### Rules (auto enrichment)
-Conditions: `etim_class NOT EMPTY` and source attribute `NOT EMPTY`. Execution `triggered`. Priority is a project default (prototype uses 99), editable.
+Rules are built around the customer's data model attributes (sources), not ETIM features. A feature has at most one source, a source can feed many features. For A features the source is a reference entity attribute: the selected record holds one ETIM value per mapped feature, in record attribute `ref_EF001122` (prefix is a project setting), and the value label in `ref_EF001122_label` (plus the label suffix).
+
+One rule per source attribute, code `etim_<source>`, label `ETIM (from: <source>)`, with one or more actions per feature the source is mapped to (in attribute code order). Conditions: `etim_class NOT EMPTY` and source `NOT EMPTY`. Execution `triggered`. Priority is a project default (prototype uses 99), editable, the same for every rule.
 | ETIM type | Action |
 |---|---|
-| A | copy `etim_value` from source reference entity to feature, copy `etim_label` to `<code>_label` (record attribute names are project settings) |
+| A | copy `ref_EF...` from the source record to the feature, copy `ref_EF..._label` to `<code>_label` |
 | N | copy value |
-| R text, 1 source | copy value |
-| R text, 2 sources (`second`) | concatenate `[field, {text: '-'}, field]` as `10-20`. Akeneo docs: a space is only added between two field blocks, not next to a text block |
-| R min/max | copy `attribute` to `_min`, `second` (or the same source) to `_max` |
-| L with `yesValues` | rule `_true`: source IN yes values, set true. Rule `_false`: source NOT EMPTY and NOT IN, set false. Empty source stays empty |
+| R text | copy value |
+| R min/max | copy the source to `_min` and `_max` |
 | L without `yesValues` | copy (source is a boolean) |
 
-Rule code `etim_<attribute code>`, with `_1`, `_2` per source when there are several (1 = preferred), label `EF000139 - Surface protection` (plus `(from: source)` when several). Field names follow the prototype's rules YAML.
+Features needing their own conditions or a second source get their own rule, code `etim_<attribute code>`, label `EF000139 - Surface protection`:
+| Case | Rule |
+|---|---|
+| R text with `second` | concatenate `[field, {text: '-'}, field]` as `10-20`, both sources NOT EMPTY. Akeneo docs: a space is only added between two field blocks, not next to a text block |
+| R min/max with `second` | copy `attribute` to `_min`, `second` to `_max`, both NOT EMPTY |
+| L with `yesValues` | rule `_true`: source IN yes values, set true. Rule `_false`: source NOT EMPTY and NOT IN, set false. Empty source stays empty |
 
-Several source attributes can map to one feature. The consultant orders them by preference. Akeneo runs higher priority rules first (confirmed in the Akeneo rule docs) and later rules overwrite, so the preferred source gets the lowest priority (runs last) and wins when not empty.
+Field names follow the prototype's rules YAML. More than one source on a feature (older project files) is an error, the first is used. Duplicate rule codes are errors. With uploaded Akeneo attributes, unknown sources and wrong source types (A needs `akeneo_reference_entity`, L without yes values `pim_catalog_boolean`) are warnings.
 
 ## Tech stack
 - TypeScript monorepo, pnpm workspaces, Node 22, Vitest.
@@ -150,10 +154,13 @@ Run `pnpm test` and `pnpm typecheck` before committing.
 
 ## Export (`packages/core/src/export`)
 - `buildExport(release, project)` returns all files, issues and the manual Akeneo steps, `zipExport(files)` zips them. Runs in a web worker in the browser (about 2 s for 6000 classes), output is deterministic.
-- Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml` (root key `dependencies`, imported as a file), `mapping_report.xlsx`, the project file.
+- Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml` (root key `dependencies`, imported as a file), `mapping_report.xlsx` (with a Sources sheet listing the `ref_` record attributes each source entity needs), the project file.
 - XLSX via a small writer on `fflate` (`writeXlsx`), no spreadsheet library in the bundle.
 - YAML via a small writer (`export/yaml.ts`), the `yaml` package is only used in tests. Block style, no anchors/aliases, anything but simple codes double quoted, YAML 1.1 words like `yes` quoted, so PHP parsers read strings as strings.
 - No attribute options file: ETIM values are reference entity records, there are no select attributes.
+
+## Source attributes (`packages/core/src/source`)
+- `parseAkeneoAttributeExport(bytes, fileName)` reads an Akeneo attribute export, XLSX (small regex based reader, `readXlsxRows`, works in workers) or CSV. Columns `code` (required), `type`, `group`, `reference_data_name`, `label-<locale>`.
 
 ## Open decisions
 - None right now. Add new ones here as they come up.

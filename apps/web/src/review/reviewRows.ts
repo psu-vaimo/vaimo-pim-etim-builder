@@ -76,7 +76,7 @@ export function ruleReviewRows(rules: readonly AkeneoRule[], locale: string | un
       label: labelFor(rule.labels, locale),
       conditions,
       actions,
-      searchText: searchText([rule.code, rule.origin.key, rule.origin.source, ...Object.values(rule.labels), ...conditions, ...actions]),
+      searchText: searchText([rule.code, ...rule.origin.keys, rule.origin.source, ...Object.values(rule.labels), ...conditions, ...actions]),
     };
   });
 }

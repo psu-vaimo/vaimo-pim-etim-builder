@@ -84,7 +84,7 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
               Classes
             </Table.Th>
             <Table.Th w={100}>Status</Table.Th>
-            <Table.Th>Sources, preferred first</Table.Th>
+            <Table.Th>Source</Table.Th>
             <Table.Th w={90} />
           </Table.Tr>
         </Table.Thead>

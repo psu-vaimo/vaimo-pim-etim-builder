@@ -59,12 +59,12 @@ describe('generateDependencies', () => {
 });
 
 describe('generateRules', () => {
-  it('matches the prototype rule for a mapped A feature', () => {
+  it('generates one rule per source attribute for a mapped A feature, copying the ref_ record attributes', () => {
     const { rules, issues } = generate({ EF000139: { sources: [{ attribute: 'att_surface_treatment' }] } });
     expect(issues).toEqual([]);
     expect(rules).toEqual([
       {
-        code: 'etim_ef000139',
+        code: 'etim_att_surface_treatment',
         priority: 99,
         enabled: true,
         conditions: [
@@ -77,30 +77,58 @@ describe('generateRules', () => {
           },
         ],
         actions: [
-          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'etim_value' },
-          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'etim_label' },
+          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'ref_EF000139' },
+          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'ref_EF000139_label' },
         ],
-        labels: { en_US: 'EF000139 - Surface protection', sv_SE: 'EF000139 - Ytskydd' },
+        labels: { en_US: 'ETIM (from: att_surface_treatment)', sv_SE: 'ETIM (från: att_surface_treatment)' },
         executionType: 'triggered',
-        origin: { key: 'EF000139', source: 'att_surface_treatment' },
+        origin: { source: 'att_surface_treatment', keys: ['EF000139'] },
       },
     ]);
   });
 
-  it('gives the preferred of several sources the lowest priority', () => {
-    const { rules } = generate({ EF015006_EU570448: { sources: [{ attribute: 'att_a' }, { attribute: 'att_b' }, { attribute: 'att_c' }] } });
-    expect(rules.map((r) => [r.code, r.priority, r.labels.en_US])).toEqual([
-      ['etim_ef015006_eu570448_1', 97, 'EF015006 - Max. clamping thickness (from: att_a)'],
-      ['etim_ef015006_eu570448_2', 98, 'EF015006 - Max. clamping thickness (from: att_b)'],
-      ['etim_ef015006_eu570448_3', 99, 'EF015006 - Max. clamping thickness (from: att_c)'],
+  it('puts one copy action per feature in the rule of a shared source', () => {
+    const { rules, issues } = generate({
+      EF000139: { sources: [{ attribute: 'att_product' }] },
+      EF005644: { sources: [{ attribute: 'att_product' }] },
+      EF015006_EU570448: { sources: [{ attribute: 'att_product' }] },
+      EF000100_EU570073: { range: 'minmax-number', sources: [{ attribute: 'att_temp' }] },
+    });
+    expect(issues).toEqual([]);
+    expect(rules.map((r) => [r.code, r.priority, r.origin.keys])).toEqual([
+      ['etim_att_product', 99, ['EF000139', 'EF005644', 'EF015006_EU570448']],
+      ['etim_att_temp', 99, ['EF000100_EU570073']],
     ]);
-    expect(rules[0]!.actions).toEqual([{ type: 'copy', from_field: 'att_a', to_field: 'ef015006_eu570448' }]);
+    expect(rules[0]!.actions).toEqual([
+      { type: 'copy', from_field: 'att_product', to_field: 'ef000139', reference_entity_attribute: 'ref_EF000139' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef000139_label', reference_entity_attribute: 'ref_EF000139_label' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef005644', reference_entity_attribute: 'ref_EF005644' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef005644_label', reference_entity_attribute: 'ref_EF005644_label' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef015006_eu570448' },
+    ]);
+    expect(rules[1]!.actions).toEqual([
+      { type: 'copy', from_field: 'att_temp', to_field: 'ef000100_eu570073_min' },
+      { type: 'copy', from_field: 'att_temp', to_field: 'ef000100_eu570073_max' },
+    ]);
   });
 
-  it('sets true and false for L with yes values, copies a boolean source otherwise', () => {
+  it('uses the configured record attribute prefix and label suffix', () => {
+    const { rules } = generate({ EF000139: { sources: [{ attribute: 'att_x' }] } }, (p) => {
+      p.settings.codes.sourceRecordAttributePrefix = 'etim_';
+      p.settings.codes.labelSuffix = '_text';
+    });
+    expect(rules[0]!.actions.map((a) => (a.type === 'copy' ? a.reference_entity_attribute : ''))).toEqual(['etim_EF000139', 'etim_EF000139_text']);
+  });
+
+  it('gives L with yes values its own true and false rules, copies a boolean source in the shared rule', () => {
     const withYes = generate({ EF015003: { sources: [{ attribute: 'att_preset', yesValues: ['yes', 'ja'] }] } }).rules;
-    expect(withYes.map((r) => [r.code, r.conditions[0]!.value.slice(1), r.actions])).toEqual([
-      ['etim_ef015003_true', [{ field: 'att_preset', operator: 'IN', value: ['yes', 'ja'] }], [{ type: 'set', field: 'ef015003', value: true }]],
+    expect(withYes.map((r) => [r.code, r.conditions[0]!.value.slice(1), r.actions, r.labels.en_US])).toEqual([
+      [
+        'etim_ef015003_true',
+        [{ field: 'att_preset', operator: 'IN', value: ['yes', 'ja'] }],
+        [{ type: 'set', field: 'ef015003', value: true }],
+        'EF015003 - Pre-positioned installation (true)',
+      ],
       [
         'etim_ef015003_false',
         [
@@ -108,14 +136,16 @@ describe('generateRules', () => {
           { field: 'att_preset', operator: 'NOT IN', value: ['yes', 'ja'] },
         ],
         [{ type: 'set', field: 'ef015003', value: false }],
+        'EF015003 - Pre-positioned installation (false)',
       ],
     ]);
     const copy = generate({ EF015003: { sources: [{ attribute: 'att_bool' }] } }).rules;
-    expect(copy.map((r) => r.actions)).toEqual([[{ type: 'copy', from_field: 'att_bool', to_field: 'ef015003' }]]);
+    expect(copy.map((r) => [r.code, r.actions])).toEqual([['etim_att_bool', [{ type: 'copy', from_field: 'att_bool', to_field: 'ef015003' }]]]);
   });
 
-  it('concatenates two sources for a text range, copies to min and max for min/max', () => {
+  it('gives a range with a second source its own rule, concatenating for text and copying to min and max', () => {
     const text = generate({ EF000100_EU570073: { sources: [{ attribute: 'att_from', second: 'att_to' }] } }).rules[0]!;
+    expect(text.code).toBe('etim_ef000100_eu570073');
     expect(text.conditions[0]!.value.slice(1)).toEqual([
       { field: 'att_from', operator: 'NOT EMPTY' },
       { field: 'att_to', operator: 'NOT EMPTY' },
@@ -129,26 +159,17 @@ describe('generateRules', () => {
       { type: 'copy', from_field: 'att_from', to_field: 'ef000100_eu570073_min' },
       { type: 'copy', from_field: 'att_to', to_field: 'ef000100_eu570073_max' },
     ]);
-    const single = generate({ EF000100_EU570073: { range: 'minmax-number', sources: [{ attribute: 'att_temp' }] } });
-    expect(single.rules[0]!.actions).toEqual([
-      { type: 'copy', from_field: 'att_temp', to_field: 'ef000100_eu570073_min' },
-      { type: 'copy', from_field: 'att_temp', to_field: 'ef000100_eu570073_max' },
-    ]);
   });
 
-  it('reports invalid sources, negative priorities and options for the wrong type', () => {
+  it('reports invalid sources, a negative priority and options for the wrong type', () => {
     const bad = generate({ EF015006_EU570448: { sources: [{ attribute: 'att a' }] } });
     expect(bad.rules).toEqual([]);
     expect(bad.issues).toEqual([{ severity: 'error', featureKey: 'EF015006_EU570448', message: 'Invalid source attribute code "att a"' }]);
 
-    const negative = generate({ EF015006_EU570448: { sources: [{ attribute: 'att_a' }, { attribute: 'att_b' }] } }, (p) => {
-      p.settings.rulePriority = 0;
+    const negative = generate({ EF015006_EU570448: { sources: [{ attribute: 'att_a' }] } }, (p) => {
+      p.settings.rulePriority = -1;
     });
-    expect(negative.issues).toContainEqual({
-      severity: 'error',
-      featureKey: 'EF015006_EU570448',
-      message: 'Rule priority -1 for EF015006_EU570448 is negative, raise the project rule priority',
-    });
+    expect(negative.issues).toContainEqual({ severity: 'error', message: 'Rule priority -1 is negative, raise the project rule priority' });
 
     const wrong = generate({ EF015006_EU570448: { sources: [{ attribute: 'att_a', second: 'att_b', yesValues: ['y'] }] } });
     expect(wrong.rules[0]!.conditions[0]!.value.map((c) => c.field)).toEqual(['etim_class', 'att_a']);
@@ -158,11 +179,42 @@ describe('generateRules', () => {
     ]);
   });
 
-  it('reports a source listed twice and skips its rule', () => {
-    const { rules, issues } = generate({ EF015006_EU570448: { sources: [{ attribute: 'att_a' }, { attribute: 'att_a' }] } });
-    expect(rules.map((r) => r.code)).toEqual(['etim_ef015006_eu570448_1']);
+  it('allows one source per feature, more is an error and the first is used', () => {
+    const { rules, issues } = generate({ EF015006_EU570448: { sources: [{ attribute: 'att_a' }, { attribute: 'att_b' }] } });
+    expect(rules.map((r) => r.code)).toEqual(['etim_att_a']);
     expect(issues).toEqual([
-      { severity: 'error', featureKey: 'EF015006_EU570448', message: 'Source att_a is listed twice for EF015006_EU570448, its rule could never win' },
+      { severity: 'error', featureKey: 'EF015006_EU570448', message: 'EF015006_EU570448 has 2 sources, only one is allowed. Using att_a' },
+    ]);
+  });
+
+  it('reports rule codes that collide', () => {
+    const { issues } = generate({
+      EF000100_EU570073: { sources: [{ attribute: 'att_from', second: 'att_to' }] },
+      EF015006_EU570448: { sources: [{ attribute: 'ef000100_eu570073' }] },
+    });
+    expect(issues).toContainEqual({ severity: 'error', message: 'Duplicate rule code etim_ef000100_eu570073' });
+  });
+
+  it('checks sources against uploaded Akeneo attributes', () => {
+    const { issues } = generate(
+      {
+        EF000139: { sources: [{ attribute: 'att_text' }] },
+        EF015003: { sources: [{ attribute: 'att_select' }] },
+        EF015006_EU570448: { sources: [{ attribute: 'att_unknown' }] },
+        EF005644: { sources: [{ attribute: 'att_ref' }] },
+      },
+      (p) => {
+        p.sourceAttributes = [
+          { code: 'att_text', type: 'pim_catalog_text', labels: {} },
+          { code: 'att_select', type: 'pim_catalog_simpleselect', labels: {} },
+          { code: 'att_ref', type: 'akeneo_reference_entity', labels: {} },
+        ];
+      },
+    );
+    expect(issues.map((i) => [i.featureKey, i.message])).toEqual([
+      ['EF000139', 'Source att_text is pim_catalog_text, an A feature needs a reference entity attribute (akeneo_reference_entity)'],
+      ['EF015003', 'Source att_select is pim_catalog_simpleselect, without yes values an L feature needs a Yes/No attribute (pim_catalog_boolean)'],
+      ['EF015006_EU570448', 'Source att_unknown is not in the uploaded Akeneo attributes'],
     ]);
   });
 

@@ -104,7 +104,7 @@ export function SettingsPanel({ opened, onClose }: { opened: boolean; onClose: (
           <Title order={4}>Rules</Title>
           <NumberInput
             label="Rule priority"
-            description="Priority of a single source rule. With several sources the preferred one gets the lowest priority, so it runs last and wins."
+            description="Priority of every generated rule"
             value={settings.rulePriority}
             min={0}
             allowDecimal={false}

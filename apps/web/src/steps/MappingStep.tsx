@@ -3,6 +3,7 @@ import { Button, Group, Modal, Paper, SimpleGrid, Stack, Text, Title } from '@ma
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { MappingTable } from '../components/mapping/MappingTable.js';
+import { SourceAttributesPanel } from '../components/mapping/SourceAttributesPanel.js';
 import { SourceEditor } from '../components/mapping/SourceEditor.js';
 import { featureRows } from '../features/featureRows.js';
 import { mappingRows, orphanMappings } from '../mapping/sourceMappings.js';
@@ -85,9 +86,10 @@ export function MappingStep() {
   return (
     <Stack gap="lg" mt="md">
       <Text size="sm" c="dimmed">
-        Enter the existing customer attributes that feed each ETIM feature. Mapped features become read only and are filled by
-        Akeneo rules. Unmapped features are enriched by hand.
+        Pick the customer (data model) attribute that feeds each ETIM feature. Mapped features become read only and are filled by
+        Akeneo rules, one rule per source attribute. Unmapped features are enriched by hand.
       </Text>
+      <SourceAttributesPanel />
       <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
         <Stat label="Features" value={rows.length} testId="stat-features" />
         <Stat label="Mapped" value={mapped} testId="stat-mapped" />

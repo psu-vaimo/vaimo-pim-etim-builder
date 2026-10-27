@@ -21,7 +21,7 @@ describe('generateModel', () => {
     expect(model.attributes.map((a) => a.code)).toEqual(['etim_class', 'ef000008_eu570448', 'ef000139', 'ef000139_label', 'ef015003']);
     expect(model.classRecords.map((r) => r.code)).toEqual(['ec000009']);
     expect(model.valueRecords.map((r) => r.code)).toEqual(['ev000072', 'ev000154']);
-    expect(model.rules.map((r) => r.code)).toEqual(['etim_ef000139']);
+    expect(model.rules.map((r) => r.code)).toEqual(['etim_att_surface_treatment']);
     expect(model.dependencies.map((d) => d.code)).toEqual(['etim_ec000009']);
     expect(model.issues).toEqual(buildExport(release, mapped).issues);
   });
@@ -61,8 +61,8 @@ describe('review rows', () => {
   it('formats rules', () => {
     const [row] = ruleReviewRows(model.rules, 'en_US');
     expect(row?.conditions).toEqual(['etim_class NOT EMPTY', 'att_surface_treatment NOT EMPTY']);
-    expect(row?.actions[0]).toBe('copy att_surface_treatment (etim_value) to ef000139');
-    expect(row?.label).toBe('EF000139 - Surface protection');
+    expect(row?.actions[0]).toBe('copy att_surface_treatment (ref_EF000139) to ef000139');
+    expect(row?.label).toBe('ETIM (from: att_surface_treatment)');
   });
 
   it('counts shown and restricted attributes per dependency', () => {

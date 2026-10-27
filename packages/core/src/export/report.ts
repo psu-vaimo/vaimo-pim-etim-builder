@@ -1,5 +1,6 @@
 import type { ProjectFeature } from '../akeneo/features.js';
 import type { AkeneoAttribute, AkeneoDependency, AkeneoRule, GenerateIssue } from '../akeneo/types.js';
+import { sourceRecordAttribute } from '../akeneo/rules.js';
 import { labelFor } from '../etim/labels.js';
 import type { EtimRelease } from '../etim/types.js';
 import type { Project } from '../project/types.js';
@@ -26,7 +27,7 @@ export function reportTables(input: ReportInput): Table[] {
     attrsByKey.set(a.origin.key, [...(attrsByKey.get(a.origin.key) ?? []), a]);
   }
   const rulesByKey = new Map<string, AkeneoRule[]>();
-  for (const r of rules) rulesByKey.set(r.origin.key, [...(rulesByKey.get(r.origin.key) ?? []), r]);
+  for (const r of rules) for (const key of r.origin.keys) rulesByKey.set(key, [...(rulesByKey.get(key) ?? []), r]);
   const mapped = features.filter((f) => (project.features[f.key]?.sources ?? []).length > 0).length;
 
   const summary: Table = {
@@ -52,7 +53,7 @@ export function reportTables(input: ReportInput): Table[] {
   const mapping: Table = {
     name: 'Features',
     rows: [
-      ['Feature', 'Label', 'ETIM type', 'Unit', 'Classes', 'Akeneo attributes', 'Akeneo types', 'Sources (preferred first)', 'Second source', 'Yes values', 'Rules'],
+      ['Feature', 'Label', 'ETIM type', 'Unit', 'Classes', 'Akeneo attributes', 'Akeneo types', 'Source', 'Second source', 'Yes values', 'Rules'],
       ...features.map((f) => {
         const sources = project.features[f.key]?.sources ?? [];
         const attrs = attrsByKey.get(f.key) ?? [];
@@ -119,5 +120,31 @@ export function reportTables(input: ReportInput): Table[] {
     ],
   };
 
-  return [summary, mapping, attributeSheet, classes, issueSheet];
+  // One row per source attribute: what it feeds, and for A features the record attributes its reference entity needs.
+  const featureById = new Map(features.map((f) => [f.key, f]));
+  const known = new Map((project.sourceAttributes ?? []).map((a) => [a.code, a]));
+  const bySource = new Map<string, string[]>();
+  for (const f of features) {
+    const source = project.features[f.key]?.sources?.[0]?.attribute;
+    if (source) bySource.set(source, [...(bySource.get(source) ?? []), f.key]);
+  }
+  const sourceSheet: Table = {
+    name: 'Sources',
+    rows: [
+      ['Source attribute', 'Akeneo type', 'Reference entity', 'Features', 'Record attributes needed', 'Rules'],
+      ...[...bySource.keys()].sort().map((source) => {
+        const keys = bySource.get(source) ?? [];
+        const recordAttributes = keys.flatMap((k) => {
+          const f = featureById.get(k);
+          if (f?.type !== 'A') return [];
+          const code = sourceRecordAttribute(project, f.featureId);
+          return [code, code + project.settings.codes.labelSuffix];
+        });
+        const ruleCodes = [...new Set(keys.flatMap((k) => (rulesByKey.get(k) ?? []).filter((r) => r.origin.source === source).map((r) => r.code)))];
+        return [source, known.get(source)?.type, known.get(source)?.referenceDataName, keys.join(', '), recordAttributes.join(', '), ruleCodes.join(', ')];
+      }),
+    ],
+  };
+
+  return [summary, mapping, sourceSheet, attributeSheet, classes, issueSheet];
 }

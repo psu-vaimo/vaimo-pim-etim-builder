@@ -21,14 +21,9 @@ export const CODE_FIELDS: readonly FieldInfo<CodeKey>[] = [
   { key: 'classAttribute', label: 'Class attribute', description: 'Product attribute linking a product to its ETIM class' },
   { key: 'labelSuffix', label: 'Label attribute suffix', description: 'Added to mapped A attributes for the value label' },
   {
-    key: 'sourceValueAttribute',
-    label: 'Source value attribute',
-    description: 'Record attribute on the customer source entities holding the ETIM value code',
-  },
-  {
-    key: 'sourceLabelAttribute',
-    label: 'Source label attribute',
-    description: 'Record attribute on the customer source entities holding the value label',
+    key: 'sourceRecordAttributePrefix',
+    label: 'Source record attribute prefix',
+    description: 'Before the feature id, record attribute on the customer source entities holding the ETIM value code (ref_EF000139)',
   },
 ];
 
@@ -66,7 +61,8 @@ export function codeExamples(settings: ProjectSettings): { label: string; code: 
     { label: 'Label attribute', code: `${attr}${codes.labelSuffix}` },
     { label: 'Class record', code: classRecord },
     { label: 'Value record', code: `${codes.valueRecordPrefix}ev000072` },
-    { label: 'Rule', code: `${codes.rulePrefix}${attr}` },
+    { label: 'Rule', code: `${codes.rulePrefix}att_surface_treatment` },
+    { label: 'Source record attribute', code: `${codes.sourceRecordAttributePrefix}EF000139` },
     { label: 'Dependency', code: `${codes.dependencyPrefix}${classRecord}` },
   ];
 }

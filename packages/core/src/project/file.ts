@@ -1,11 +1,12 @@
 import type { EtimRelease } from '../etim/types.js';
 import { defaultSettings } from './defaults.js';
-import type { Project, ProjectSettings } from './types.js';
+import type { Project, ProjectSettings, SourceAttribute } from './types.js';
 
 export type ProjectFileResult = { ok: true; project: Project } | { ok: false; error: string };
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
+const isSourceAttribute = (v: unknown): boolean => isRecord(v) && typeof v.code === 'string' && isRecord(v.labels);
 
 /** Pretty printed JSON, the format users save and load. */
 export function serializeProject(project: Project): string {
@@ -26,7 +27,8 @@ export function projectFileName(project: Project): string {
 /**
  * Reads a project file. Checks the format version and the shape of the fields
  * the app relies on. Settings missing in the file get defaults, one level
- * deep, so files from older app versions still load.
+ * deep, so files from older app versions still load. Code settings the app no
+ * longer has are dropped.
  */
 export function parseProjectFile(text: string): ProjectFileResult {
   let data: unknown;
@@ -49,6 +51,9 @@ export function parseProjectFile(text: string): ProjectFileResult {
   if (data.features !== undefined && !isRecord(data.features)) {
     return { ok: false, error: 'The project features must be an object.' };
   }
+  if (data.sourceAttributes !== undefined && !(Array.isArray(data.sourceAttributes) && data.sourceAttributes.every(isSourceAttribute))) {
+    return { ok: false, error: 'The project sourceAttributes must be a list of attributes with a code and labels.' };
+  }
 
   const project: Project = {
     formatVersion: 1,
@@ -57,6 +62,7 @@ export function parseProjectFile(text: string): ProjectFileResult {
     classIds: [...new Set(data.classIds)].sort(),
     settings: mergeSettings(data.settings),
     features: (data.features ?? {}) as Project['features'],
+    ...(data.sourceAttributes ? { sourceAttributes: data.sourceAttributes as SourceAttribute[] } : {}),
   };
   return { ok: true, project };
 }
@@ -68,6 +74,10 @@ function mergeSettings(raw: Record<string, unknown> | undefined): ProjectSetting
   for (const [key, value] of Object.entries(raw)) {
     const base = merged[key];
     merged[key] = isRecord(base) && isRecord(value) ? { ...base, ...value } : value;
+  }
+  if (isRecord(raw.codes)) {
+    const codes = merged.codes as Record<string, unknown>;
+    for (const key of Object.keys(codes)) if (!(key in defaults.codes)) delete codes[key];
   }
   return merged as unknown as ProjectSettings;
 }

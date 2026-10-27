@@ -6,7 +6,7 @@ type CodeKey = keyof ProjectSettings['codes'];
 type GroupKey = keyof ProjectSettings['groups'];
 
 /** Code settings prepended to other codes, they may be empty. */
-const PREFIXES: readonly CodeKey[] = ['attributePrefix', 'classRecordPrefix', 'valueRecordPrefix', 'rulePrefix', 'dependencyPrefix'];
+const PREFIXES: readonly CodeKey[] = ['attributePrefix', 'classRecordPrefix', 'valueRecordPrefix', 'rulePrefix', 'dependencyPrefix', 'sourceRecordAttributePrefix'];
 
 /** A problem with one settings field, `field` is a dotted path like `codes.classEntity`. */
 export interface SettingsIssue extends GenerateIssue {

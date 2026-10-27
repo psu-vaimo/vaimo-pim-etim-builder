@@ -1,17 +1,20 @@
 import {
   attributeCode,
   effectiveRange,
+  sourceRecordAttribute,
   generateAttributes,
   generateRules,
   labelFor,
   type EtimRelease,
   type GenerateIssue,
   type Project,
+  type SourceAttribute,
   type SourceMapping,
 } from '@akeneo-etim/core';
 import {
   ActionIcon,
   Alert,
+  Autocomplete,
   Badge,
   Button,
   Divider,
@@ -33,7 +36,6 @@ import {
   formatAction,
   hasDraftErrors,
   issuesFor,
-  moveItem,
   ruleConditions,
   toDrafts,
   validateDrafts,
@@ -81,15 +83,16 @@ function TypeHelp({ row, project }: { row: MappingRow; project: Project }) {
     </Text>
   );
   switch (row.type) {
-    case 'A':
+    case 'A': {
+      const recordAttribute = sourceRecordAttribute(project, row.featureId);
       return (
         <Text size="sm">
-          The source must be a reference entity attribute whose records have the attributes {mono(codes.sourceValueAttribute)}{' '}
-          (the ETIM value code, for example EV000072) and {mono(codes.sourceLabelAttribute)} (the value label). Once mapped,{' '}
-          {mono(code)} becomes a read only text attribute holding the ETIM value code, and {mono(code + codes.labelSuffix)} holds
-          the value label.
+          The source must be a reference entity attribute whose records have the attributes {mono(recordAttribute)} (the ETIM value
+          code, for example EV000072) and {mono(recordAttribute + codes.labelSuffix)} (the value label). Once mapped, {mono(code)}{' '}
+          becomes a read only text attribute holding the ETIM value code, and {mono(code + codes.labelSuffix)} holds the value label.
         </Text>
       );
+    }
     case 'N':
       return <Text size="sm">The source value is copied to {mono(code)}, which becomes read only.</Text>;
     case 'L':
@@ -154,13 +157,30 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
     const ruled = generateRules(release, p, generated.attributes);
     return {
       attributes: generated.attributes.filter((a) => a.origin.kind === 'feature' && a.origin.key === row.key),
-      rules: ruled.rules.filter((r) => r.origin.key === row.key),
+      rules: ruled.rules.filter((r) => r.origin.keys.includes(row.key)),
       issues: [...issuesFor(generated.issues, row.key), ...issuesFor(ruled.issues, row.key)],
     };
   }, [release, project, row, deferred]);
 
   const update = (index: number, patch: Partial<SourceDraft>) =>
     setDrafts((list) => list.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+  const known = useMemo(() => new Map((project.sourceAttributes ?? []).map((a) => [a.code, a])), [project.sourceAttributes]);
+  const codes = useMemo(() => [...known.keys()], [known]);
+  const sourceInput = (index: number, field: 'attribute' | 'second', label: string, value: string, error: string | undefined) => (
+    <Autocomplete
+      label={label}
+      placeholder="att_code"
+      description={known.size > 0 ? attributeHint(known.get(value.trim()), value.trim(), locale) : undefined}
+      data={codes}
+      limit={50}
+      value={value}
+      error={error}
+      onChange={(v) => update(index, { [field]: v })}
+      renderOption={({ option }) => <SourceOption code={option.value} attribute={known.get(option.value)} locale={locale} />}
+      styles={MONO_INPUT}
+      data-testid={`source-${field}-${index}`}
+    />
+  );
 
   return (
     <Stack gap="md" data-testid={`editor-${row.key}`}>
@@ -183,45 +203,18 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
       </Paper>
 
       <Stack gap="xs">
-        <Title order={5}>Source attributes</Title>
+        <Title order={5}>Source attribute</Title>
         <Text size="sm" c="dimmed">
-          Customer attribute codes in preference order. Akeneo runs higher priority rules first and later rules overwrite, so the
-          first source gets the lowest priority and wins whenever it is not empty.
+          The customer (data model) attribute that fills this feature. One source per feature, a source can fill many features: its
+          rule gets one copy action per feature.
+          {known.size === 0 && ' Upload an Akeneo attribute export on the mapping screen to pick from a list.'}
         </Text>
         {drafts.map((d, i) => (
           <Paper key={i} withBorder p="sm" radius="md" data-testid={`source-${i}`}>
             <Group align="flex-start" gap="sm" wrap="nowrap">
-              <Stack gap={2} mt={28} w={72} align="center" style={{ flexShrink: 0 }}>
-                <Badge variant={i === 0 ? 'filled' : 'light'} circle size="lg">
-                  {i + 1}
-                </Badge>
-                {i === 0 && drafts.length > 1 && (
-                  <Text size="xs" c="dimmed">
-                    Preferred
-                  </Text>
-                )}
-              </Stack>
               <Stack gap="xs" style={{ flex: 1 }}>
-                <TextInput
-                  label={row.type === 'R' ? 'Source attribute (first value)' : 'Source attribute'}
-                  placeholder="att_code"
-                  value={d.attribute}
-                  error={errors[i]?.attribute}
-                  onChange={(e) => update(i, { attribute: e.currentTarget.value })}
-                  styles={MONO_INPUT}
-                  data-testid={`source-attribute-${i}`}
-                />
-                {row.type === 'R' && (
-                  <TextInput
-                    label="Second source (optional)"
-                    placeholder="att_code"
-                    value={d.second}
-                    error={errors[i]?.second}
-                    onChange={(e) => update(i, { second: e.currentTarget.value })}
-                    styles={MONO_INPUT}
-                    data-testid={`source-second-${i}`}
-                  />
-                )}
+                {sourceInput(i, 'attribute', row.type === 'R' ? 'Source attribute (first value)' : 'Source attribute', d.attribute, errors[i]?.attribute)}
+                {row.type === 'R' && sourceInput(i, 'second', 'Second source (optional)', d.second, errors[i]?.second)}
                 {row.type === 'L' && (
                   <TagsInput
                     label="Yes values (optional)"
@@ -235,54 +228,33 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
                   />
                 )}
               </Stack>
-              <Group gap={4} mt={26} wrap="nowrap">
-                <Tooltip label="Move up">
-                  <ActionIcon
-                    variant="default"
-                    aria-label="Move up"
-                    disabled={i === 0}
-                    onClick={() => setDrafts((list) => moveItem(list, i, i - 1))}
-                    data-testid={`source-up-${i}`}
-                  >
-                    ↑
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Move down">
-                  <ActionIcon
-                    variant="default"
-                    aria-label="Move down"
-                    disabled={i === drafts.length - 1}
-                    onClick={() => setDrafts((list) => moveItem(list, i, i + 1))}
-                    data-testid={`source-down-${i}`}
-                  >
-                    ↓
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Remove source">
-                  <ActionIcon
-                    variant="default"
-                    color="red"
-                    aria-label="Remove source"
-                    onClick={() => setDrafts((list) => list.filter((_, j) => j !== i))}
-                    data-testid={`source-remove-${i}`}
-                  >
-                    ×
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
+              <Tooltip label="Remove source">
+                <ActionIcon
+                  variant="default"
+                  color="red"
+                  aria-label="Remove source"
+                  mt={26}
+                  onClick={() => setDrafts((list) => list.filter((_, j) => j !== i))}
+                  data-testid={`source-remove-${i}`}
+                >
+                  ×
+                </ActionIcon>
+              </Tooltip>
             </Group>
           </Paper>
         ))}
         {drafts.length === 0 && (
-          <Text size="sm" c="dimmed">
-            No sources, the feature stays unmapped.
-          </Text>
+          <>
+            <Text size="sm" c="dimmed">
+              No source, the feature stays unmapped.
+            </Text>
+            <Group>
+              <Button variant="light" size="xs" onClick={() => setDrafts([emptyDraft()])} data-testid="source-add">
+                Add source
+              </Button>
+            </Group>
+          </>
         )}
-        <Group>
-          <Button variant="light" size="xs" onClick={() => setDrafts((list) => [...list, emptyDraft()])} data-testid="source-add">
-            Add source
-          </Button>
-        </Group>
       </Stack>
 
       <Group justify="space-between">
@@ -376,6 +348,29 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
           </Paper>
         ))}
       </Stack>
+    </Stack>
+  );
+}
+
+/** Type and label of the picked source, or a note that it is not in the uploaded export. */
+function attributeHint(attribute: SourceAttribute | undefined, code: string, locale: string | undefined): string | undefined {
+  if (code === '') return undefined;
+  if (!attribute) return 'Not in the uploaded Akeneo attributes';
+  const label = labelFor(attribute.labels, locale);
+  return [attribute.type, attribute.referenceDataName, label].filter(Boolean).join(', ');
+}
+
+function SourceOption({ code, attribute, locale }: { code: string; attribute: SourceAttribute | undefined; locale: string | undefined }) {
+  return (
+    <Stack gap={0}>
+      <Text size="sm" ff="monospace">
+        {code}
+      </Text>
+      {attribute && (
+        <Text size="xs" c="dimmed">
+          {[labelFor(attribute.labels, locale), attribute.type].filter(Boolean).join(' · ')}
+        </Text>
+      )}
     </Stack>
   );
 }
