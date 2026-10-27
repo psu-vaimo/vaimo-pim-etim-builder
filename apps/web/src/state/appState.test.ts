@@ -183,7 +183,7 @@ describe('setFeatureSources', () => {
   const set = (state: ReturnType<typeof initialState>, key: string, featureType: 'A' | 'N' | 'L' | 'R', sources: { attribute: string; second?: string; yesValues?: string[] }[]) =>
     appReducer(state, { type: 'setFeatureSources', key, featureType, sources });
 
-  it('stores normalized sources in preference order', () => {
+  it('stores normalized sources', () => {
     const state = set(initialState(), 'EF1', 'L', [
       { attribute: ' att_a ', second: 'att_x', yesValues: [' yes ', ''] },
       { attribute: '' },
@@ -224,6 +224,16 @@ describe('setFeatureSources', () => {
     state = set(state, 'EF1', 'L', [{ attribute: 'att_keep' }]);
     state = appReducer(state, { type: 'removeSources', keys: ['EF9', 'EF8_EU1'] });
     expect(state.project.features).toEqual({ EF8_EU1: { numeric: 'metric' }, EF1: { sources: [{ attribute: 'att_keep' }] } });
+  });
+});
+
+describe('setSourceAttributes', () => {
+  it('stores and removes the uploaded attributes', () => {
+    const attributes = [{ code: 'att_a', type: 'pim_catalog_text', labels: {} }];
+    let state = appReducer(initialState(), { type: 'setSourceAttributes', attributes });
+    expect(state.project.sourceAttributes).toEqual(attributes);
+    state = appReducer(state, { type: 'setSourceAttributes', attributes: null });
+    expect('sourceAttributes' in state.project).toBe(false);
   });
 });
 

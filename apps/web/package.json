@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json && vite build",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.node.json && vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
     "@akeneo-etim/core": "workspace:*",
@@ -19,6 +19,7 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

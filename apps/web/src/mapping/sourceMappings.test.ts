@@ -8,7 +8,6 @@ import {
   formatAction,
   formatSource,
   mappingRows,
-  moveItem,
   orphanMappings,
   ruleConditions,
   toDrafts,
@@ -30,11 +29,11 @@ describe('codeError', () => {
 });
 
 describe('validateDrafts', () => {
-  it('flags invalid codes, duplicates and a second source without a first', () => {
-    expect(validateDrafts([draft('att a'), draft('att_b'), draft('att_b'), draft('')], 'N')).toEqual([
+  it('flags invalid codes, more than one source and a second source without a first', () => {
+    expect(validateDrafts([draft('att a'), draft('att_b'), draft('att_c'), draft('')], 'N')).toEqual([
       { attribute: 'Use only letters, digits and underscores' },
-      {},
-      { attribute: 'att_b is already listed' },
+      { attribute: 'Only one source per feature, remove this one' },
+      { attribute: 'Only one source per feature, remove this one' },
       {},
     ]);
     expect(validateDrafts([draft('', 'att_to'), draft('att_from', 'att to')], 'R')).toEqual([
@@ -52,15 +51,6 @@ describe('normalizeSources with drafts', () => {
   it('round trips through drafts', () => {
     const sources = [{ attribute: 'att_a', second: 'att_b' }, { attribute: 'att_c' }];
     expect(normalizeSources(toDrafts(sources), 'R')).toEqual(sources);
-  });
-});
-
-describe('moveItem', () => {
-  it('moves an item and ignores out of range moves', () => {
-    expect(moveItem(['a', 'b', 'c'], 0, 1)).toEqual(['b', 'a', 'c']);
-    expect(moveItem(['a', 'b', 'c'], 2, 0)).toEqual(['c', 'a', 'b']);
-    expect(moveItem(['a', 'b'], 0, -1)).toEqual(['a', 'b']);
-    expect(moveItem(['a', 'b'], 1, 2)).toEqual(['a', 'b']);
   });
 });
 

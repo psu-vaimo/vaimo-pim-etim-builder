@@ -16,12 +16,13 @@ describe('settings fields', () => {
       'ef000139_label',
       'ec000009',
       'ev000072',
-      'etim_ef000139',
+      'etim_att_surface_treatment',
+      'ref_EF000139',
       'etim_ec000009',
     ]);
     s.codes.attributePrefix = 'x_';
     s.codes.classRecordPrefix = 'c_';
-    expect(codeExamples(s).map((e) => e.code)).toContain('etim_x_ef000139');
+    expect(codeExamples(s).map((e) => e.code)).toContain('x_ef000139_label');
     expect(codeExamples(s).map((e) => e.code)).toContain('etim_c_ec000009');
   });
 

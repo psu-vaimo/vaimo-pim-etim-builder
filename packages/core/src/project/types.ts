@@ -29,8 +29,23 @@ export interface SourceMapping {
 export interface FeatureConfig {
   numeric?: NumericSetup;
   range?: RangeSetup;
-  /** In preference order, the first non-empty source wins. Empty or missing means unmapped. */
+  /**
+   * The data model attribute feeding the feature. At most one, kept as a list
+   * so older project files load, more than one is an error. Empty or missing
+   * means unmapped.
+   */
   sources?: SourceMapping[];
+}
+
+/** A customer (data model) attribute from an uploaded Akeneo attribute export. */
+export interface SourceAttribute {
+  code: string;
+  /** Akeneo attribute type, `pim_catalog_text`, `akeneo_reference_entity`... */
+  type?: string;
+  labels: Record<string, string>;
+  group?: string;
+  /** Reference entity code, for reference entity attributes. */
+  referenceDataName?: string;
 }
 
 /** Locale specific words used in generated labels. */
@@ -67,9 +82,12 @@ export interface ProjectSettings {
     rulePrefix: string;
     /** Prepended to dependency codes, `etim_` gives `etim_ec000009`. */
     dependencyPrefix: string;
-    /** Attributes on the customer's source reference entities holding the ETIM value code and label. */
-    sourceValueAttribute: string;
-    sourceLabelAttribute: string;
+    /**
+     * Prepended to the feature id for the record attribute on the customer's
+     * source reference entities holding the ETIM value code, `ref_` gives
+     * `ref_EF000139`. The value label is in that code plus the label suffix.
+     */
+    sourceRecordAttributePrefix: string;
   };
   groups: {
     /** Group for the class attribute. */
@@ -97,4 +115,6 @@ export interface Project {
   settings: ProjectSettings;
   /** Per feature overrides and mappings. */
   features: Record<FeatureKey, FeatureConfig>;
+  /** Customer attributes from an uploaded Akeneo attribute export, offered as sources. */
+  sourceAttributes?: SourceAttribute[];
 }

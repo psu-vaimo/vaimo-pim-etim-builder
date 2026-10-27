@@ -39,7 +39,7 @@ describe('project file', () => {
       name: 'x',
       locales: ['en_US', 'en_US'],
       classIds: ['EC2', 'EC1', 'EC2'],
-      settings: { rulePriority: 50, codes: { attributePrefix: 'etim_' } },
+      settings: { rulePriority: 50, codes: { attributePrefix: 'etim_', sourceValueAttribute: 'etim_value' } },
     });
     const result = parseProjectFile(text);
     if (!result.ok) throw new Error(result.error);
@@ -49,6 +49,12 @@ describe('project file', () => {
     expect(result.project.settings.rulePriority).toBe(50);
     expect(result.project.settings.codes).toEqual({ ...defaultSettings().codes, attributePrefix: 'etim_' });
     expect(result.project.settings.groups).toEqual(defaultSettings().groups);
+  });
+
+  it('keeps uploaded source attributes and rejects malformed ones', () => {
+    const project = { ...createProject('x'), sourceAttributes: [{ code: 'att_a', type: 'pim_catalog_text', labels: { en_US: 'A' } }] };
+    expect(parseProjectFile(serializeProject(project))).toEqual({ ok: true, project });
+    expect(parseProjectFile(JSON.stringify({ ...project, sourceAttributes: [{ code: 'att_a' }] }))).toMatchObject({ ok: false });
   });
 
   it('builds a file name from the project name', () => {

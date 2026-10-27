@@ -49,19 +49,19 @@ export interface DraftErrors {
 
 /**
  * Inline errors per draft. An empty row is fine (it is dropped on save), a
- * second source without a first one is not. A source listed twice is an error
- * since the extra rule would never win.
+ * second source without a first one is not. Only one source per feature is
+ * allowed, older project files may have more.
  */
 export function validateDrafts(drafts: readonly SourceDraft[], type: EtimFeatureType): DraftErrors[] {
-  const seen = new Set<string>();
+  let hasSource = false;
   return drafts.map((d) => {
     const errors: DraftErrors = {};
     const attribute = d.attribute.trim();
     const attributeError = codeError(attribute);
     if (attributeError) errors.attribute = attributeError;
     else if (attribute === '' && type === 'R' && d.second.trim() !== '') errors.attribute = 'Enter the first source too';
-    else if (attribute !== '' && seen.has(attribute)) errors.attribute = `${attribute} is already listed`;
-    if (attribute !== '') seen.add(attribute);
+    else if (attribute !== '' && hasSource) errors.attribute = 'Only one source per feature, remove this one';
+    if (attribute !== '') hasSource = true;
     if (type === 'R') {
       const secondError = codeError(d.second);
       if (secondError) errors.second = secondError;
@@ -72,15 +72,6 @@ export function validateDrafts(drafts: readonly SourceDraft[], type: EtimFeature
 
 export function hasDraftErrors(errors: readonly DraftErrors[]): boolean {
   return errors.some((e) => e.attribute !== undefined || e.second !== undefined);
-}
-
-/** Moves the item at `from` to `to`, out of range moves are ignored. */
-export function moveItem<T>(items: readonly T[], from: number, to: number): T[] {
-  if (from < 0 || from >= items.length || to < 0 || to >= items.length || from === to) return [...items];
-  const next = [...items];
-  const [item] = next.splice(from, 1);
-  next.splice(to, 0, item as T);
-  return next;
 }
 
 export function formatCondition(c: RuleFieldCondition): string {

@@ -16,6 +16,7 @@ import {
   type Project,
   type ProjectSettings,
   type RangeSetup,
+  type SourceAttribute,
   type SourceMapping,
 } from '@akeneo-etim/core';
 import { withoutSources } from '../mapping/sourceMappings.js';
@@ -57,12 +58,14 @@ export type AppAction =
   /** `null` removes the mapping. */
   | { type: 'setUnitMapping'; unitId: string; mapping: AkeneoUnit | null }
   /**
-   * Sources in preference order, normalized for `featureType` (see `normalizeSources`).
+   * The feature's source (at most one), normalized for `featureType` (see `normalizeSources`).
    * An empty list removes `sources`, and the feature entry when nothing else is left.
    */
   | { type: 'setFeatureSources'; key: FeatureKey; featureType: EtimFeatureType; sources: readonly SourceMapping[] }
   /** Removes the sources of these features, other overrides stay. Used for mappings of features no longer selected. */
   | { type: 'removeSources'; keys: readonly FeatureKey[] }
+  /** Customer attributes from an uploaded Akeneo attribute export, `null` removes them. Mappings are kept. */
+  | { type: 'setSourceAttributes'; attributes: readonly SourceAttribute[] | null }
   /** Patches code, group and label settings and the rule priority. Values are stored as typed, validation is shown in the UI. */
   | { type: 'updateSettings'; patch: SettingsPatch }
   /** Resets codes, groups, label words and rule priority to the defaults, keeps number/range defaults and unit mappings. */
@@ -160,6 +163,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
     case 'removeSources':
       return { ...state, project: { ...state.project, features: withoutSources(state.project.features, action.keys) } };
+    case 'setSourceAttributes': {
+      const { sourceAttributes: _old, ...project } = state.project;
+      return { ...state, project: action.attributes ? { ...project, sourceAttributes: [...action.attributes] } : project };
+    }
     case 'setUnitMapping': {
       const { [action.unitId]: _removed, ...rest } = state.project.settings.unitMap;
       const family = action.mapping?.family.trim() ?? '';

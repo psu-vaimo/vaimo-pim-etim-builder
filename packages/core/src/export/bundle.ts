@@ -91,7 +91,9 @@ function manualStepsFor(project: Project, usesSourceRecords: boolean): string[] 
     'Import 06_attribute_dependencies.yml with the dependency import.',
     'Add the ETIM attributes to the families. This is required and not part of the export.',
     ...(usesSourceRecords
-      ? [`Make sure the source reference entities of mapped A features have the record attributes ${codes.sourceValueAttribute} and ${codes.sourceLabelAttribute} filled.`]
+      ? [
+          `Make sure the source reference entities of mapped A features have a record attribute per mapped feature, filled with the ETIM value code (${codes.sourceRecordAttributePrefix}EF000139) and the value label (${codes.sourceRecordAttributePrefix}EF000139${codes.labelSuffix}). The mapping report lists them per source.`,
+        ]
       : []),
   ];
 }
