@@ -11,7 +11,7 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 ## Scope
 
 ### Phase 1
-- ETIM input by file upload (ETIM export, same tables as the prototype), or picked from pre-loaded exports in `apps/web/etim-files/<release>/<locale>/` (listed by the dev server, files gitignored).
+- ETIM input by file upload (ETIM export, same tables as the prototype), or picked from pre-loaded exports in `apps/web/etim-files/<release>/<locale>/` (listed by the dev server, committed to git).
 - Select classes, configure locales per project (from what the ETIM export contains).
 - Generate attributes, reference entity records, dependencies and rules.
 - UI: a wizard for setup (import ETIM, select classes and locales, configure features, map source attributes, review, export), then a workspace for free editing of classes, attributes, rules and dependencies.

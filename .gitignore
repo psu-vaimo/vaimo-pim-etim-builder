@@ -148,6 +148,5 @@ vite.config.ts.timestamp-*
 # Turbo Repo
 .turbo
 
-# Pre-loaded ETIM exports, large files kept out of git
-apps/web/etim-files/*
-!apps/web/etim-files/README.md
+# macOS folder metadata
+.DS_Store
