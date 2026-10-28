@@ -26,3 +26,11 @@ export { AKENEO_CODE_MAX, akeneoCodeError, normalizeSources, withSources, type S
 export { validateSettings, type SettingsIssue } from './project/settings.js';
 export { parseAkeneoAttributeExport } from './source/attributes.js';
 export { readXlsxRows } from './source/xlsx.js';
+export { parseAkeneoRecordExport } from './source/records.js';
+export {
+  collectSourceEntities,
+  sourceEntityFor,
+  sourceRecordsTable,
+  type SourceEntityFeature,
+  type SourceEntityPlan,
+} from './akeneo/sourceEntities.js';

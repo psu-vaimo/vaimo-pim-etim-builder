@@ -23,7 +23,7 @@ export const CODE_FIELDS: readonly FieldInfo<CodeKey>[] = [
   {
     key: 'sourceRecordAttributePrefix',
     label: 'Source record attribute prefix',
-    description: 'Before the feature id, record attribute on the customer source entities holding the ETIM value code (ref_EF000139)',
+    description: 'Before the feature id, record attribute on the customer source entities holding the ETIM value code (ref_ef000139)',
   },
 ];
 
@@ -62,7 +62,7 @@ export function codeExamples(settings: ProjectSettings): { label: string; code: 
     { label: 'Class record', code: classRecord },
     { label: 'Value record', code: `${codes.valueRecordPrefix}ev000072` },
     { label: 'Rule', code: `${codes.rulePrefix}att_surface_treatment` },
-    { label: 'Source record attribute', code: `${codes.sourceRecordAttributePrefix}EF000139` },
+    { label: 'Source record attribute', code: `${codes.sourceRecordAttributePrefix}ef000139` },
     { label: 'Dependency', code: `${codes.dependencyPrefix}${classRecord}` },
   ];
 }

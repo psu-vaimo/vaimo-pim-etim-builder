@@ -35,6 +35,7 @@ import {
   emptyDraft,
   formatAction,
   hasDraftErrors,
+  codeError,
   issuesFor,
   ruleConditions,
   toDrafts,
@@ -53,7 +54,8 @@ interface Props {
   locale: string | undefined;
   /** Asked to close, by the close button, Escape, the overlay or Cancel. The parent decides whether to ask about unsaved changes. */
   onClose: () => void;
-  onSave: (row: MappingRow, sources: SourceMapping[]) => void;
+  /** `entity` is the reference entity override for an A feature's source, `''` when none (the uploaded reference data name applies). */
+  onSave: (row: MappingRow, sources: SourceMapping[], entity: string) => void;
   /** Called when the drafts start or stop differing from the saved sources, and with `false` when the editor closes. */
   onDirtyChange?: (dirty: boolean) => void;
 }
@@ -140,7 +142,16 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
   const errors = useMemo(() => validateDrafts(drafts, row.type), [drafts, row.type]);
   const normalized = useMemo(() => normalizeSources(drafts, row.type), [drafts, row.type]);
   const deferred = useDeferredValue(normalized);
-  const dirty = useMemo(() => draftsDiffer(drafts, row.sources, row.type), [drafts, row.sources, row.type]);
+  // The link belongs to the source attribute (shared by its features), so it follows the attribute being typed until edited here.
+  const linkFor = (attribute: string | undefined) => project.sourceEntityLinks?.[attribute ?? ''] ?? '';
+  const currentLink = linkFor(normalized[0]?.attribute);
+  const [entityEdit, setEntityEdit] = useState<string | undefined>();
+  const entity = entityEdit ?? currentLink;
+  const entityError = row.type === 'A' ? codeError(entity) : undefined;
+  const dirty = useMemo(
+    () => draftsDiffer(drafts, row.sources, row.type) || (row.type === 'A' && entity.trim() !== currentLink),
+    [drafts, row.sources, row.type, entity, currentLink],
+  );
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
@@ -215,6 +226,21 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
               <Stack gap="xs" style={{ flex: 1 }}>
                 {sourceInput(i, 'attribute', row.type === 'R' ? 'Source attribute (first value)' : 'Source attribute', d.attribute, errors[i]?.attribute)}
                 {row.type === 'R' && sourceInput(i, 'second', 'Second source (optional)', d.second, errors[i]?.second)}
+                {row.type === 'A' && i === 0 && (
+                  <TextInput
+                    label="Reference entity"
+                    description={
+                      `Akeneo reference entity the source links to, shared by all features mapped from ${d.attribute.trim() || 'it'}. ` +
+                      'Its records are mapped to ETIM values on the Source records step.'
+                    }
+                    placeholder={known.get(d.attribute.trim())?.referenceDataName ?? 'reference_entity_code'}
+                    value={entity}
+                    error={entityError}
+                    onChange={(e) => setEntityEdit(e.currentTarget.value)}
+                    styles={MONO_INPUT}
+                    data-testid="source-entity"
+                  />
+                )}
                 {row.type === 'L' && (
                   <TagsInput
                     label="Yes values (optional)"
@@ -259,7 +285,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
 
       <Group justify="space-between">
         <Group gap="xs">
-          <Button onClick={() => onSave(row, normalized)} disabled={hasDraftErrors(errors) || !dirty} data-testid="source-save">
+          <Button onClick={() => onSave(row, normalized, entity.trim())} disabled={hasDraftErrors(errors) || entityError !== undefined || !dirty} data-testid="source-save">
             Save
           </Button>
           <Button variant="default" onClick={onClose} data-testid="source-cancel">
@@ -267,7 +293,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
           </Button>
         </Group>
         {row.sources.length > 0 && (
-          <Button variant="subtle" color="red" onClick={() => onSave(row, [])} data-testid="source-unmap">
+          <Button variant="subtle" color="red" onClick={() => onSave(row, [], '')} data-testid="source-unmap">
             Remove mapping
           </Button>
         )}

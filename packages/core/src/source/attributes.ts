@@ -16,13 +16,9 @@ export function parseAkeneoAttributeExport(
   fileName: string,
 ): { attributes: SourceAttribute[]; issues: GenerateIssue[] } {
   const issues: GenerateIssue[] = [];
-  let rows: string[][];
-  try {
-    rows = isZip(bytes) ? readXlsxRows(bytes) : csvRows(decodeEtimFile(bytes));
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return { attributes: [], issues: [{ severity: 'error', message: `${fileName} could not be read: ${reason}` }] };
-  }
+  const read = readSpreadsheet(bytes, fileName);
+  if (!read.ok) return { attributes: [], issues: [read.issue] };
+  const { rows } = read;
 
   const [header, ...body] = rows;
   const columns = (header ?? []).map((h) => h.trim().toLowerCase());
@@ -59,6 +55,16 @@ export function parseAkeneoAttributeExport(
 
   const attributes = [...byCode.values()].sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
   return { attributes, issues };
+}
+
+/** Rows of an XLSX (first sheet) or CSV file, or an error issue when it cannot be read. */
+export function readSpreadsheet(bytes: Uint8Array, fileName: string): { ok: true; rows: string[][] } | { ok: false; issue: GenerateIssue } {
+  try {
+    return { ok: true, rows: isZip(bytes) ? readXlsxRows(bytes) : csvRows(decodeEtimFile(bytes)) };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { ok: false, issue: { severity: 'error', message: `${fileName} could not be read: ${reason}` } };
+  }
 }
 
 function isZip(bytes: Uint8Array): boolean {

@@ -227,6 +227,41 @@ describe('setFeatureSources', () => {
   });
 });
 
+describe('source entities', () => {
+  it('links attributes to entities and removes empty links', () => {
+    let state = appReducer(initialState(), { type: 'setSourceEntityLink', attribute: 'att_a', entity: ' surface ' });
+    expect(state.project.sourceEntityLinks).toEqual({ att_a: 'surface' });
+    state = appReducer(state, { type: 'setSourceEntityLink', attribute: 'att_a', entity: '' });
+    expect('sourceEntityLinks' in state.project).toBe(false);
+  });
+
+  it('adds, maps, replaces and removes records, keeping entities sorted', () => {
+    let state = appReducer(initialState(), { type: 'addSourceRecord', entity: 'zinc', record: { code: 'z', labels: {}, values: {} } });
+    state = appReducer(state, { type: 'addSourceRecord', entity: 'alu', record: { code: 'a', labels: {}, values: {} } });
+    state = appReducer(state, { type: 'setSourceRecordValue', entity: 'alu', code: 'a', featureId: 'EF1', valueId: 'EV1' });
+    expect(state.project.sourceEntities).toEqual([
+      { code: 'alu', records: [{ code: 'a', labels: {}, values: { EF1: 'EV1' } }] },
+      { code: 'zinc', records: [{ code: 'z', labels: {}, values: {} }] },
+    ]);
+    state = appReducer(state, {
+      type: 'replaceSourceRecords',
+      entity: 'alu',
+      records: [
+        { code: 'a', labels: { en_US: 'A' }, values: { EF2: 'EV2' } },
+        { code: 'b', labels: {}, values: {} },
+      ],
+    });
+    expect(state.project.sourceEntities?.[0]?.records).toEqual([
+      { code: 'a', labels: { en_US: 'A' }, values: { EF1: 'EV1', EF2: 'EV2' } },
+      { code: 'b', labels: {}, values: {} },
+    ]);
+    state = appReducer(state, { type: 'setSourceRecordValue', entity: 'alu', code: 'a', featureId: 'EF1', valueId: null });
+    expect(state.project.sourceEntities?.[0]?.records[0]?.values).toEqual({ EF2: 'EV2' });
+    state = appReducer(state, { type: 'removeSourceRecord', entity: 'zinc', code: 'z' });
+    expect(state.project.sourceEntities?.map((e) => e.code)).toEqual(['alu']);
+  });
+});
+
 describe('setSourceAttributes', () => {
   it('stores and removes the uploaded attributes', () => {
     const attributes = [{ code: 'att_a', type: 'pim_catalog_text', labels: {} }];

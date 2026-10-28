@@ -1,7 +1,7 @@
-import type { Project, ProjectFeature } from '@akeneo-etim/core';
+import type { Project, ProjectFeature, SourceEntityPlan } from '@akeneo-etim/core';
 
 /**
- * The six setup screens, shared by the wizard (Stepper, in order) and the
+ * The setup screens, shared by the wizard (Stepper, in order) and the
  * workspace (sidebar, any order). The index is the same in both modes, so
  * switching mode keeps the current screen.
  */
@@ -10,6 +10,7 @@ export const SECTIONS = [
   { id: 'classes', label: 'Classes', description: 'Select classes and locales' },
   { id: 'features', label: 'Features', description: 'Types, units, ranges' },
   { id: 'mapping', label: 'Mapping', description: 'Customer source attributes' },
+  { id: 'records', label: 'Source records', description: 'Reference entity records to ETIM values' },
   { id: 'review', label: 'Review', description: 'Attributes, dependencies, rules' },
   { id: 'export', label: 'Export', description: 'Akeneo import files' },
 ] as const;
@@ -59,6 +60,10 @@ export interface StatusInput extends GuardInput {
   selectedClasses: number;
   features: number;
   mappedFeatures: number;
+  /** Reference entities behind mapped A features, and their record values (records × features): all and mapped. */
+  sourceEntities: number;
+  recordValues: number;
+  mappedRecordValues: number;
   /** Generator issues, `undefined` while not computed yet. */
   generatorErrors: number | undefined;
   generatorWarnings: number | undefined;
@@ -112,6 +117,13 @@ export function sectionStatuses(s: StatusInput): SectionStatus[] {
           text: `${s.mappedFeatures.toLocaleString('en-US')} of ${s.features.toLocaleString('en-US')} mapped`,
           tone: s.mappedFeatures > 0 ? 'ok' : 'muted',
         };
+      case 'records':
+        if (s.sourceEntities === 0) return { text: 'No reference entity sources', tone: 'muted' };
+        if (s.recordValues === 0) return { text: plural(s.sourceEntities, 'entity', 'entities') + ', no records', tone: 'warning' };
+        return {
+          text: `${s.mappedRecordValues.toLocaleString('en-US')} of ${s.recordValues.toLocaleString('en-US')} values mapped`,
+          tone: s.mappedRecordValues === s.recordValues ? 'ok' : 'warning',
+        };
       case 'review':
         return issues;
       case 'export':
@@ -129,4 +141,15 @@ export function clampSection(index: number): number {
 /** Features with at least one customer source attribute. */
 export function countMapped(features: readonly ProjectFeature[], config: Project['features']): number {
   return features.filter((f) => (config[f.key]?.sources?.length ?? 0) > 0).length;
+}
+
+/** Record value counts for the status: one value per record and mapped feature of each reference entity. */
+export function recordCounts(entities: readonly SourceEntityPlan[]): Pick<StatusInput, 'sourceEntities' | 'recordValues' | 'mappedRecordValues'> {
+  let recordValues = 0;
+  let mappedRecordValues = 0;
+  for (const e of entities) {
+    recordValues += e.records.length * e.features.length;
+    for (const r of e.records) mappedRecordValues += e.features.filter((f) => r.values[f.featureId]).length;
+  }
+  return { sourceEntities: entities.length, recordValues, mappedRecordValues };
 }

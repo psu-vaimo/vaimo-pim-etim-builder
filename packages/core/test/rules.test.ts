@@ -77,8 +77,8 @@ describe('generateRules', () => {
           },
         ],
         actions: [
-          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'ref_EF000139' },
-          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'ref_EF000139_label' },
+          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'ref_ef000139' },
+          { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'ref_ef000139_label' },
         ],
         labels: { en_US: 'ETIM (from: att_surface_treatment)', sv_SE: 'ETIM (från: att_surface_treatment)' },
         executionType: 'triggered',
@@ -100,10 +100,10 @@ describe('generateRules', () => {
       ['etim_att_temp', 99, ['EF000100_EU570073']],
     ]);
     expect(rules[0]!.actions).toEqual([
-      { type: 'copy', from_field: 'att_product', to_field: 'ef000139', reference_entity_attribute: 'ref_EF000139' },
-      { type: 'copy', from_field: 'att_product', to_field: 'ef000139_label', reference_entity_attribute: 'ref_EF000139_label' },
-      { type: 'copy', from_field: 'att_product', to_field: 'ef005644', reference_entity_attribute: 'ref_EF005644' },
-      { type: 'copy', from_field: 'att_product', to_field: 'ef005644_label', reference_entity_attribute: 'ref_EF005644_label' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef000139', reference_entity_attribute: 'ref_ef000139' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef000139_label', reference_entity_attribute: 'ref_ef000139_label' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef005644', reference_entity_attribute: 'ref_ef005644' },
+      { type: 'copy', from_field: 'att_product', to_field: 'ef005644_label', reference_entity_attribute: 'ref_ef005644_label' },
       { type: 'copy', from_field: 'att_product', to_field: 'ef015006_eu570448' },
     ]);
     expect(rules[1]!.actions).toEqual([
@@ -117,7 +117,7 @@ describe('generateRules', () => {
       p.settings.codes.sourceRecordAttributePrefix = 'etim_';
       p.settings.codes.labelSuffix = '_text';
     });
-    expect(rules[0]!.actions.map((a) => (a.type === 'copy' ? a.reference_entity_attribute : ''))).toEqual(['etim_EF000139', 'etim_EF000139_text']);
+    expect(rules[0]!.actions.map((a) => (a.type === 'copy' ? a.reference_entity_attribute : ''))).toEqual(['etim_ef000139', 'etim_ef000139_text']);
   });
 
   it('gives L with yes values its own true and false rules, copies a boolean source in the shared rule', () => {

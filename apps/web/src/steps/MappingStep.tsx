@@ -130,8 +130,10 @@ export function MappingStep() {
         locale={locale}
         onClose={() => requestEdit(undefined)}
         onDirtyChange={onDirtyChange}
-        onSave={(row, sources) => {
+        onSave={(row, sources, entity) => {
           dispatch({ type: 'setFeatureSources', key: row.key, featureType: row.type, sources });
+          const attribute = sources[0]?.attribute;
+          if (row.type === 'A' && attribute) dispatch({ type: 'setSourceEntityLink', attribute, entity: entity || null });
           dirty.current = false;
           setEditing(undefined);
         }}

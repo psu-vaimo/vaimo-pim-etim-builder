@@ -16,6 +16,7 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 - Generate attributes, reference entity records, dependencies and rules.
 - UI: a wizard for setup (import ETIM, select classes and locales, configure features, map source attributes, review, export), then a workspace for free editing of classes, attributes, rules and dependencies.
 - Customer source attributes for mapping: upload the customer's Akeneo attribute export (XLSX or CSV) to pick from a list and check types, or type codes by hand. The list is saved in the project file (`sourceAttributes`).
+- Source records: the records of the customer reference entities behind A feature sources, uploaded from an Akeneo record export or added by hand, mapped to ETIM values per feature and exported as record import files.
 - Projects saved and loaded as a JSON project file (no database).
 - Export files only:
   - Akeneo import XLSX/CSV (attributes, attribute options, reference entity records)
@@ -97,12 +98,12 @@ Generated per class:
 - Label attributes in the class last: `IS_DISPLAYED`.
 
 ### Rules (auto enrichment)
-Rules are built around the customer's data model attributes (sources), not ETIM features. A feature has at most one source, a source can feed many features. For A features the source is a reference entity attribute: the selected record holds one ETIM value per mapped feature, in record attribute `ref_EF001122` (prefix is a project setting), and the value label in `ref_EF001122_label` (plus the label suffix).
+Rules are built around the customer's data model attributes (sources), not ETIM features. A feature has at most one source, a source can feed many features. For A features the source is a reference entity attribute: the selected record holds one ETIM value per mapped feature, in record attribute `ref_ef001122` (lower case, prefix is a project setting), and the value label in `ref_ef001122_label` (plus the label suffix).
 
 One rule per source attribute, code `etim_<source>`, label `ETIM (from: <source>)`, with one or more actions per feature the source is mapped to (in attribute code order). Conditions: `etim_class NOT EMPTY` and source `NOT EMPTY`. Execution `triggered`. Priority is a project default (prototype uses 99), editable, the same for every rule.
 | ETIM type | Action |
 |---|---|
-| A | copy `ref_EF...` from the source record to the feature, copy `ref_EF..._label` to `<code>_label` |
+| A | copy `ref_ef...` from the source record to the feature, copy `ref_ef..._label` to `<code>_label` |
 | N | copy value |
 | R text | copy value |
 | R min/max | copy the source to `_min` and `_max` |
@@ -117,12 +118,19 @@ Features needing their own conditions or a second source get their own rule, cod
 
 Field names follow the prototype's rules YAML. More than one source on a feature (older project files) is an error, the first is used. Duplicate rule codes are errors. With uploaded Akeneo attributes, unknown sources and wrong source types (A needs `akeneo_reference_entity`, L without yes values `pim_catalog_boolean`) are warnings.
 
+### Source records (customer reference entities)
+- The reference entity of an A feature source is the project link (`sourceEntityLinks`, set in the mapping editor, shared by all features of that source), else the `reference_data_name` from the uploaded attribute export.
+- `collectSourceEntities` groups mapped A features per reference entity. Each entity needs text attributes `ref_ef...` and `ref_ef..._label` per feature (not localizable, not scopable). Akeneo SaaS cannot import reference entity attributes from a file, so they are a manual step in the README.
+- Records (`sourceEntities`, per entity: code, labels, `values` feature id to value id) come from an uploaded Akeneo record export (`parseAkeneoRecordExport`, also reads back the `ref_` columns) or are added by hand. A new upload replaces the records, mapped values of matching codes are kept.
+- Export `07_records_<entity>` (XLSX and CSV): `referenceEntityIdentifier;code;ref_ef...;ref_ef..._label` per feature, every known record, value id (`EV000072`) and value label in the first project locale, empty when unmapped. No record labels, so the import only updates the ETIM attributes.
+- Warnings: source without reference entity, entity without records, unmapped record values, values ETIM does not allow for the feature in the selected classes.
+
 ## Tech stack
 - TypeScript monorepo, pnpm workspaces, Node 22, Vitest.
 - `packages/core` (`@akeneo-etim/core`): shared, framework-free ETIM to Akeneo logic (parsing, code/label generation, attributes, dependencies, rules, exporters). Most logic and tests live here. Consumed as TypeScript source (no build step).
 - `apps/api` (`@akeneo-etim/api`): Fastify, port 3001. `buildApp()` in `src/app.ts`, tests use `app.inject`.
 - `apps/web` (`@akeneo-etim/web`): React + Vite + Mantine (Stepper for the wizard). Dev server proxies `/api/*` to the API.
-  - Two modes: Wizard (Stepper, steps in order) and Workspace (sidebar, same six screens in any order, status per section). Same guards in both: steps after Import need a release without errors, steps after Classes a selected class. The mode is remembered in localStorage. The workspace is free navigation only, generated output is never edited directly.
+  - Two modes: Wizard (Stepper, steps in order) and Workspace (sidebar, same seven screens in any order, status per section). Screens: Import, Classes, Features, Mapping, Source records, Review, Export. Same guards in both: steps after Import need a release without errors, steps after Classes a selected class. The mode is remembered in localStorage. The workspace is free navigation only, generated output is never edited directly.
   - Settings drawer from the project bar: codes, groups, label words per locale, rule priority, validated by `validateSettings` in core.
   - State: `useReducer` + context in `apps/web/src/state`. Heavy work (ETIM import, export) runs in web workers.
 
@@ -161,6 +169,7 @@ Run `pnpm test` and `pnpm typecheck` before committing.
 
 ## Source attributes (`packages/core/src/source`)
 - `parseAkeneoAttributeExport(bytes, fileName)` reads an Akeneo attribute export, XLSX (small regex based reader, `readXlsxRows`, works in workers) or CSV. Columns `code` (required), `type`, `group`, `reference_data_name`, `label-<locale>`.
+- `parseAkeneoRecordExport(bytes, fileName, prefix)` reads an Akeneo record export: `code` (required), `label-<locale>`, and `<prefix>ef...` value columns.
 
 ## Open decisions
 - None right now. Add new ones here as they come up.

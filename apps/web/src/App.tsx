@@ -22,6 +22,7 @@ import { ExportStep } from './steps/ExportStep.js';
 import { FeaturesStep } from './steps/FeaturesStep.js';
 import { ImportStep } from './steps/ImportStep.js';
 import { MappingStep } from './steps/MappingStep.js';
+import { RecordsStep } from './steps/RecordsStep.js';
 import { ReviewStep } from './steps/ReviewStep.js';
 import { useAppState } from './state/AppStateContext.js';
 import { hasSelectedClasses, isReleaseReady } from './state/appState.js';
@@ -39,17 +40,28 @@ function StepContent({ index, label }: { index: number; label: string }) {
 }
 
 function StepScreen({ index, label }: { index: number; label: string }) {
-  if (index === 0) return <ImportStep />;
-  if (index === 1) return <ClassesStep />;
-  if (index === 2) return <FeaturesStep />;
-  if (index === 3) return <MappingStep />;
-  if (index === 4) return <ReviewStep />;
-  if (index === 5) return <ExportStep />;
-  return (
-    <Text c="dimmed" mt="md">
-      {label}: not built yet.
-    </Text>
-  );
+  switch (SECTIONS[index]?.id) {
+    case 'import':
+      return <ImportStep />;
+    case 'classes':
+      return <ClassesStep />;
+    case 'features':
+      return <FeaturesStep />;
+    case 'mapping':
+      return <MappingStep />;
+    case 'records':
+      return <RecordsStep />;
+    case 'review':
+      return <ReviewStep />;
+    case 'export':
+      return <ExportStep />;
+    default:
+      return (
+        <Text c="dimmed" mt="md">
+          {label}: not built yet.
+        </Text>
+      );
+  }
 }
 
 const TONE_COLORS: Record<StatusTone, string> = { ok: 'teal', warning: 'orange', error: 'red', muted: 'dimmed' };

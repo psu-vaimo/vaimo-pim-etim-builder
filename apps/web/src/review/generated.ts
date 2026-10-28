@@ -1,4 +1,5 @@
 import {
+  collectSourceEntities,
   generateAttributes,
   generateDependencies,
   generateRecords,
@@ -22,7 +23,7 @@ export interface GeneratedModel {
   valueRecords: AkeneoRecord[];
   rules: AkeneoRule[];
   dependencies: AkeneoDependency[];
-  /** Attributes, records and rules issues, in that order, like `buildExport`. */
+  /** Attributes, records, rules and source record issues, in that order, like `buildExport`. */
   issues: GeneratedIssue[];
 }
 
@@ -32,6 +33,7 @@ export function generateModel(release: EtimRelease, project: Project): Generated
   const records = generateRecords(release, project);
   const rules = generateRules(release, project, attrs.attributes);
   const dependencies = generateDependencies(release, project, attrs.attributes);
+  const sourceEntities = collectSourceEntities(release, project);
   return {
     attributes: attrs.attributes,
     classRecords: records.classes,
@@ -42,6 +44,7 @@ export function generateModel(release: EtimRelease, project: Project): Generated
       ...attrs.issues.map((i) => ({ ...i, step: 'attributes' as const })),
       ...records.issues.map((i) => ({ ...i, step: 'records' as const })),
       ...rules.issues.map((i) => ({ ...i, step: 'rules' as const })),
+      ...sourceEntities.issues.map((i) => ({ ...i, step: 'records' as const })),
     ],
   };
 }
