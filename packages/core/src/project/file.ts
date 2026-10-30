@@ -1,6 +1,6 @@
 import type { EtimRelease } from '../etim/types.js';
 import { defaultSettings } from './defaults.js';
-import type { Project, ProjectSettings, SourceAttribute, SourceEntity } from './types.js';
+import type { EtimSource, Project, ProjectSettings, SourceAttribute, SourceEntity } from './types.js';
 
 export type ProjectFileResult = { ok: true; project: Project } | { ok: false; error: string };
 
@@ -8,6 +8,8 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'obj
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
 const isSourceAttribute = (v: unknown): boolean => isRecord(v) && typeof v.code === 'string' && isRecord(v.labels);
 const isStringRecord = (v: unknown): boolean => isRecord(v) && Object.values(v).every((x) => typeof x === 'string');
+const isEtimSource = (v: unknown): boolean =>
+  isRecord(v) && (v.library === undefined || typeof v.library === 'string') && isStringArray(v.locales) && v.locales.length > 0;
 const isSourceEntity = (v: unknown): boolean =>
   isRecord(v) &&
   typeof v.code === 'string' &&
@@ -66,6 +68,9 @@ export function parseProjectFile(text: string): ProjectFileResult {
   if (data.sourceEntities !== undefined && !(Array.isArray(data.sourceEntities) && data.sourceEntities.every(isSourceEntity))) {
     return { ok: false, error: 'The project sourceEntities must be a list of reference entities with records.' };
   }
+  if (data.etimSource !== undefined && !isEtimSource(data.etimSource)) {
+    return { ok: false, error: 'The project etimSource must have a list of locales and an optional library release name.' };
+  }
 
   const project: Project = {
     formatVersion: 1,
@@ -77,6 +82,7 @@ export function parseProjectFile(text: string): ProjectFileResult {
     ...(data.sourceAttributes ? { sourceAttributes: data.sourceAttributes as SourceAttribute[] } : {}),
     ...(data.sourceEntityLinks ? { sourceEntityLinks: data.sourceEntityLinks as Record<string, string> } : {}),
     ...(data.sourceEntities ? { sourceEntities: data.sourceEntities as SourceEntity[] } : {}),
+    ...(data.etimSource ? { etimSource: data.etimSource as EtimSource } : {}),
   };
   return { ok: true, project };
 }

@@ -17,7 +17,7 @@ Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: class
 - UI: a wizard for setup (import ETIM, select classes and locales, configure features, map source attributes, review, export), then a workspace for free editing of classes, attributes, rules and dependencies.
 - Customer source attributes for mapping: upload the customer's Akeneo attribute export (XLSX or CSV) to pick from a list and check types, or type codes by hand. The list is saved in the project file (`sourceAttributes`).
 - Source records: the records of the customer reference entities behind A feature sources, uploaded from an Akeneo record export or added by hand, mapped to ETIM values per feature and exported as record import files.
-- Projects saved and loaded as a JSON project file (no database).
+- Projects saved and loaded as a JSON project file (no database). The file holds no ETIM data, only `etimSource` (pre-loaded release folder, or none for uploads, and the locales in import order). Loading a project imports a pre-loaded release again, an uploaded one has to be imported by hand.
 - Export files only:
   - Akeneo import XLSX/CSV (attributes, attribute options, reference entity records)
   - Rules YAML (Akeneo rules import format)

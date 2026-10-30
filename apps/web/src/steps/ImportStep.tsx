@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
-import { ETIM_LABEL_TABLES, ETIM_TABLES, type EtimTableName, type ParseResult } from '@akeneo-etim/core';
+import type { EtimTableName } from '@akeneo-etim/core';
 import { useState } from 'react';
 import { EtimLibraryForm } from '../components/EtimLibraryForm.js';
 import { EtimUploadForm, type TableFiles } from '../components/EtimUploadForm.js';
@@ -7,8 +7,8 @@ import { IssueCounts, IssueList } from '../components/IssueList.js';
 import { MissingClassesAlert } from '../components/MissingClassesAlert.js';
 import { ReleaseSummary } from '../components/ReleaseSummary.js';
 import type { EtimJobFile } from '../etim/etimJob.js';
-import { fetchLibraryFiles, type LibraryLocale } from '../etim/library.js';
-import { assignFiles } from '../etim/tableFiles.js';
+import { importLibraryRelease } from '../etim/importLibrary.js';
+import type { LibraryLocale } from '../etim/library.js';
 import { runEtimJob } from '../etim/runEtimJob.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { isReleaseReady } from '../state/appState.js';
@@ -18,19 +18,6 @@ async function readFiles(files: TableFiles): Promise<{ jobFiles: EtimJobFile[]; 
   const jobFiles = await Promise.all(entries.map(async ([table, file]) => ({ table, bytes: await file.arrayBuffer() })));
   return { jobFiles, fileNames: entries.map(([, file]) => file.name) };
 }
-
-/** Downloads the files of a pre-loaded locale and assigns them to tables like an upload. */
-async function libraryJobFiles(
-  release: string,
-  locale: LibraryLocale,
-  tables: readonly EtimTableName[],
-): Promise<{ jobFiles: EtimJobFile[]; fileNames: string[] }> {
-  const files = await fetchLibraryFiles(release, locale);
-  const entries = Object.entries(assignFiles(files, tables).byTable) as [EtimTableName, { name: string; bytes: ArrayBuffer }][];
-  return { jobFiles: entries.map(([table, f]) => ({ table, bytes: f.bytes })), fileNames: entries.map(([, f]) => `${release}/${locale.locale}/${f.name}`) };
-}
-
-const hasErrors = (result: ParseResult) => result.issues.some((i) => i.severity === 'error');
 
 export function ImportStep() {
   const state = useAppState();
@@ -78,17 +65,7 @@ export function ImportStep() {
     setBusy('base');
     setFailure(undefined);
     try {
-      const baseFiles = await libraryJobFiles(releaseName, base, ETIM_TABLES);
-      let result = await runEtimJob({ kind: 'import', locale: base.locale, files: baseFiles.jobFiles });
-      dispatch({ type: 'baseImported', locale: base.locale, fileNames: baseFiles.fileNames, result });
-      if (!hasErrors(result)) {
-        for (const locale of translations) {
-          const files = await libraryJobFiles(releaseName, locale, ETIM_LABEL_TABLES);
-          const translated = await runEtimJob({ kind: 'translate', locale: locale.locale, release: result.release, files: files.jobFiles });
-          dispatch({ type: 'translationImported', locale: locale.locale, fileNames: files.fileNames, result: translated });
-          if (!hasErrors(translated)) result = translated;
-        }
-      }
+      await importLibraryRelease(dispatch, releaseName, base, translations);
       setShowReplace(false);
       setFormKey((k) => k + 1);
     } catch (error) {

@@ -119,6 +119,17 @@ export interface SourceEntity {
   records: SourceRecord[];
 }
 
+/**
+ * The ETIM export the project was built on. The project file holds no ETIM
+ * data, so this is what the app imports again when the project is loaded.
+ */
+export interface EtimSource {
+  /** Folder of a pre-loaded export in `apps/web/etim-files`, e.g. `ETIM-10.0`. Left out for uploaded files. */
+  library?: string;
+  /** Locale of the base import first, then the added languages in import order. */
+  locales: string[];
+}
+
 /** The saved project file. */
 export interface Project {
   formatVersion: 1;
@@ -139,4 +150,6 @@ export interface Project {
   sourceEntityLinks?: Record<string, string>;
   /** Customer reference entities with their records and ETIM value mapping, sorted by code. */
   sourceEntities?: SourceEntity[];
+  /** Set by the ETIM import, left out until an export is imported. */
+  etimSource?: EtimSource;
 }

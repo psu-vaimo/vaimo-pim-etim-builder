@@ -42,7 +42,8 @@ export interface AppState {
 }
 
 export type AppAction =
-  | { type: 'baseImported'; locale: string; fileNames: string[]; result: ParseResult }
+  /** `library` is the pre-loaded release the files came from, left out for uploads. */
+  | { type: 'baseImported'; locale: string; fileNames: string[]; result: ParseResult; library?: string }
   | { type: 'translationImported'; locale: string; fileNames: string[]; result: ParseResult }
   | { type: 'projectLoaded'; project: Project }
   | { type: 'setProjectName'; name: string }
@@ -108,11 +109,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'baseImported': {
       const { release, issues } = action.result;
       const entry: ImportEntry = { kind: 'base', locale: action.locale, fileNames: action.fileNames, issues, applied: true };
+      const project = withLocales(state.project, release.locales);
+      // Only a usable import is remembered, so loading the project imports it again.
+      const etimSource = { ...(action.library ? { library: action.library } : {}), locales: [action.locale] };
       return {
         ...state,
         release,
         imports: [entry],
-        project: withLocales(state.project, release.locales),
+        project: hasErrors(issues) ? project : { ...project, etimSource },
       };
     }
     case 'translationImported': {
@@ -120,15 +124,23 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const applied = !hasErrors(issues);
       const entry: ImportEntry = { kind: 'translation', locale: action.locale, fileNames: action.fileNames, issues, applied };
       if (!applied) return { ...state, imports: [...state.imports, entry] };
+      const project = withLocales(state.project, [action.locale]);
+      const source = project.etimSource;
       return {
         ...state,
         release,
         imports: [...state.imports, entry],
-        project: withLocales(state.project, [action.locale]),
+        project:
+          source && !source.locales.includes(action.locale)
+            ? { ...project, etimSource: { ...source, locales: [...source.locales, action.locale] } }
+            : project,
       };
     }
-    case 'projectLoaded':
-      return { ...state, project: action.project };
+    case 'projectLoaded': {
+      // An older file without a source keeps the release that is loaded, so saving records it.
+      const etimSource = action.project.etimSource ?? state.project.etimSource;
+      return { ...state, project: etimSource ? { ...action.project, etimSource } : action.project };
+    }
     case 'setProjectName':
       return { ...state, project: { ...state.project, name: action.name } };
     case 'setClassesSelected': {

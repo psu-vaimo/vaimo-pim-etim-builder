@@ -11,7 +11,7 @@ import {
   isReleaseReady,
   unmatchedSearchTerms,
 } from './appState.js';
-import { labelFor } from '@akeneo-etim/core';
+import { createProject, labelFor } from '@akeneo-etim/core';
 
 const release: EtimRelease = {
   locales: ['en_US'],
@@ -64,6 +64,29 @@ describe('appReducer', () => {
     });
     expect(state.release).toBe(sv);
     expect(state.imports.map((i) => i.applied)).toEqual([true, true, false]);
+  });
+
+  it('remembers the ETIM source in the project, only for imports without errors', () => {
+    const sv = { ...release, locales: ['en_US', 'sv_SE'] };
+    let state = appReducer(initialState(), { type: 'baseImported', locale: 'en_US', fileNames: [], result: ok(release), library: 'ETIM-10.0' });
+    state = appReducer(state, { type: 'translationImported', locale: 'sv_SE', fileNames: [], result: ok(sv) });
+    expect(state.project.etimSource).toEqual({ library: 'ETIM-10.0', locales: ['en_US', 'sv_SE'] });
+
+    state = appReducer(state, { type: 'baseImported', locale: 'en_US', fileNames: [], result: ok(release) });
+    expect(state.project.etimSource).toEqual({ locales: ['en_US'] });
+
+    const broken: ParseResult = { release, issues: [{ severity: 'error', table: 'ETIMUNIT', message: 'Missing table' }] };
+    state = appReducer(state, { type: 'baseImported', locale: 'sv_SE', fileNames: [], result: broken, library: 'ETIM-9.0' });
+    expect(state.project.etimSource).toEqual({ locales: ['en_US'] });
+  });
+
+  it('keeps the loaded ETIM source when a project file has none', () => {
+    let state = appReducer(initialState(), { type: 'baseImported', locale: 'en_US', fileNames: [], result: ok(release), library: 'ETIM-10.0' });
+    state = appReducer(state, { type: 'projectLoaded', project: createProject('old file') });
+    expect(state.project.etimSource).toEqual({ library: 'ETIM-10.0', locales: ['en_US'] });
+    const other = { ...createProject('new file'), etimSource: { library: 'ETIM-9.0', locales: ['sv_SE'] } };
+    state = appReducer(state, { type: 'projectLoaded', project: other });
+    expect(state.project.etimSource).toEqual({ library: 'ETIM-9.0', locales: ['sv_SE'] });
   });
 
   it('selects and deselects classes, sorted and unique', () => {

@@ -68,6 +68,15 @@ describe('project file', () => {
     expect(parseProjectFile(JSON.stringify({ ...project, sourceEntities: [{ code: 'surface', records: [{ code: 'zinc' }] }] }))).toMatchObject({ ok: false });
   });
 
+  it('keeps the ETIM source, rejects malformed ones', () => {
+    const project = { ...createProject('x'), etimSource: { library: 'ETIM-10.0', locales: ['en_US', 'sv_SE'] } };
+    expect(parseProjectFile(serializeProject(project))).toEqual({ ok: true, project });
+    const uploaded = { ...createProject('x'), etimSource: { locales: ['en_US'] } };
+    expect(parseProjectFile(serializeProject(uploaded))).toEqual({ ok: true, project: uploaded });
+    expect(parseProjectFile(JSON.stringify({ ...project, etimSource: { library: 'ETIM-10.0', locales: [] } }))).toMatchObject({ ok: false });
+    expect(parseProjectFile(JSON.stringify({ ...project, etimSource: { library: 10, locales: ['en_US'] } }))).toMatchObject({ ok: false });
+  });
+
   it('builds a file name from the project name', () => {
     expect(projectFileName(createProject('ESSVE Sverige AB'))).toBe('essve-sverige-ab.etim-project.json');
     expect(projectFileName(createProject('Bröderna Åkesson'))).toBe('broderna-akesson.etim-project.json');
