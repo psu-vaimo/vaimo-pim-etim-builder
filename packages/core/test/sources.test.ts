@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { akeneoCodeError, normalizeSources, withSources } from '../src/index.js';
+import { akeneoCodeError, applySourceMappings, createProject, normalizeSources, withSources } from '../src/index.js';
 
 const draft = (attribute: string, second = '', yesValues: string[] = []) => ({ attribute, second, yesValues });
 
@@ -33,3 +33,48 @@ describe('withSources', () => {
   });
 });
 
+
+describe('applySourceMappings', () => {
+  const project = {
+    ...createProject('Test'),
+    features: { EF000001: { sources: [{ attribute: 'old' }] }, EF000008_EU570448: { numeric: 'metric' as const } },
+  };
+
+  it('sets, replaces and removes sources by feature and unit', () => {
+    const result = applySourceMappings(project, [
+      { featureId: 'ef000008', unitId: 'eu570448', type: 'N', attribute: ' att_width ' },
+      { featureId: 'EF000001', type: 'A', attribute: '' },
+      { featureId: 'EF000002', type: 'L', attribute: 'att_ok', yesValues: ['yes'], second: 'ignored' },
+      { featureId: 'EF000003', type: 'R', attribute: 'att_min', second: 'att_max' },
+    ]);
+    expect(result).toEqual({
+      ok: true,
+      project: {
+        ...project,
+        features: {
+          EF000008_EU570448: { numeric: 'metric', sources: [{ attribute: 'att_width' }] },
+          EF000002: { sources: [{ attribute: 'att_ok', yesValues: ['yes'] }] },
+          EF000003: { sources: [{ attribute: 'att_min', second: 'att_max' }] },
+        },
+      },
+    });
+    expect(project.features.EF000001).toEqual({ sources: [{ attribute: 'old' }] });
+  });
+
+  it('rejects invalid codes and duplicate features without applying anything', () => {
+    expect(
+      applySourceMappings(project, [
+        { featureId: 'EF000003', type: 'R', attribute: 'att-a', second: 'att b' },
+        { featureId: 'EF000001', type: 'N', attribute: 'a' },
+        { featureId: 'ef000001', type: 'N', attribute: 'b' },
+      ]),
+    ).toEqual({
+      ok: false,
+      errors: [
+        'EF000003: attribute "att-a": Use only letters, digits and underscores',
+        'EF000003: second "att b": Use only letters, digits and underscores',
+        'EF000001: listed more than once, a feature has at most one source',
+      ],
+    });
+  });
+});

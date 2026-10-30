@@ -1,5 +1,6 @@
+import { featureKey } from '../akeneo/features.js';
 import type { EtimFeatureType } from '../etim/types.js';
-import type { FeatureConfig, SourceMapping } from './types.js';
+import type { FeatureConfig, Project, SourceMapping } from './types.js';
 
 const AKENEO_CODE = /^[a-zA-Z0-9_]+$/;
 export const AKENEO_CODE_MAX = 100;
@@ -43,4 +44,48 @@ export function normalizeSources(sources: readonly SourceInput[], type: EtimFeat
 export function withSources(config: FeatureConfig | undefined, sources: readonly SourceMapping[]): FeatureConfig {
   const { sources: _old, ...rest } = config ?? {};
   return sources.length === 0 ? rest : { ...rest, sources: [...sources] };
+}
+
+/** One ETIM feature (+unit) to customer source attribute pair, e.g. sent to the API. */
+export interface FeatureSourceInput extends SourceInput {
+  featureId: string;
+  unitId?: string;
+  /** ETIM type of the feature, decides which of `second` and `yesValues` are kept. */
+  type: EtimFeatureType;
+}
+
+export type ApplySourcesResult = { ok: true; project: Project } | { ok: false; errors: string[] };
+
+/**
+ * Sets the source of each listed feature, replacing what the project had. An
+ * empty `attribute` removes the mapping, the feature entry goes when nothing
+ * else is left. Ids are upper-cased. Invalid codes and a feature listed twice
+ * are errors and nothing is applied.
+ */
+export function applySourceMappings(project: Project, mappings: readonly FeatureSourceInput[]): ApplySourcesResult {
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  const updates: { key: string; sources: SourceMapping[] }[] = [];
+  for (const m of mappings) {
+    const key = featureKey(m.featureId.trim().toUpperCase(), m.unitId?.trim().toUpperCase() || undefined);
+    if (seen.has(key)) errors.push(`${key}: listed more than once, a feature has at most one source`);
+    seen.add(key);
+    const sources = normalizeSources([m], m.type);
+    for (const s of sources) {
+      for (const [field, code] of [['attribute', s.attribute], ['second', s.second]] as const) {
+        const error = code === undefined ? undefined : akeneoCodeError(code);
+        if (error) errors.push(`${key}: ${field} "${code}": ${error}`);
+      }
+    }
+    updates.push({ key, sources });
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  const features = { ...project.features };
+  for (const { key, sources } of updates) {
+    const config = withSources(features[key], sources);
+    if (Object.keys(config).length === 0) delete features[key];
+    else features[key] = config;
+  }
+  return { ok: true, project: { ...project, features } };
 }

@@ -128,7 +128,9 @@ Field names follow the prototype's rules YAML. More than one source on a feature
 ## Tech stack
 - TypeScript monorepo, pnpm workspaces, Node 22, Vitest.
 - `packages/core` (`@akeneo-etim/core`): shared, framework-free ETIM to Akeneo logic (parsing, code/label generation, attributes, dependencies, rules, exporters). Most logic and tests live here. Consumed as TypeScript source (no build step).
-- `apps/api` (`@akeneo-etim/api`): Fastify, port 3001. `buildApp()` in `src/app.ts`, tests use `app.inject`.
+- `apps/api` (`@akeneo-etim/api`): Fastify, port 3001. `buildApp()` in `src/app.ts`, tests use `app.inject`. Stateless, the web app does not call it:
+  - `POST /etim/parse` `{ locale, tables }`: parses ETIM tables, for scripts.
+  - `POST /project/sources` `{ project, mappings: [{ featureId, unitId?, type, attribute, second?, yesValues? }] }`: sets the source attribute of each feature in a project file (`applySourceMappings` in core), empty `attribute` removes it. Returns `{ project }`, or 400 `{ errors }` and nothing applied.
 - `apps/web` (`@akeneo-etim/web`): React + Vite + Mantine (Stepper for the wizard). Dev server proxies `/api/*` to the API.
   - Two modes: Wizard (Stepper, steps in order) and Workspace (sidebar, same seven screens in any order, status per section). Screens: Import, Classes, Features, Mapping, Source records, Review, Export. Same guards in both: steps after Import need a release without errors, steps after Classes a selected class. The mode is remembered in localStorage. The workspace is free navigation only, generated output is never edited directly.
   - Settings drawer from the project bar: codes, groups, label words per locale, rule priority, validated by `validateSettings` in core.
