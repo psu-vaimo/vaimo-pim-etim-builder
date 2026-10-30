@@ -61,7 +61,7 @@ describe('review rows', () => {
   it('formats rules', () => {
     const [row] = ruleReviewRows(model.rules, 'en_US');
     expect(row?.conditions).toEqual(['etim_class NOT EMPTY', 'att_surface_treatment NOT EMPTY']);
-    expect(row?.actions[0]).toBe('copy att_surface_treatment (ref_EF000139) to ef000139');
+    expect(row?.actions[0]).toBe('copy att_surface_treatment (ref_ef000139) to ef000139');
     expect(row?.label).toBe('ETIM (from: att_surface_treatment)');
   });
 

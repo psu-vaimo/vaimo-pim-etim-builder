@@ -57,6 +57,17 @@ describe('project file', () => {
     expect(parseProjectFile(JSON.stringify({ ...project, sourceAttributes: [{ code: 'att_a' }] }))).toMatchObject({ ok: false });
   });
 
+  it('keeps source entity links and records, rejects malformed ones', () => {
+    const project = {
+      ...createProject('x'),
+      sourceEntityLinks: { att_a: 'surface' },
+      sourceEntities: [{ code: 'surface', records: [{ code: 'zinc', labels: { en_US: 'Zinc' }, values: { EF000139: 'EV000072' } }] }],
+    };
+    expect(parseProjectFile(serializeProject(project))).toEqual({ ok: true, project });
+    expect(parseProjectFile(JSON.stringify({ ...project, sourceEntityLinks: { att_a: 1 } }))).toMatchObject({ ok: false });
+    expect(parseProjectFile(JSON.stringify({ ...project, sourceEntities: [{ code: 'surface', records: [{ code: 'zinc' }] }] }))).toMatchObject({ ok: false });
+  });
+
   it('builds a file name from the project name', () => {
     expect(projectFileName(createProject('ESSVE Sverige AB'))).toBe('essve-sverige-ab.etim-project.json');
     expect(projectFileName(createProject('Bröderna Åkesson'))).toBe('broderna-akesson.etim-project.json');

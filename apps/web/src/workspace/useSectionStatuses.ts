@@ -1,9 +1,9 @@
-import { collectProjectFeatures, createProject } from '@akeneo-etim/core';
+import { collectProjectFeatures, collectSourceEntities, createProject } from '@akeneo-etim/core';
 import { useDeferredValue, useMemo } from 'react';
 import { useGeneratedModel } from '../review/generated.js';
 import type { AppState } from '../state/appState.js';
 import { hasSelectedClasses, isReleaseReady } from '../state/appState.js';
-import { countMapped, sectionStatuses, type SectionStatus, type StatusInput } from './sections.js';
+import { countMapped, recordCounts, sectionStatuses, type SectionStatus, type StatusInput } from './sections.js';
 
 /**
  * Sidebar statuses for the workspace. Generation runs on a deferred project,
@@ -21,6 +21,10 @@ export function useSectionStatuses(state: AppState, enabled: boolean): SectionSt
     () => (enabled && release ? collectProjectFeatures(release, { ...createProject(''), classIds }).features : []),
     [enabled, release, classIds],
   );
+  const entities = useMemo(
+    () => (enabled && ready && hasClasses && release ? collectSourceEntities(release, deferredProject).entities : []),
+    [enabled, ready, hasClasses, release, deferredProject],
+  );
   const model = useGeneratedModel(enabled && ready && hasClasses ? release : undefined, deferredProject);
 
   return useMemo(() => {
@@ -35,9 +39,10 @@ export function useSectionStatuses(state: AppState, enabled: boolean): SectionSt
       selectedClasses: release ? classIds.filter((id) => release.classes[id] !== undefined).length : 0,
       features: collected.length,
       mappedFeatures: countMapped(collected, state.project.features),
+      ...recordCounts(entities),
       generatorErrors: errors,
       generatorWarnings: model && errors !== undefined ? model.issues.length - errors : undefined,
     };
     return sectionStatuses(input);
-  }, [state.imports, state.project.features, model, ready, hasClasses, release, classIds, collected]);
+  }, [state.imports, state.project.features, model, ready, hasClasses, release, classIds, collected, entities]);
 }

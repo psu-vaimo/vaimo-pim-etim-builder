@@ -7,6 +7,7 @@ import {
   clampSection,
   countMapped,
   guardReason,
+  recordCounts,
   sectionStatuses,
   type StatusInput,
 } from './sections.js';
@@ -22,18 +23,21 @@ const input = (patch: Partial<StatusInput> = {}): StatusInput => ({
   mappedFeatures: 5,
   generatorErrors: 0,
   generatorWarnings: 0,
+  sourceEntities: 1,
+  recordValues: 10,
+  mappedRecordValues: 4,
   ...patch,
 });
 
 describe('sections', () => {
-  it('lists the six wizard steps in order, Export last', () => {
-    expect(SECTIONS.map((s) => s.id)).toEqual(['import', 'classes', 'features', 'mapping', 'review', 'export']);
-    expect(EXPORT_SECTION).toBe(5);
+  it('lists the wizard steps in order, Export last', () => {
+    expect(SECTIONS.map((s) => s.id)).toEqual(['import', 'classes', 'features', 'mapping', 'records', 'review', 'export']);
+    expect(EXPORT_SECTION).toBe(6);
   });
 
   it('clamps indexes to existing sections', () => {
     expect(clampSection(-1)).toBe(0);
-    expect(clampSection(9)).toBe(5);
+    expect(clampSection(9)).toBe(6);
     expect(clampSection(2.5)).toBe(0);
     expect(clampSection(3)).toBe(3);
   });
@@ -59,7 +63,7 @@ describe('guardReason', () => {
 
   it('allows everything with a ready release and a class', () => {
     expect(SECTIONS.every((_, i) => canOpen(i, { ready: true, hasClasses: true }))).toBe(true);
-    expect(canOpen(6, { ready: true, hasClasses: true })).toBe(false);
+    expect(canOpen(7, { ready: true, hasClasses: true })).toBe(false);
     expect(canOpen(-1, { ready: true, hasClasses: true })).toBe(false);
   });
 });
@@ -68,7 +72,7 @@ describe('sectionStatuses', () => {
   const texts = (s: StatusInput) => sectionStatuses(s).map((x) => x.text);
 
   it('shows counts when everything is open', () => {
-    expect(texts(input())).toEqual(['Ready, 2 locales', '3 selected', '40 features', '5 of 40 mapped', 'No errors', 'Ready']);
+    expect(texts(input())).toEqual(['Ready, 2 locales', '3 selected', '40 features', '5 of 40 mapped', '4 of 10 values mapped', 'No errors', 'Ready']);
   });
 
   it('shows the guard reason for blocked sections', () => {
@@ -89,16 +93,16 @@ describe('sectionStatuses', () => {
 
   it('shows generator errors and warnings in Review and Export', () => {
     const s = sectionStatuses(input({ generatorErrors: 1, generatorWarnings: 4 }));
-    expect(s[4]).toEqual({ text: '1 error, 4 warnings', tone: 'error' });
-    expect(s[5]).toEqual({ text: 'Ready, 1 error to check', tone: 'warning' });
-    expect(sectionStatuses(input({ generatorWarnings: 1 }))[4]).toEqual({ text: 'No errors, 1 warning', tone: 'warning' });
-    expect(sectionStatuses(input({ generatorErrors: 3 }))[4]?.text).toBe('3 errors');
+    expect(s[5]).toEqual({ text: '1 error, 4 warnings', tone: 'error' });
+    expect(s[6]).toEqual({ text: 'Ready, 1 error to check', tone: 'warning' });
+    expect(sectionStatuses(input({ generatorWarnings: 1 }))[5]).toEqual({ text: 'No errors, 1 warning', tone: 'warning' });
+    expect(sectionStatuses(input({ generatorErrors: 3 }))[5]?.text).toBe('3 errors');
   });
 
   it('waits while the generators have not run', () => {
     const s = texts(input({ generatorErrors: undefined, generatorWarnings: undefined }));
-    expect(s[4]).toBe('Checking...');
     expect(s[5]).toBe('Checking...');
+    expect(s[6]).toBe('Checking...');
   });
 
   it('uses singular words and thousands separators', () => {
@@ -115,6 +119,30 @@ describe('sectionStatuses', () => {
       ...texts(input({ generatorErrors: 2, generatorWarnings: 2 })),
     ];
     expect(all.join(' ')).not.toMatch(/[–—;]/);
+  });
+});
+
+describe('records status', () => {
+  const status = (patch: Partial<StatusInput>) => sectionStatuses(input(patch))[4];
+
+  it('shows mapped record values, muted without entities and a warning without records', () => {
+    expect(status({ sourceEntities: 0, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: 'No reference entity sources', tone: 'muted' });
+    expect(status({ sourceEntities: 2, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: '2 entities, no records', tone: 'warning' });
+    expect(status({ recordValues: 6, mappedRecordValues: 6 })).toEqual({ text: '6 of 6 values mapped', tone: 'ok' });
+  });
+
+  it('counts record values per entity', () => {
+    const plan = (records: Record<string, string>[], features: string[]) => ({
+      code: 'x',
+      attributes: ['att'],
+      features: features.map((featureId) => ({ key: featureId, featureId, attribute: 'att', valueIds: [] })),
+      records: records.map((values, i) => ({ code: `r${i}`, labels: {}, values })),
+    });
+    expect(recordCounts([plan([{ EF1: 'EV1' }, {}], ['EF1', 'EF2']), plan([], ['EF3'])])).toEqual({
+      sourceEntities: 2,
+      recordValues: 4,
+      mappedRecordValues: 1,
+    });
   });
 });
 

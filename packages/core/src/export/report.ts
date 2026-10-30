@@ -1,6 +1,7 @@
 import type { ProjectFeature } from '../akeneo/features.js';
 import type { AkeneoAttribute, AkeneoDependency, AkeneoRule, GenerateIssue } from '../akeneo/types.js';
 import { sourceRecordAttribute } from '../akeneo/rules.js';
+import { sourceEntityFor } from '../akeneo/sourceEntities.js';
 import { labelFor } from '../etim/labels.js';
 import type { EtimRelease } from '../etim/types.js';
 import type { Project } from '../project/types.js';
@@ -141,7 +142,7 @@ export function reportTables(input: ReportInput): Table[] {
           return [code, code + project.settings.codes.labelSuffix];
         });
         const ruleCodes = [...new Set(keys.flatMap((k) => (rulesByKey.get(k) ?? []).filter((r) => r.origin.source === source).map((r) => r.code)))];
-        return [source, known.get(source)?.type, known.get(source)?.referenceDataName, keys.join(', '), recordAttributes.join(', '), ruleCodes.join(', ')];
+        return [source, known.get(source)?.type, sourceEntityFor(project, source), keys.join(', '), recordAttributes.join(', '), ruleCodes.join(', ')];
       }),
     ],
   };

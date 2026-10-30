@@ -3,7 +3,8 @@ import { generateAttributes } from '../akeneo/attributes.js';
 import { generateDependencies } from '../akeneo/dependencies.js';
 import { collectProjectFeatures } from '../akeneo/features.js';
 import { generateRecords } from '../akeneo/records.js';
-import { generateRules } from '../akeneo/rules.js';
+import { generateRules, sourceRecordAttribute } from '../akeneo/rules.js';
+import { collectSourceEntities, sourceRecordsTable, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
 import type { GenerateIssue } from '../akeneo/types.js';
 import type { EtimRelease } from '../etim/types.js';
 import { projectFileName, serializeProject } from '../project/file.js';
@@ -40,6 +41,7 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
   const records = generateRecords(release, project);
   const rules = generateRules(release, project, attrs.attributes);
   const dependencies = generateDependencies(release, project, attrs.attributes);
+  const sourceEntities = collectSourceEntities(release, project);
   const { codes } = project.settings;
 
   const issues: ExportIssue[] = [
@@ -47,14 +49,18 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
     ...attrs.issues.map((i) => ({ ...i, step: 'attributes' as const })),
     ...records.issues.map((i) => ({ ...i, step: 'records' as const })),
     ...rules.issues.map((i) => ({ ...i, step: 'rules' as const })),
+    ...sourceEntities.issues.map((i) => ({ ...i, step: 'records' as const })),
   ];
-  const manualSteps = manualStepsFor(project, rules.rules.some((r) => r.actions.some((a) => a.type === 'copy' && a.reference_entity_attribute)));
+  const manualSteps = manualStepsFor(project, sourceEntities.entities);
 
   const tables: [string, Table][] = [
     ['01_attribute_groups', attributeGroupsTable(project, attrs.attributes)],
     ['02_attributes', attributesTable(project, attrs.attributes)],
     [`03_records_${codes.classEntity}`, recordsTable(project, codes.classEntity, records.classes)],
     [`04_records_${codes.valueEntity}`, recordsTable(project, codes.valueEntity, records.values)],
+    ...sourceEntities.entities
+      .filter((e) => e.records.length > 0)
+      .map((e): [string, Table] => [`07_records_${e.code}`, sourceRecordsTable(release, project, e)]),
   ];
 
   const files: ExportFile[] = [
@@ -82,19 +88,23 @@ export function zipExport(files: ExportFile[]): Uint8Array {
   );
 }
 
-function manualStepsFor(project: Project, usesSourceRecords: boolean): string[] {
+function manualStepsFor(project: Project, sourceEntities: SourceEntityPlan[]): string[] {
   const { codes } = project.settings;
+  const withRecords = sourceEntities.filter((e) => e.records.length > 0);
   return [
     `Create the reference entities ${codes.classEntity} and ${codes.valueEntity} in Akeneo before importing records and attributes.`,
     'Import 01_attribute_groups, then 02_attributes, then the 03 and 04 record files.',
+    ...sourceEntities.map((e) => {
+      const attributes = e.features.flatMap((f) => {
+        const code = sourceRecordAttribute(project, f.featureId);
+        return [code, code + codes.labelSuffix];
+      });
+      return `Add the text attributes ${attributes.join(', ')} to the reference entity ${e.code} (not localizable, not scopable).`;
+    }),
+    ...(withRecords.length > 0 ? [`Import the 07 record files (${withRecords.map((e) => e.code).join(', ')}) to fill the ETIM values of the source records.`] : []),
     'Import 05_rules.yml with the rule import job (YML).',
     'Import 06_attribute_dependencies.yml with the dependency import.',
     'Add the ETIM attributes to the families. This is required and not part of the export.',
-    ...(usesSourceRecords
-      ? [
-          `Make sure the source reference entities of mapped A features have a record attribute per mapped feature, filled with the ETIM value code (${codes.sourceRecordAttributePrefix}EF000139) and the value label (${codes.sourceRecordAttributePrefix}EF000139${codes.labelSuffix}). The mapping report lists them per source.`,
-        ]
-      : []),
   ];
 }
 
@@ -103,7 +113,7 @@ function readme(project: Project, manualSteps: string[]): string {
     `ETIM export for ${project.name || 'unnamed project'}`,
     '',
     'Files:',
-    '  xlsx/ and csv/   Akeneo import files, same content in both formats',
+    '  xlsx/ and csv/   Akeneo import files, same content in both formats, 07 files fill the customer reference entity records',
     '  05_rules.yml     enrichment rules',
     '  06_attribute_dependencies.yml   one dependency per ETIM class',
     '  mapping_report.xlsx   review report for the customer',

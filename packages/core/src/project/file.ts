@@ -1,12 +1,18 @@
 import type { EtimRelease } from '../etim/types.js';
 import { defaultSettings } from './defaults.js';
-import type { Project, ProjectSettings, SourceAttribute } from './types.js';
+import type { Project, ProjectSettings, SourceAttribute, SourceEntity } from './types.js';
 
 export type ProjectFileResult = { ok: true; project: Project } | { ok: false; error: string };
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
 const isSourceAttribute = (v: unknown): boolean => isRecord(v) && typeof v.code === 'string' && isRecord(v.labels);
+const isStringRecord = (v: unknown): boolean => isRecord(v) && Object.values(v).every((x) => typeof x === 'string');
+const isSourceEntity = (v: unknown): boolean =>
+  isRecord(v) &&
+  typeof v.code === 'string' &&
+  Array.isArray(v.records) &&
+  v.records.every((r) => isRecord(r) && typeof r.code === 'string' && isStringRecord(r.labels) && isStringRecord(r.values));
 
 /** Pretty printed JSON, the format users save and load. */
 export function serializeProject(project: Project): string {
@@ -54,6 +60,12 @@ export function parseProjectFile(text: string): ProjectFileResult {
   if (data.sourceAttributes !== undefined && !(Array.isArray(data.sourceAttributes) && data.sourceAttributes.every(isSourceAttribute))) {
     return { ok: false, error: 'The project sourceAttributes must be a list of attributes with a code and labels.' };
   }
+  if (data.sourceEntityLinks !== undefined && !isStringRecord(data.sourceEntityLinks)) {
+    return { ok: false, error: 'The project sourceEntityLinks must map attribute codes to reference entity codes.' };
+  }
+  if (data.sourceEntities !== undefined && !(Array.isArray(data.sourceEntities) && data.sourceEntities.every(isSourceEntity))) {
+    return { ok: false, error: 'The project sourceEntities must be a list of reference entities with records.' };
+  }
 
   const project: Project = {
     formatVersion: 1,
@@ -63,6 +75,8 @@ export function parseProjectFile(text: string): ProjectFileResult {
     settings: mergeSettings(data.settings),
     features: (data.features ?? {}) as Project['features'],
     ...(data.sourceAttributes ? { sourceAttributes: data.sourceAttributes as SourceAttribute[] } : {}),
+    ...(data.sourceEntityLinks ? { sourceEntityLinks: data.sourceEntityLinks as Record<string, string> } : {}),
+    ...(data.sourceEntities ? { sourceEntities: data.sourceEntities as SourceEntity[] } : {}),
   };
   return { ok: true, project };
 }

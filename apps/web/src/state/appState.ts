@@ -18,6 +18,7 @@ import {
   type RangeSetup,
   type SourceAttribute,
   type SourceMapping,
+  type SourceRecord,
 } from '@akeneo-etim/core';
 import { withoutSources } from '../mapping/sourceMappings.js';
 
@@ -66,6 +67,17 @@ export type AppAction =
   | { type: 'removeSources'; keys: readonly FeatureKey[] }
   /** Customer attributes from an uploaded Akeneo attribute export, `null` removes them. Mappings are kept. */
   | { type: 'setSourceAttributes'; attributes: readonly SourceAttribute[] | null }
+  /** Links a source attribute to its reference entity, `null` or empty removes the link (the uploaded reference data name applies again). */
+  | { type: 'setSourceEntityLink'; attribute: string; entity: string | null }
+  /**
+   * Replaces the records of a reference entity, e.g. from an uploaded record export. ETIM values
+   * already mapped on records with the same code are kept unless the new record has its own.
+   */
+  | { type: 'replaceSourceRecords'; entity: string; records: readonly SourceRecord[] }
+  | { type: 'addSourceRecord'; entity: string; record: SourceRecord }
+  | { type: 'removeSourceRecord'; entity: string; code: string }
+  /** Sets the ETIM value of one record for one feature, `null` clears it. */
+  | { type: 'setSourceRecordValue'; entity: string; code: string; featureId: string; valueId: string | null }
   /** Patches code, group and label settings and the rule priority. Values are stored as typed, validation is shown in the UI. */
   | { type: 'updateSettings'; patch: SettingsPatch }
   /** Resets codes, groups, label words and rule priority to the defaults, keeps number/range defaults and unit mappings. */
@@ -163,6 +175,32 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
     case 'removeSources':
       return { ...state, project: { ...state.project, features: withoutSources(state.project.features, action.keys) } };
+    case 'setSourceEntityLink': {
+      const { [action.attribute]: _old, ...links } = state.project.sourceEntityLinks ?? {};
+      const entity = action.entity?.trim() ?? '';
+      const next = entity === '' ? links : { ...links, [action.attribute]: entity };
+      const { sourceEntityLinks: _links, ...project } = state.project;
+      return { ...state, project: Object.keys(next).length > 0 ? { ...project, sourceEntityLinks: next } : project };
+    }
+    case 'replaceSourceRecords':
+      return withEntityRecords(state, action.entity, (old) => {
+        const byCode = new Map(old.map((r) => [r.code, r]));
+        return action.records.map((r) => ({ ...r, values: { ...byCode.get(r.code)?.values, ...r.values } }));
+      });
+    case 'addSourceRecord':
+      return withEntityRecords(state, action.entity, (old) =>
+        old.some((r) => r.code === action.record.code) ? [...old] : [...old, action.record],
+      );
+    case 'removeSourceRecord':
+      return withEntityRecords(state, action.entity, (old) => old.filter((r) => r.code !== action.code));
+    case 'setSourceRecordValue':
+      return withEntityRecords(state, action.entity, (old) =>
+        old.map((r) => {
+          if (r.code !== action.code) return r;
+          const { [action.featureId]: _old, ...values } = r.values;
+          return { ...r, values: action.valueId ? { ...values, [action.featureId]: action.valueId } : values };
+        }),
+      );
     case 'setSourceAttributes': {
       const { sourceAttributes: _old, ...project } = state.project;
       return { ...state, project: action.attributes ? { ...project, sourceAttributes: [...action.attributes] } : project };
@@ -301,4 +339,14 @@ export function filterClassRows(rows: readonly ClassRow[], filter: ClassFilter, 
     if (filter.selection === 'unselected' && selected.has(row.id)) return false;
     return words.every((w) => row.searchText.includes(w));
   });
+}
+
+/** Updates the records of one reference entity, entities stay sorted by code and empty ones are dropped. */
+function withEntityRecords(state: AppState, entity: string, update: (records: readonly SourceRecord[]) => SourceRecord[]): AppState {
+  const entities = state.project.sourceEntities ?? [];
+  const records = update(entities.find((e) => e.code === entity)?.records ?? []);
+  const others = entities.filter((e) => e.code !== entity);
+  const next = (records.length > 0 ? [...others, { code: entity, records }] : others).sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
+  const { sourceEntities: _old, ...project } = state.project;
+  return { ...state, project: next.length > 0 ? { ...project, sourceEntities: next } : project };
 }

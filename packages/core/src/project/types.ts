@@ -83,9 +83,9 @@ export interface ProjectSettings {
     /** Prepended to dependency codes, `etim_` gives `etim_ec000009`. */
     dependencyPrefix: string;
     /**
-     * Prepended to the feature id for the record attribute on the customer's
-     * source reference entities holding the ETIM value code, `ref_` gives
-     * `ref_EF000139`. The value label is in that code plus the label suffix.
+     * Prepended to the lower-case feature id for the record attribute on the
+     * customer's source reference entities holding the ETIM value code, `ref_`
+     * gives `ref_ef000139`. The value label is in that code plus the label suffix.
      */
     sourceRecordAttributePrefix: string;
   };
@@ -104,6 +104,21 @@ export interface ProjectSettings {
   labelTexts: Record<string, LabelTexts>;
 }
 
+/** A record of a customer reference entity, mapped to ETIM values. */
+export interface SourceRecord {
+  code: string;
+  labels: Record<string, string>;
+  /** ETIM feature id to ETIM value id, `{ EF000139: 'EV000072' }`. Unmapped features are left out. */
+  values: Record<string, string>;
+}
+
+/** A customer reference entity behind A feature sources, with its records. */
+export interface SourceEntity {
+  /** Reference entity code in Akeneo, e.g. `surface_treatment`. */
+  code: string;
+  records: SourceRecord[];
+}
+
 /** The saved project file. */
 export interface Project {
   formatVersion: 1;
@@ -117,4 +132,11 @@ export interface Project {
   features: Record<FeatureKey, FeatureConfig>;
   /** Customer attributes from an uploaded Akeneo attribute export, offered as sources. */
   sourceAttributes?: SourceAttribute[];
+  /**
+   * Source attribute code to the reference entity it links to, for A feature
+   * sources. Overrides the `referenceDataName` of an uploaded attribute.
+   */
+  sourceEntityLinks?: Record<string, string>;
+  /** Customer reference entities with their records and ETIM value mapping, sorted by code. */
+  sourceEntities?: SourceEntity[];
 }

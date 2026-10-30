@@ -12,6 +12,16 @@ const mappedProject = () =>
       EF000139: { sources: [{ attribute: 'att_surface_treatment' }] },
       EF015006_EU570448: { numeric: 'number' },
     },
+    sourceEntityLinks: { att_surface_treatment: 'surface_treatment' },
+    sourceEntities: [
+      {
+        code: 'surface_treatment',
+        records: [
+          { code: 'galvanized', labels: { en_US: 'Galvanized' }, values: { EF000139: 'EV000072' } },
+          { code: 'untreated', labels: {}, values: {} },
+        ],
+      },
+    ],
   });
 
 const file = (files: ExportFile[], path: string) => {
@@ -67,10 +77,12 @@ describe('buildExport', () => {
       'xlsx/02_attributes.xlsx',
       'xlsx/03_records_etim_class.xlsx',
       'xlsx/04_records_etim_value.xlsx',
+      'xlsx/07_records_surface_treatment.xlsx',
       'csv/01_attribute_groups.csv',
       'csv/02_attributes.csv',
       'csv/03_records_etim_class.csv',
       'csv/04_records_etim_value.csv',
+      'csv/07_records_surface_treatment.csv',
       '05_rules.yml',
       '06_attribute_dependencies.yml',
       'mapping_report.xlsx',
@@ -118,8 +130,8 @@ describe('buildExport', () => {
             },
           ],
           actions: [
-            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'ref_EF000139' },
-            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'ref_EF000139_label' },
+            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139', reference_entity_attribute: 'ref_ef000139' },
+            { type: 'copy', from_field: 'att_surface_treatment', to_field: 'ef000139_label', reference_entity_attribute: 'ref_ef000139_label' },
           ],
           labels: { en_US: 'ETIM (from: att_surface_treatment)', sv_SE: 'ETIM (från: att_surface_treatment)' },
           triggers: {},
@@ -127,6 +139,12 @@ describe('buildExport', () => {
         },
       },
     });
+  });
+
+  it('writes the source reference entity records with their ETIM values', () => {
+    expect(text(files, 'csv/07_records_surface_treatment.csv')).toBe(
+      'referenceEntityIdentifier;code;ref_ef000139;ref_ef000139_label\nsurface_treatment;galvanized;EV000072;Aluminium\nsurface_treatment;untreated;;\n',
+    );
   });
 
   it('quotes YAML 1.1 booleans and writes no aliases', () => {
@@ -161,9 +179,12 @@ describe('buildExport', () => {
     const report = unzipSync(file(files, 'mapping_report.xlsx') as Uint8Array);
     expect(strFromU8(report['xl/workbook.xml']!)).toContain('name="Summary"');
     expect(strFromU8(report['xl/worksheets/sheet1.xml']!)).toContain('Add the ETIM attributes to the families');
-    expect(text(files, 'README.txt')).toContain('(ref_EF000139) and the value label (ref_EF000139_label)');
+    expect(text(files, 'README.txt')).toContain(
+      'Add the text attributes ref_ef000139, ref_ef000139_label to the reference entity surface_treatment',
+    );
+    expect(text(files, 'README.txt')).toContain('Import the 07 record files (surface_treatment)');
     expect(strFromU8(report['xl/workbook.xml']!)).toContain('name="Sources"');
-    expect(strFromU8(report['xl/worksheets/sheet3.xml']!)).toContain('ref_EF000139, ref_EF000139_label');
+    expect(strFromU8(report['xl/worksheets/sheet3.xml']!)).toContain('ref_ef000139, ref_ef000139_label');
   });
 
   it('zips deterministically and flags errors', () => {

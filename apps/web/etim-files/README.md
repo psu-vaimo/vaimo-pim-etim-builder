@@ -14,4 +14,4 @@ etim-files/
 ```
 
 The dev server (`pnpm dev:web`) and `vite preview` list the folder on every request, new files show up after a page reload.
-The exports are not committed (see `.gitignore`), only this README is.
+The exports are committed, so everyone working on the repo gets the same releases.

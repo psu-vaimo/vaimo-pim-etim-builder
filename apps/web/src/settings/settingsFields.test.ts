@@ -17,7 +17,7 @@ describe('settings fields', () => {
       'ec000009',
       'ev000072',
       'etim_att_surface_treatment',
-      'ref_EF000139',
+      'ref_ef000139',
       'etim_ec000009',
     ]);
     s.codes.attributePrefix = 'x_';

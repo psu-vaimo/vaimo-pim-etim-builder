@@ -15,9 +15,9 @@ import type {
 
 const FALLBACK_FROM = defaultSettings().labelTexts.en_US!.from;
 
-/** Record attribute on a source reference entity holding the ETIM value code for a feature, `ref_EF000139`. */
+/** Record attribute on a source reference entity holding the ETIM value code for a feature, `ref_ef000139`. */
 export function sourceRecordAttribute(project: Project, featureId: string): string {
-  return project.settings.codes.sourceRecordAttributePrefix + featureId;
+  return project.settings.codes.sourceRecordAttributePrefix + featureId.toLowerCase();
 }
 
 /** A mapped feature with its attributes, collected before rules are built. */
@@ -42,7 +42,7 @@ interface MappedFeature {
  *
  * | ETIM | action |
  * |---|---|
- * | A | copy the source record's `ref_EF...` attribute to the feature, `ref_EF..._label` to `<code>_label` |
+ * | A | copy the source record's `ref_ef...` attribute to the feature, `ref_ef..._label` to `<code>_label` |
  * | N | copy |
  * | L | yes values: own rules, set true when IN, set false when NOT IN. No yes values: copy (boolean source) |
  * | R text | copy, or with `second` own rule concatenating as `10-20` |
