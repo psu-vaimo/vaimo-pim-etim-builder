@@ -69,4 +69,57 @@ describe('api', () => {
     expect(badCode.json().errors).toEqual(['EF1: attribute "a-b": Use only letters, digits and underscores']);
     expect((await send({ project: createProject('Test'), mappings: [{ featureId: 'EF1', type: 'X', attribute: 'a' }] })).statusCode).toBe(400);
   });
+
+  it('POST /project/records adds records to a reference entity', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/project/records',
+      payload: { project: createProject('Test'), entity: 'fastening', records: [{ code: 'eye', labels: { en_US: 'Eye' } }, { code: 'hook' }] },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().project.sourceEntities).toEqual([
+      { code: 'fastening', records: [{ code: 'eye', labels: { en_US: 'Eye' }, values: {} }, { code: 'hook', labels: {}, values: {} }] },
+    ]);
+    const bad = await app.inject({ method: 'POST', url: '/project/records', payload: { project: createProject('Test'), entity: 'x', records: [{ code: 'a b' }] } });
+    expect(bad.statusCode).toBe(400);
+    expect(bad.json().errors).toEqual(['Record "a b": Use only letters, digits and underscores']);
+  });
+
+  it('POST /project/record-values sets values ETIM allows for the feature', async () => {
+    const release = {
+      locales: ['en_US'],
+      classes: {
+        EC000009: {
+          id: 'EC000009',
+          groupId: 'EG000001',
+          version: '1',
+          labels: {},
+          features: [{ nr: '1', featureId: 'EF005644', type: 'A', sortNr: 1, valueIds: ['EV000001', 'EV000002'] }],
+        },
+      },
+      features: {},
+      values: {},
+      units: {},
+      groups: {},
+    };
+    const project = {
+      ...createProject('Test'),
+      classIds: ['EC000009'],
+      features: { EF005644: { sources: [{ attribute: 'att_fastening' }] } },
+      sourceEntityLinks: { att_fastening: 'fastening' },
+      sourceEntities: [{ code: 'fastening', records: [{ code: 'eye', labels: {}, values: {} }] }],
+    };
+    const send = (valueId: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/project/record-values',
+        payload: { project, release, values: [{ entity: 'fastening', record: 'eye', featureId: 'EF005644', valueId }] },
+      });
+    const ok = await send('EV000002');
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().project.sourceEntities[0].records[0].values).toEqual({ EF005644: 'EV000002' });
+    const notAllowed = await send('EV000003');
+    expect(notAllowed.statusCode).toBe(400);
+    expect(notAllowed.json().errors).toEqual(['fastening eye EF005644: EV000003 is not allowed by ETIM for EF005644 in the selected classes']);
+  });
 });

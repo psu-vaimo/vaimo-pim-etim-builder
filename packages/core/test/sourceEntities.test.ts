@@ -1,6 +1,14 @@
 import { strToU8 } from 'fflate';
 import { describe, expect, it } from 'vitest';
-import { collectSourceEntities, parseAkeneoRecordExport, sourceEntityFor, sourceRecordsTable, type Project } from '../src/index.js';
+import {
+  addSourceRecords,
+  applySourceRecordValues,
+  collectSourceEntities,
+  parseAkeneoRecordExport,
+  sourceEntityFor,
+  sourceRecordsTable,
+  type Project,
+} from '../src/index.js';
 import { project, release } from './helpers.js';
 
 function mapped(patch: Partial<Project> = {}): Project {
@@ -95,5 +103,68 @@ describe('parseAkeneoRecordExport', () => {
       ],
     });
     expect(parseAkeneoRecordExport(strToU8('sku\n1'), 'x.csv', 'ref_').issues[0]?.severity).toBe('error');
+  });
+});
+
+describe('addSourceRecords', () => {
+  it('appends new records, merges labels of existing ones and keeps their values', () => {
+    const p = mapped({ sourceEntities: [{ code: 'fastening', records: [{ code: 'eye', labels: { en_US: 'Eye' }, values: { EF005644: 'EV023258' } }] }] });
+    const result = addSourceRecords(p, 'fastening', [{ code: 'hook', labels: { en_US: 'Hook' } }, { code: ' eye ', labels: { sv_SE: 'Öga' } }]);
+    expect(result.ok && result.project.sourceEntities).toEqual([
+      {
+        code: 'fastening',
+        records: [
+          { code: 'eye', labels: { en_US: 'Eye', sv_SE: 'Öga' }, values: { EF005644: 'EV023258' } },
+          { code: 'hook', labels: { en_US: 'Hook' }, values: {} },
+        ],
+      },
+    ]);
+    const other = addSourceRecords(p, 'colour', [{ code: 'red' }]);
+    expect(other.ok && other.project.sourceEntities?.map((e) => e.code)).toEqual(['colour', 'fastening']);
+  });
+
+  it('rejects invalid and duplicate codes', () => {
+    expect(addSourceRecords(mapped(), 'fast-ening', [{ code: 'a' }, { code: 'a' }, { code: '' }])).toEqual({
+      ok: false,
+      errors: ['Reference entity "fast-ening": Use only letters, digits and underscores', 'Record a: listed more than once', 'Record "": Code is empty'],
+    });
+  });
+});
+
+describe('applySourceRecordValues', () => {
+  const p = mapped({
+    sourceEntities: [{ code: 'fastening', records: [{ code: 'eye', labels: {}, values: { EF005644: 'EV008374' } }, { code: 'hook', labels: {}, values: {} }] }],
+  });
+
+  it('sets and clears values allowed by ETIM', () => {
+    const result = applySourceRecordValues(release(), p, [
+      { entity: 'fastening', record: 'hook', featureId: 'ef005644', valueId: 'ev023258' },
+      { entity: 'fastening', record: 'eye', featureId: 'EF005644', valueId: '' },
+    ]);
+    expect(result.ok && result.project.sourceEntities?.[0]?.records).toEqual([
+      { code: 'eye', labels: {}, values: {} },
+      { code: 'hook', labels: {}, values: { EF005644: 'EV023258' } },
+    ]);
+  });
+
+  it('rejects values ETIM does not allow, unknown records, entities and features', () => {
+    expect(
+      applySourceRecordValues(release(), p, [
+        { entity: 'fastening', record: 'eye', featureId: 'EF005644', valueId: 'EV000072' },
+        { entity: 'fastening', record: 'nope', featureId: 'EF005644', valueId: 'EV023258' },
+        { entity: 'fastening', record: 'eye', featureId: 'EF015003', valueId: '' },
+        { entity: 'colour', record: 'red', featureId: 'EF005644', valueId: 'EV023258' },
+        { entity: 'fastening', record: 'eye', featureId: 'EF005644', valueId: 'EV023258' },
+      ]),
+    ).toEqual({
+      ok: false,
+      errors: [
+        'fastening eye EF005644: EV000072 is not allowed by ETIM for EF005644 in the selected classes',
+        'fastening nope EF005644: no record nope in fastening, add it first',
+        'fastening eye EF015003: EF015003 is not mapped from a source linking to fastening',
+        'colour red EF005644: colour is not the reference entity of a mapped A feature in the selected classes',
+        'fastening eye EF005644: listed more than once',
+      ],
+    });
   });
 });

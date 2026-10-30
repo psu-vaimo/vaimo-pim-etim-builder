@@ -25,21 +25,26 @@ export { writeXlsx } from './export/xlsx.js';
 export {
   AKENEO_CODE_MAX,
   akeneoCodeError,
+  addSourceRecords,
   applySourceMappings,
   normalizeSources,
+  withEntityRecords,
   withSources,
   type ApplySourcesResult,
   type FeatureSourceInput,
   type SourceInput,
+  type SourceRecordInput,
 } from './project/sources.js';
 export { validateSettings, type SettingsIssue } from './project/settings.js';
 export { parseAkeneoAttributeExport } from './source/attributes.js';
 export { readXlsxRows } from './source/xlsx.js';
 export { parseAkeneoRecordExport } from './source/records.js';
 export {
+  applySourceRecordValues,
   collectSourceEntities,
   sourceEntityFor,
   sourceRecordsTable,
   type SourceEntityFeature,
   type SourceEntityPlan,
+  type SourceRecordValueInput,
 } from './akeneo/sourceEntities.js';

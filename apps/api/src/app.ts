@@ -1,11 +1,17 @@
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import {
+  addSourceRecords,
   applySourceMappings,
+  applySourceRecordValues,
   ETIM_TABLES,
   parseEtimExport,
   parseProjectFile,
+  type EtimRelease,
   type EtimTables,
   type FeatureSourceInput,
+  type Project,
+  type SourceRecordInput,
+  type SourceRecordValueInput,
 } from '@akeneo-etim/core';
 
 /** Full ETIM exports are tens of MB as CSV. */
@@ -19,6 +25,28 @@ interface ParseBody {
 interface SourcesBody {
   project: unknown;
   mappings: FeatureSourceInput[];
+}
+
+interface RecordsBody {
+  project: unknown;
+  entity: string;
+  records: SourceRecordInput[];
+}
+
+interface RecordValuesBody {
+  project: unknown;
+  release: EtimRelease;
+  values: SourceRecordValueInput[];
+}
+
+type ProjectResult = { ok: true; project: Project } | { ok: false; errors: string[] };
+
+/** Reads the project file from a request body and applies a change, 400 with `errors` when either fails. */
+function projectResponse(raw: unknown, change: (project: Project) => ProjectResult): { status: 200 | 400; body: object } {
+  const parsed = parseProjectFile(JSON.stringify(raw));
+  if (!parsed.ok) return { status: 400, body: { errors: [parsed.error] } };
+  const result = change(parsed.project);
+  return result.ok ? { status: 200, body: { project: result.project } } : { status: 400, body: { errors: result.errors } };
 }
 
 export function buildApp(opts: FastifyServerOptions = {}) {
@@ -79,11 +107,76 @@ export function buildApp(opts: FastifyServerOptions = {}) {
       },
     },
     async (req, reply) => {
-      const parsed = parseProjectFile(JSON.stringify(req.body.project));
-      if (!parsed.ok) return reply.code(400).send({ errors: [parsed.error] });
-      const result = applySourceMappings(parsed.project, req.body.mappings);
-      if (!result.ok) return reply.code(400).send({ errors: result.errors });
-      return { project: result.project };
+      const { status, body } = projectResponse(req.body.project, (p) => applySourceMappings(p, req.body.mappings));
+      return reply.code(status).send(body);
+    },
+  );
+
+  // Adds records to a customer reference entity in a project file, codes and labels only.
+  app.post<{ Body: RecordsBody }>(
+    '/project/records',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['project', 'entity', 'records'],
+          properties: {
+            project: { type: 'object' },
+            entity: { type: 'string' },
+            records: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['code'],
+                additionalProperties: false,
+                properties: {
+                  code: { type: 'string' },
+                  labels: { type: 'object', additionalProperties: { type: 'string' } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { status, body } = projectResponse(req.body.project, (p) => addSourceRecords(p, req.body.entity, req.body.records));
+      return reply.code(status).send(body);
+    },
+  );
+
+  // Sets the ETIM value of source records per feature, checked against the values ETIM allows in the selected classes.
+  app.post<{ Body: RecordValuesBody }>(
+    '/project/record-values',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['project', 'release', 'values'],
+          properties: {
+            project: { type: 'object' },
+            release: { type: 'object', required: ['classes'], properties: { classes: { type: 'object' } } },
+            values: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['entity', 'record', 'featureId', 'valueId'],
+                additionalProperties: false,
+                properties: {
+                  entity: { type: 'string' },
+                  record: { type: 'string' },
+                  featureId: { type: 'string', minLength: 1 },
+                  valueId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { status, body } = projectResponse(req.body.project, (p) => applySourceRecordValues(req.body.release, p, req.body.values));
+      return reply.code(status).send(body);
     },
   );
 

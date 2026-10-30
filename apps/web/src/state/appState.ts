@@ -3,6 +3,7 @@ import {
   defaultSettings,
   labelFor,
   normalizeSources,
+  withEntityRecords as withProjectEntityRecords,
   type AkeneoUnit,
   type EtimClass,
   type EtimRelease,
@@ -380,10 +381,6 @@ export function unmatchedSearchTerms(rows: readonly ClassRow[], search: string):
 
 /** Updates the records of one reference entity, entities stay sorted by code and empty ones are dropped. */
 function withEntityRecords(state: AppState, entity: string, update: (records: readonly SourceRecord[]) => SourceRecord[]): AppState {
-  const entities = state.project.sourceEntities ?? [];
-  const records = update(entities.find((e) => e.code === entity)?.records ?? []);
-  const others = entities.filter((e) => e.code !== entity);
-  const next = (records.length > 0 ? [...others, { code: entity, records }] : others).sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
-  const { sourceEntities: _old, ...project } = state.project;
-  return { ...state, project: next.length > 0 ? { ...project, sourceEntities: next } : project };
+  const records = update(state.project.sourceEntities?.find((e) => e.code === entity)?.records ?? []);
+  return { ...state, project: withProjectEntityRecords(state.project, entity, records) };
 }

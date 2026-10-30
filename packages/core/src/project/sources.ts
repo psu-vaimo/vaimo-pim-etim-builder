@@ -1,6 +1,6 @@
 import { featureKey } from '../akeneo/features.js';
 import type { EtimFeatureType } from '../etim/types.js';
-import type { FeatureConfig, Project, SourceMapping } from './types.js';
+import type { FeatureConfig, Project, SourceEntity, SourceMapping, SourceRecord } from './types.js';
 
 const AKENEO_CODE = /^[a-zA-Z0-9_]+$/;
 export const AKENEO_CODE_MAX = 100;
@@ -88,4 +88,52 @@ export function applySourceMappings(project: Project, mappings: readonly Feature
     else features[key] = config;
   }
   return { ok: true, project: { ...project, features } };
+}
+
+/** Project with the records of one reference entity replaced, entities sorted by code, an empty entity is dropped. */
+export function withEntityRecords(project: Project, entity: string, records: readonly SourceRecord[]): Project {
+  const others = (project.sourceEntities ?? []).filter((e) => e.code !== entity);
+  const next: SourceEntity[] = (records.length > 0 ? [...others, { code: entity, records: [...records] }] : others).sort((a, b) =>
+    a.code < b.code ? -1 : a.code > b.code ? 1 : 0,
+  );
+  const { sourceEntities: _old, ...rest } = project;
+  return next.length > 0 ? { ...rest, sourceEntities: next } : rest;
+}
+
+/** A customer reference entity record to add, e.g. sent to the API. */
+export interface SourceRecordInput {
+  code: string;
+  labels?: Record<string, string>;
+}
+
+/**
+ * Adds records to a source reference entity, new codes in the given order
+ * after the existing ones. A record that exists gets the given labels merged
+ * in and keeps its ETIM values. Invalid codes and a code listed twice are
+ * errors and nothing is applied.
+ */
+export function addSourceRecords(project: Project, entity: string, records: readonly SourceRecordInput[]): ApplySourcesResult {
+  const errors: string[] = [];
+  const entityCode = entity.trim();
+  const entityError = akeneoCodeError(entityCode);
+  if (entityError) errors.push(`Reference entity "${entityCode}": ${entityError}`);
+  const seen = new Set<string>();
+  const inputs = records.map((r) => ({ code: r.code.trim(), labels: r.labels ?? {} }));
+  for (const { code } of inputs) {
+    const error = akeneoCodeError(code);
+    if (error) errors.push(`Record "${code}": ${error}`);
+    else if (seen.has(code)) errors.push(`Record ${code}: listed more than once`);
+    seen.add(code);
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  const current = project.sourceEntities?.find((e) => e.code === entityCode)?.records ?? [];
+  const byCode = new Map(inputs.map((r) => [r.code, r]));
+  const updated = current.map((r) => {
+    const input = byCode.get(r.code);
+    return input ? { ...r, labels: { ...r.labels, ...input.labels } } : r;
+  });
+  const existing = new Set(current.map((r) => r.code));
+  const added = inputs.filter((r) => !existing.has(r.code)).map((r) => ({ code: r.code, labels: { ...r.labels }, values: {} }));
+  return { ok: true, project: withEntityRecords(project, entityCode, [...updated, ...added]) };
 }
