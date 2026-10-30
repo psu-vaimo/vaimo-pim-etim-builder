@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { akeneoCodeError, applySourceMappings, createProject, normalizeSources, withSources } from '../src/index.js';
+import { akeneoCodeError, applySourceEntityLinks, applySourceMappings, createProject, normalizeSources, withSources } from '../src/index.js';
 
 const draft = (attribute: string, second = '', yesValues: string[] = []) => ({ attribute, second, yesValues });
 
@@ -74,6 +74,38 @@ describe('applySourceMappings', () => {
         'EF000003: attribute "att-a": Use only letters, digits and underscores',
         'EF000003: second "att b": Use only letters, digits and underscores',
         'EF000001: listed more than once, a feature has at most one source',
+      ],
+    });
+  });
+});
+
+describe('applySourceEntityLinks', () => {
+  const project = { ...createProject('Test'), sourceEntityLinks: { att_a: 'old', att_b: 'keep' } };
+
+  it('sets, replaces and removes links', () => {
+    const result = applySourceEntityLinks(project, [
+      { attribute: ' att_a ', entity: ' fastening ' },
+      { attribute: 'att_c', entity: 'colour' },
+      { attribute: 'att_b', entity: '' },
+    ]);
+    expect(result.ok && result.project.sourceEntityLinks).toEqual({ att_a: 'fastening', att_c: 'colour' });
+    const none = applySourceEntityLinks(project, [{ attribute: 'att_a', entity: '' }, { attribute: 'att_b', entity: '' }]);
+    expect(none.ok && 'sourceEntityLinks' in none.project).toBe(false);
+  });
+
+  it('rejects invalid codes and duplicate attributes', () => {
+    expect(
+      applySourceEntityLinks(project, [
+        { attribute: 'att-a', entity: 'x' },
+        { attribute: 'att_c', entity: 'a b' },
+        { attribute: 'att_c', entity: 'y' },
+      ]),
+    ).toEqual({
+      ok: false,
+      errors: [
+        'Attribute "att-a": Use only letters, digits and underscores',
+        'Attribute att_c: reference entity "a b": Use only letters, digits and underscores',
+        'Attribute att_c: listed more than once',
       ],
     });
   });

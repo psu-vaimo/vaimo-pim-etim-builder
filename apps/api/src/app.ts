@@ -1,6 +1,8 @@
+import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import {
   addSourceRecords,
+  applySourceEntityLinks,
   applySourceMappings,
   applySourceRecordValues,
   ETIM_TABLES,
@@ -10,9 +12,14 @@ import {
   type EtimTables,
   type FeatureSourceInput,
   type Project,
+  type SourceEntityLinkInput,
   type SourceRecordInput,
   type SourceRecordValueInput,
 } from '@akeneo-etim/core';
+import { etimLibrary, type LibraryResult } from './etimLibrary.js';
+
+/** The web app's pre-loaded ETIM exports. */
+export const DEFAULT_ETIM_FILES_DIR = fileURLToPath(new URL('../../web/etim-files', import.meta.url));
 
 /** Full ETIM exports are tens of MB as CSV. */
 const BODY_LIMIT = 200 * 1024 * 1024;
@@ -27,6 +34,11 @@ interface SourcesBody {
   mappings: FeatureSourceInput[];
 }
 
+interface EntityLinksBody {
+  project: unknown;
+  links: SourceEntityLinkInput[];
+}
+
 interface RecordsBody {
   project: unknown;
   entity: string;
@@ -35,7 +47,8 @@ interface RecordsBody {
 
 interface RecordValuesBody {
   project: unknown;
-  release: EtimRelease;
+  /** Left out: the pre-loaded export named in the project's `etimSource.library` is used. */
+  release?: EtimRelease;
   values: SourceRecordValueInput[];
 }
 
@@ -49,7 +62,23 @@ function projectResponse(raw: unknown, change: (project: Project) => ProjectResu
   return result.ok ? { status: 200, body: { project: result.project } } : { status: 400, body: { errors: result.errors } };
 }
 
-export function buildApp(opts: FastifyServerOptions = {}) {
+export interface AppOptions {
+  /** Folder with pre-loaded ETIM exports, `<release>/<locale>/*.csv`. */
+  etimFilesDir?: string;
+}
+
+export function buildApp(opts: FastifyServerOptions = {}, { etimFilesDir = DEFAULT_ETIM_FILES_DIR }: AppOptions = {}) {
+  const library = etimLibrary(etimFilesDir);
+
+  /** The release sent in the request, else the pre-loaded export the project was built on. */
+  async function requestRelease(body: RecordValuesBody): Promise<LibraryResult> {
+    if (body.release) return { ok: true, release: body.release };
+    const parsed = parseProjectFile(JSON.stringify(body.project));
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    const source = parsed.project.etimSource;
+    if (!source?.library) return { ok: false, error: 'Send the release, the project names no pre-loaded ETIM export in etimSource.library' };
+    return library.load(source.library, source.locales[0]);
+  }
   // Reject unknown keys instead of stripping them, so a misnamed table is reported.
   const app = Fastify({ bodyLimit: BODY_LIMIT, ajv: { customOptions: { removeAdditional: false } }, ...opts });
 
@@ -112,6 +141,35 @@ export function buildApp(opts: FastifyServerOptions = {}) {
     },
   );
 
+  // Links source attributes to their customer reference entity in a project file.
+  app.post<{ Body: EntityLinksBody }>(
+    '/project/entity-links',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['project', 'links'],
+          properties: {
+            project: { type: 'object' },
+            links: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['attribute', 'entity'],
+                additionalProperties: false,
+                properties: { attribute: { type: 'string' }, entity: { type: 'string' } },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { status, body } = projectResponse(req.body.project, (p) => applySourceEntityLinks(p, req.body.links));
+      return reply.code(status).send(body);
+    },
+  );
+
   // Adds records to a customer reference entity in a project file, codes and labels only.
   app.post<{ Body: RecordsBody }>(
     '/project/records',
@@ -152,7 +210,7 @@ export function buildApp(opts: FastifyServerOptions = {}) {
       schema: {
         body: {
           type: 'object',
-          required: ['project', 'release', 'values'],
+          required: ['project', 'values'],
           properties: {
             project: { type: 'object' },
             release: { type: 'object', required: ['classes'], properties: { classes: { type: 'object' } } },
@@ -175,7 +233,9 @@ export function buildApp(opts: FastifyServerOptions = {}) {
       },
     },
     async (req, reply) => {
-      const { status, body } = projectResponse(req.body.project, (p) => applySourceRecordValues(req.body.release, p, req.body.values));
+      const loaded = await requestRelease(req.body);
+      if (!loaded.ok) return reply.code(400).send({ errors: [loaded.error] });
+      const { status, body } = projectResponse(req.body.project, (p) => applySourceRecordValues(loaded.release, p, req.body.values));
       return reply.code(status).send(body);
     },
   );

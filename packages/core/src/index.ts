@@ -1,6 +1,7 @@
 export * from './etim/types.js';
 export { parseEtimExport, mergeEtimTranslations } from './etim/parse.js';
 export { decodeEtimFile } from './etim/decode.js';
+export { matchTableName, type TableMatch } from './etim/tableNames.js';
 export * from './project/types.js';
 export { createProject, defaultSettings } from './project/defaults.js';
 export * from './akeneo/types.js';
@@ -26,12 +27,14 @@ export {
   AKENEO_CODE_MAX,
   akeneoCodeError,
   addSourceRecords,
+  applySourceEntityLinks,
   applySourceMappings,
   normalizeSources,
   withEntityRecords,
   withSources,
   type ApplySourcesResult,
   type FeatureSourceInput,
+  type SourceEntityLinkInput,
   type SourceInput,
   type SourceRecordInput,
 } from './project/sources.js';

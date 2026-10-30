@@ -1,3 +1,6 @@
+import { cpSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { createProject } from '@akeneo-etim/core';
 import { buildApp } from '../src/app.js';
@@ -121,5 +124,53 @@ describe('api', () => {
     const notAllowed = await send('EV000003');
     expect(notAllowed.statusCode).toBe(400);
     expect(notAllowed.json().errors).toEqual(['fastening eye EF005644: EV000003 is not allowed by ETIM for EF005644 in the selected classes']);
+  });
+});
+
+describe('api with pre-loaded ETIM exports', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'etim-files-'));
+  cpSync(join(import.meta.dirname, '../../../packages/core/test/fixtures/en'), join(dir, 'ETIM-TEST', 'en_US'), { recursive: true });
+  const app = buildApp({}, { etimFilesDir: dir });
+  afterAll(async () => {
+    await app.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  const base = {
+    ...createProject('Test'),
+    classIds: ['EC000009'],
+    features: { EF005644: { sources: [{ attribute: 'att_fastening' }] } },
+    sourceEntities: [{ code: 'fastening', records: [{ code: 'eye', labels: {}, values: {} }] }],
+    etimSource: { library: 'ETIM-TEST', locales: ['en_US'] },
+  };
+  const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload });
+
+  it('POST /project/entity-links links source attributes to reference entities', async () => {
+    const res = await post('/project/entity-links', { project: base, links: [{ attribute: 'att_fastening', entity: 'fastening' }] });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().project.sourceEntityLinks).toEqual({ att_fastening: 'fastening' });
+  });
+
+  it('POST /project/record-values uses the pre-loaded export of the project', async () => {
+    const linked = (await post('/project/entity-links', { project: base, links: [{ attribute: 'att_fastening', entity: 'fastening' }] })).json().project;
+    const value = (valueId: string) => [{ entity: 'fastening', record: 'eye', featureId: 'EF005644', valueId }];
+    const ok = await post('/project/record-values', { project: linked, values: value('EV023258') });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json().project.sourceEntities[0].records[0].values).toEqual({ EF005644: 'EV023258' });
+    const notAllowed = await post('/project/record-values', { project: linked, values: value('EV000072') });
+    expect(notAllowed.json().errors).toEqual(['fastening eye EF005644: EV000072 is not allowed by ETIM for EF005644 in the selected classes']);
+  });
+
+  it('POST /project/record-values reports a missing or unknown pre-loaded export', async () => {
+    const errors = async (etimSource: object | undefined) => {
+      const { etimSource: _old, ...rest } = base;
+      const res = await post('/project/record-values', { project: etimSource ? { ...rest, etimSource } : rest, values: [] });
+      expect(res.statusCode).toBe(400);
+      return res.json().errors;
+    };
+    expect(await errors(undefined)).toEqual(['Send the release, the project names no pre-loaded ETIM export in etimSource.library']);
+    expect(await errors({ library: 'ETIM-9.0', locales: ['en_US'] })).toEqual(['No pre-loaded ETIM export ETIM-9.0']);
+    expect(await errors({ library: '..', locales: ['en_US'] })).toEqual(['No pre-loaded ETIM export ..']);
+    expect(await errors({ library: 'ETIM-TEST', locales: ['sv_SE'] })).toEqual(['No locale sv_SE in pre-loaded ETIM export ETIM-TEST']);
   });
 });

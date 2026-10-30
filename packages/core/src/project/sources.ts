@@ -137,3 +137,38 @@ export function addSourceRecords(project: Project, entity: string, records: read
   const added = inputs.filter((r) => !existing.has(r.code)).map((r) => ({ code: r.code, labels: { ...r.labels }, values: {} }));
   return { ok: true, project: withEntityRecords(project, entityCode, [...updated, ...added]) };
 }
+
+/** A source attribute to customer reference entity link, e.g. sent to the API. An empty `entity` removes the link. */
+export interface SourceEntityLinkInput {
+  attribute: string;
+  entity: string;
+}
+
+/**
+ * Links source attributes to their reference entity, overriding the
+ * `reference_data_name` of an uploaded attribute export. An empty entity
+ * removes the link. Invalid codes and an attribute listed twice are errors
+ * and nothing is applied.
+ */
+export function applySourceEntityLinks(project: Project, links: readonly SourceEntityLinkInput[]): ApplySourcesResult {
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  const updates = links.map((l) => ({ attribute: l.attribute.trim(), entity: l.entity.trim() }));
+  for (const { attribute, entity } of updates) {
+    const attributeError = akeneoCodeError(attribute);
+    if (attributeError) errors.push(`Attribute "${attribute}": ${attributeError}`);
+    else if (seen.has(attribute)) errors.push(`Attribute ${attribute}: listed more than once`);
+    seen.add(attribute);
+    const entityError = entity === '' ? undefined : akeneoCodeError(entity);
+    if (entityError) errors.push(`Attribute ${attribute}: reference entity "${entity}": ${entityError}`);
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  const next: Record<string, string> = { ...project.sourceEntityLinks };
+  for (const { attribute, entity } of updates) {
+    if (entity === '') delete next[attribute];
+    else next[attribute] = entity;
+  }
+  const { sourceEntityLinks: _old, ...rest } = project;
+  return { ok: true, project: Object.keys(next).length > 0 ? { ...rest, sourceEntityLinks: next } : rest };
+}
