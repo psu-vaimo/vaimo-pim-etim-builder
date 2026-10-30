@@ -330,14 +330,39 @@ export function groupOptions(rows: readonly ClassRow[]): GroupOption[] {
     .map(([id, g]) => ({ value: id, label: `${id}${g.label ? ` ${g.label}` : ''} (${g.count})` }));
 }
 
-/** Search matches class id, group id or name, or a label in any locale. All words must match. */
+/**
+ * Splits a search into terms on new line, tab, comma or semicolon, each term into lower-case words.
+ * A pasted list of class ids becomes one term per id.
+ */
+function searchTerms(search: string): string[][] {
+  return search
+    .split(/[\n\r\t,;]+/)
+    .map((term) => term.toLowerCase().split(/\s+/).filter(Boolean))
+    .filter((words) => words.length > 0);
+}
+
+function matchesTerm(row: ClassRow, words: readonly string[]): boolean {
+  return words.every((w) => row.searchText.includes(w));
+}
+
+/** Search matches class id, group id or name, or a label in any locale. A row matches when all words of any term match. */
 export function filterClassRows(rows: readonly ClassRow[], filter: ClassFilter, selected: ReadonlySet<string>): ClassRow[] {
-  const words = filter.search.toLowerCase().split(/\s+/).filter(Boolean);
+  const terms = searchTerms(filter.search);
   return rows.filter((row) => {
     if (filter.groupId !== null && row.groupId !== filter.groupId) return false;
     if (filter.selection === 'selected' && !selected.has(row.id)) return false;
     if (filter.selection === 'unselected' && selected.has(row.id)) return false;
-    return words.every((w) => row.searchText.includes(w));
+    return terms.length === 0 || terms.some((words) => matchesTerm(row, words));
+  });
+}
+
+/** Terms of a list search (more than one term) that match no class, as typed. Ignores the group and selection filters. */
+export function unmatchedSearchTerms(rows: readonly ClassRow[], search: string): string[] {
+  const raw = search.split(/[\n\r\t,;]+/).map((t) => t.trim()).filter(Boolean);
+  if (raw.length < 2) return [];
+  return raw.filter((term) => {
+    const words = term.toLowerCase().split(/\s+/);
+    return !rows.some((row) => matchesTerm(row, words));
   });
 }
 

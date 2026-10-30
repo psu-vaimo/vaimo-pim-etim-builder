@@ -9,6 +9,7 @@ import {
   hasSelectedClasses,
   initialState,
   isReleaseReady,
+  unmatchedSearchTerms,
 } from './appState.js';
 import { labelFor } from '@akeneo-etim/core';
 
@@ -170,6 +171,19 @@ describe('class rows', () => {
     expect(filterClassRows(rows, { search: '', groupId: null, selection: 'unselected' }, sel).map((r) => r.id)).toEqual([
       'EC000028',
     ]);
+  });
+
+  it('searches a delimited list of terms', () => {
+    const rows = classRows(release, 'en_US');
+    const none = new Set<string>();
+    const search = (s: string) => filterClassRows(rows, { search: s, groupId: null, selection: 'all' }, none).map((r) => r.id);
+    expect(search('EC000009\nEC000028')).toEqual(['EC000009', 'EC000028']);
+    expect(search('ec000009\t;')).toEqual(['EC000009']);
+    expect(search('rod thread, nope')).toEqual(['EC000028']);
+    expect(search('hammer;rod')).toEqual(['EC000009', 'EC000028']);
+    expect(search(' , ;\n')).toEqual(['EC000009', 'EC000028']);
+    expect(unmatchedSearchTerms(rows, 'EC000009\r\nEC999999, hammer x')).toEqual(['EC999999', 'hammer x']);
+    expect(unmatchedSearchTerms(rows, 'EC999999')).toEqual([]);
   });
 
   it('falls back to another label', () => {

@@ -10,13 +10,20 @@ import {
   Stack,
   Table,
   Text,
-  TextInput,
+  Textarea,
   Title,
 } from '@mantine/core';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { MissingClassesAlert } from '../components/MissingClassesAlert.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
-import { classRows, displayLocale, filterClassRows, groupOptions, type SelectionFilter } from '../state/appState.js';
+import {
+  classRows,
+  displayLocale,
+  filterClassRows,
+  groupOptions,
+  unmatchedSearchTerms,
+  type SelectionFilter,
+} from '../state/appState.js';
 
 const PAGE_SIZE = 50;
 
@@ -39,6 +46,7 @@ export function ClassesStep() {
     () => filterClassRows(rows, { search: deferredSearch, groupId, selection }, selected),
     [rows, deferredSearch, groupId, selection, selected],
   );
+  const unmatched = useMemo(() => unmatchedSearchTerms(rows, deferredSearch), [rows, deferredSearch]);
 
   if (!release) return <Text mt="md">Import an ETIM export first.</Text>;
 
@@ -91,14 +99,18 @@ export function ClassesStep() {
         </Group>
 
         <Group align="flex-end" gap="sm">
-          <TextInput
+          <Textarea
             label="Search"
+            description="Paste a list to match any of its lines (or tab, comma or semicolon separated items)"
             placeholder="Class id, group or label in any language"
             value={search}
             onChange={(e) => {
               setSearch(e.currentTarget.value);
               resetPage();
             }}
+            autosize
+            minRows={1}
+            maxRows={6}
             w={320}
             data-testid="class-search"
           />
@@ -138,6 +150,12 @@ export function ClassesStep() {
             />
           )}
         </Group>
+
+        {unmatched.length > 0 && (
+          <Text size="sm" c="orange" data-testid="class-search-unmatched">
+            No match for {unmatched.length.toLocaleString('en-US')} of the searched items: {unmatched.join(', ')}
+          </Text>
+        )}
 
         <Group gap="xs">
           <Text size="sm" c="dimmed" mr="sm">
