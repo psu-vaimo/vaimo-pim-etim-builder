@@ -14,7 +14,14 @@ const isSourceEntity = (v: unknown): boolean =>
   isRecord(v) &&
   typeof v.code === 'string' &&
   Array.isArray(v.records) &&
-  v.records.every((r) => isRecord(r) && typeof r.code === 'string' && isStringRecord(r.labels) && isStringRecord(r.values));
+  v.records.every(
+    (r) =>
+      isRecord(r) &&
+      typeof r.code === 'string' &&
+      isStringRecord(r.labels) &&
+      isStringRecord(r.values) &&
+      (r.classValues === undefined || (isRecord(r.classValues) && Object.values(r.classValues).every(isStringRecord))),
+  );
 
 /** Pretty printed JSON, the format users save and load. */
 export function serializeProject(project: Project): string {

@@ -135,7 +135,7 @@ describe('records status', () => {
     const plan = (records: Record<string, string>[], features: string[]) => ({
       code: 'x',
       attributes: ['att'],
-      features: features.map((featureId) => ({ key: featureId, featureId, attribute: 'att', valueIds: [] })),
+      features: features.map((featureId) => ({ key: featureId, featureId, attribute: 'att', valueIds: [], classIds: [], classValueIds: {}, exceptionClassIds: [] })),
       records: records.map((values, i) => ({ code: `r${i}`, labels: {}, values })),
     });
     expect(recordCounts([plan([{ EF1: 'EV1' }, {}], ['EF1', 'EF2']), plan([], ['EF3'])])).toEqual({

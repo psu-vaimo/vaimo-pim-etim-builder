@@ -3,8 +3,8 @@ import { generateAttributes } from '../akeneo/attributes.js';
 import { generateDependencies } from '../akeneo/dependencies.js';
 import { collectProjectFeatures } from '../akeneo/features.js';
 import { generateRecords } from '../akeneo/records.js';
-import { generateRules, sourceRecordAttribute } from '../akeneo/rules.js';
-import { collectSourceEntities, sourceRecordsTable, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
+import { generateRules } from '../akeneo/rules.js';
+import { collectSourceEntities, featureRecordAttributes, sourceRecordsTable, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
 import type { GenerateIssue } from '../akeneo/types.js';
 import type { EtimRelease } from '../etim/types.js';
 import { projectFileName, serializeProject } from '../project/file.js';
@@ -72,7 +72,17 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
     {
       path: 'mapping_report.xlsx',
       content: writeXlsx(
-        reportTables({ release, project, features, attributes: attrs.attributes, rules: rules.rules, dependencies, issues, manualSteps }),
+        reportTables({
+          release,
+          project,
+          features,
+          attributes: attrs.attributes,
+          rules: rules.rules,
+          dependencies,
+          sourceEntities: sourceEntities.entities,
+          issues,
+          manualSteps,
+        }),
       ),
     },
     { path: projectFileName(project), content: serializeProject(project) },
@@ -95,10 +105,7 @@ function manualStepsFor(project: Project, sourceEntities: SourceEntityPlan[]): s
     `Create the reference entities ${codes.classEntity} and ${codes.valueEntity} in Akeneo before importing records and attributes.`,
     'Import 01_attribute_groups, then 02_attributes, then the 03 and 04 record files.',
     ...sourceEntities.map((e) => {
-      const attributes = e.features.flatMap((f) => {
-        const code = sourceRecordAttribute(project, f.featureId);
-        return [code, code + codes.labelSuffix];
-      });
+      const attributes = e.features.flatMap((f) => featureRecordAttributes(project, f));
       return `Add the text attributes ${attributes.join(', ')} to the reference entity ${e.code} (not localizable, not scopable).`;
     }),
     ...(withRecords.length > 0 ? [`Import the 07 record files (${withRecords.map((e) => e.code).join(', ')}) to fill the ETIM values of the source records.`] : []),

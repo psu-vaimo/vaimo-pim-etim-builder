@@ -157,6 +157,12 @@ describe('api with pre-loaded ETIM exports', () => {
     const ok = await post('/project/record-values', { project: linked, values: value('EV023258') });
     expect(ok.statusCode).toBe(200);
     expect(ok.json().project.sourceEntities[0].records[0].values).toEqual({ EF005644: 'EV023258' });
+    const exception = await post('/project/record-values', {
+      project: linked,
+      values: [{ entity: 'fastening', record: 'eye', featureId: 'EF005644', classId: 'EC000009', valueId: 'EV008374' }],
+    });
+    expect(exception.statusCode).toBe(200);
+    expect(exception.json().project.sourceEntities[0].records[0].classValues).toEqual({ EC000009: { EF005644: 'EV008374' } });
     const notAllowed = await post('/project/record-values', { project: linked, values: value('EV000072') });
     expect(notAllowed.json().errors).toEqual(['fastening eye EF005644: EV000072 is not allowed by ETIM for EF005644 in the selected classes']);
   });

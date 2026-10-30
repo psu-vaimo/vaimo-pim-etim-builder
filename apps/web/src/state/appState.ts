@@ -4,6 +4,7 @@ import {
   labelFor,
   normalizeSources,
   withEntityRecords as withProjectEntityRecords,
+  withRecordValue,
   type AkeneoUnit,
   type EtimClass,
   type EtimRelease,
@@ -78,8 +79,8 @@ export type AppAction =
   | { type: 'replaceSourceRecords'; entity: string; records: readonly SourceRecord[] }
   | { type: 'addSourceRecord'; entity: string; record: SourceRecord }
   | { type: 'removeSourceRecord'; entity: string; code: string }
-  /** Sets the ETIM value of one record for one feature, `null` clears it. */
-  | { type: 'setSourceRecordValue'; entity: string; code: string; featureId: string; valueId: string | null }
+  /** Sets the ETIM value of one record for one feature, for one class when `classId` is given, `null` clears it. */
+  | { type: 'setSourceRecordValue'; entity: string; code: string; featureId: string; classId?: string; valueId: string | null }
   /** Patches code, group and label settings and the rule priority. Values are stored as typed, validation is shown in the UI. */
   | { type: 'updateSettings'; patch: SettingsPatch }
   /** Resets codes, groups, label words and rule priority to the defaults, keeps number/range defaults and unit mappings. */
@@ -198,7 +199,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'replaceSourceRecords':
       return withEntityRecords(state, action.entity, (old) => {
         const byCode = new Map(old.map((r) => [r.code, r]));
-        return action.records.map((r) => ({ ...r, values: { ...byCode.get(r.code)?.values, ...r.values } }));
+        return action.records.map((r) => {
+          const previous = byCode.get(r.code)?.classValues ?? {};
+          const classValues = { ...previous };
+          for (const [classId, values] of Object.entries(r.classValues ?? {})) classValues[classId] = { ...previous[classId], ...values };
+          const merged: SourceRecord = { ...r, values: { ...byCode.get(r.code)?.values, ...r.values } };
+          return Object.keys(classValues).length > 0 ? { ...merged, classValues } : merged;
+        });
       });
     case 'addSourceRecord':
       return withEntityRecords(state, action.entity, (old) =>
@@ -208,11 +215,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return withEntityRecords(state, action.entity, (old) => old.filter((r) => r.code !== action.code));
     case 'setSourceRecordValue':
       return withEntityRecords(state, action.entity, (old) =>
-        old.map((r) => {
-          if (r.code !== action.code) return r;
-          const { [action.featureId]: _old, ...values } = r.values;
-          return { ...r, values: action.valueId ? { ...values, [action.featureId]: action.valueId } : values };
-        }),
+        old.map((r) => (r.code === action.code ? withRecordValue(r, action.featureId, action.classId, action.valueId ?? '') : r)),
       );
     case 'setSourceAttributes': {
       const { sourceAttributes: _old, ...project } = state.project;

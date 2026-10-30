@@ -110,6 +110,11 @@ export interface SourceRecord {
   labels: Record<string, string>;
   /** ETIM feature id to ETIM value id, `{ EF000139: 'EV000072' }`. Unmapped features are left out. */
   values: Record<string, string>;
+  /**
+   * Exceptions to `values` for one ETIM class, class id to feature id to value
+   * id, `{ EC002910: { EF000012: 'EV000154' } }`. Left out when there are none.
+   */
+  classValues?: Record<string, Record<string, string>>;
 }
 
 /** A customer reference entity behind A feature sources, with its records. */

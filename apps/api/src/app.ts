@@ -203,7 +203,7 @@ export function buildApp(opts: FastifyServerOptions = {}, { etimFilesDir = DEFAU
     },
   );
 
-  // Sets the ETIM value of source records per feature, checked against the values ETIM allows in the selected classes.
+  // Sets the ETIM value of source records per feature, or per class with `classId`, checked against the values ETIM allows.
   app.post<{ Body: RecordValuesBody }>(
     '/project/record-values',
     {
@@ -224,6 +224,7 @@ export function buildApp(opts: FastifyServerOptions = {}, { etimFilesDir = DEFAU
                   entity: { type: 'string' },
                   record: { type: 'string' },
                   featureId: { type: 'string', minLength: 1 },
+                  classId: { type: 'string' },
                   valueId: { type: 'string' },
                 },
               },

@@ -5,9 +5,11 @@ import { readSpreadsheet } from './attributes.js';
 /**
  * Reads an Akeneo record export of a customer reference entity (XLSX or CSV).
  * Columns, case-insensitive: `code` (required), `label-<locale>`, and ETIM
- * value columns `<prefix>ef000139` holding a value id like `EV000072`, so a
- * file exported by this app reads back. Other columns are ignored. Rows without
- * a code are skipped, a code listed twice keeps the first row.
+ * value columns `<prefix>ef000139` holding a value id like `EV000072`, and
+ * class columns `<prefix>ef000139_ec002910`, so a file exported by this app
+ * reads back. A class value equal to the default is not an exception and is
+ * skipped. Other columns are ignored. Rows without a code are skipped, a code
+ * listed twice keeps the first row.
  */
 export function parseAkeneoRecordExport(
   bytes: Uint8Array,
@@ -23,11 +25,13 @@ export function parseAkeneoRecordExport(
     return { records: [], issues: [{ severity: 'error', message: `${fileName} has no code column, is it an Akeneo record export?` }] };
   }
   const labelCols = columns.flatMap((c, i) => (c.toLowerCase().startsWith('label-') ? [{ i, locale: c.slice(6) }] : []));
-  const valuePattern = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(ef\\d+)$`, 'i');
+  const valuePattern = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(ef\\d+)(?:_(ec\\d+))?$`, 'i');
   const valueCols = columns.flatMap((c, i) => {
     const m = valuePattern.exec(c);
-    return m ? [{ i, featureId: m[1]!.toUpperCase() }] : [];
+    return m ? [{ i, featureId: m[1]!.toUpperCase(), classId: m[2]?.toUpperCase() }] : [];
   });
+  // Defaults first, so class values can be compared with them.
+  valueCols.sort((a, b) => Number(a.classId !== undefined) - Number(b.classId !== undefined));
 
   const issues: GenerateIssue[] = [];
   const byCode = new Map<string, SourceRecord>();
@@ -43,12 +47,15 @@ export function parseAkeneoRecordExport(
     }
     const record: SourceRecord = { code, labels: {}, values: {} };
     for (const { i, locale } of labelCols) if (cell(i) !== '') record.labels[locale] = cell(i);
-    for (const { i, featureId } of valueCols) {
+    let classValues: Record<string, Record<string, string>> = {};
+    for (const { i, featureId, classId } of valueCols) {
       const value = cell(i).toUpperCase();
       if (value === '') continue;
-      if (/^EV\d+$/.test(value)) record.values[featureId] = value;
-      else invalid++;
+      if (!/^EV\d+$/.test(value)) invalid++;
+      else if (classId === undefined) record.values[featureId] = value;
+      else if (value !== record.values[featureId]) classValues = { ...classValues, [classId]: { ...classValues[classId], [featureId]: value } };
     }
+    if (Object.keys(classValues).length > 0) record.classValues = classValues;
     byCode.set(code, record);
   }
   if (duplicates > 0) issues.push({ severity: 'warning', message: `${duplicates} rows repeat a record code, the first row is kept` });

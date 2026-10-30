@@ -1,7 +1,7 @@
 import type { ProjectFeature } from '../akeneo/features.js';
 import type { AkeneoAttribute, AkeneoDependency, AkeneoRule, GenerateIssue } from '../akeneo/types.js';
-import { sourceRecordAttribute } from '../akeneo/rules.js';
-import { sourceEntityFor } from '../akeneo/sourceEntities.js';
+import { featureRecordAttributes, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
+import { sourceEntityFor, sourceRecordAttribute } from '../akeneo/sourceRecords.js';
 import { labelFor } from '../etim/labels.js';
 import type { EtimRelease } from '../etim/types.js';
 import type { Project } from '../project/types.js';
@@ -14,13 +14,14 @@ export interface ReportInput {
   attributes: AkeneoAttribute[];
   rules: AkeneoRule[];
   dependencies: AkeneoDependency[];
+  sourceEntities: SourceEntityPlan[];
   issues: (GenerateIssue & { step: string })[];
   manualSteps: string[];
 }
 
 /** Sheets of the mapping report for customer review. */
 export function reportTables(input: ReportInput): Table[] {
-  const { release, project, features, attributes, rules, dependencies, issues } = input;
+  const { release, project, features, attributes, rules, dependencies, sourceEntities, issues } = input;
   const locale = project.locales[0];
   const attrsByKey = new Map<string, AkeneoAttribute[]>();
   for (const a of attributes) {
@@ -138,6 +139,8 @@ export function reportTables(input: ReportInput): Table[] {
         const recordAttributes = keys.flatMap((k) => {
           const f = featureById.get(k);
           if (f?.type !== 'A') return [];
+          const planned = sourceEntities.flatMap((e) => e.features).find((p) => p.key === k);
+          if (planned) return featureRecordAttributes(project, planned);
           const code = sourceRecordAttribute(project, f.featureId);
           return [code, code + project.settings.codes.labelSuffix];
         });

@@ -19,7 +19,15 @@ export { generateRecords } from './akeneo/records.js';
 export { labelFor } from './etim/labels.js';
 export * from './project/file.js';
 export { generateDependencies } from './akeneo/dependencies.js';
-export { generateRules, sourceRecordAttribute } from './akeneo/rules.js';
+export { generateRules } from './akeneo/rules.js';
+export {
+  classRecordAttribute,
+  exceptionClassIds,
+  featureClassIds,
+  recordValue,
+  sourceEntityFor,
+  sourceRecordAttribute,
+} from './akeneo/sourceRecords.js';
 export { buildExport, zipExport, type ExportFile, type ExportIssue, type ExportResult } from './export/bundle.js';
 export { toCsv, type Cell, type Table } from './export/table.js';
 export { writeXlsx } from './export/xlsx.js';
@@ -45,7 +53,8 @@ export { parseAkeneoRecordExport } from './source/records.js';
 export {
   applySourceRecordValues,
   collectSourceEntities,
-  sourceEntityFor,
+  featureRecordAttributes,
+  withRecordValue,
   sourceRecordsTable,
   type SourceEntityFeature,
   type SourceEntityPlan,

@@ -3,6 +3,7 @@ import type { FeatureKey, Project, SourceAttribute, SourceMapping } from '../pro
 import { defaultSettings } from '../project/defaults.js';
 import { akeneoCodeError } from '../project/sources.js';
 import { attributeCode } from './attributes.js';
+import { classRecordAttribute, exceptionClassIds, featureClassIds, sourceEntityFor, sourceRecordAttribute } from './sourceRecords.js';
 import type {
   AkeneoAttribute,
   AkeneoRule,
@@ -14,11 +15,6 @@ import type {
 } from './types.js';
 
 const FALLBACK_FROM = defaultSettings().labelTexts.en_US!.from;
-
-/** Record attribute on a source reference entity holding the ETIM value code for a feature, `ref_ef000139`. */
-export function sourceRecordAttribute(project: Project, featureId: string): string {
-  return project.settings.codes.sourceRecordAttributePrefix + featureId.toLowerCase();
-}
 
 /** A mapped feature with its attributes, collected before rules are built. */
 interface MappedFeature {
@@ -47,6 +43,14 @@ interface MappedFeature {
  * | L | yes values: own rules, set true when IN, set false when NOT IN. No yes values: copy (boolean source) |
  * | R text | copy, or with `second` own rule concatenating as `10-20` |
  * | R min/max | copy to min and max, or with `second` own rule copying `second` to max |
+ *
+ * A features whose source records have class exceptions get one more rule per
+ * source and class, `<rule prefix><source>_<class>`, with the condition
+ * `etim_class IN [<class record>]`, copying `ref_ef..._ec...` and its label.
+ * It has priority one higher: Akeneo runs lower priorities first, so it runs
+ * after the default rule and overwrites it.
+ * The record export fills the class attributes of every record, so records
+ * without an exception get the default value.
  */
 export function generateRules(
   release: EtimRelease,
@@ -108,9 +112,10 @@ export function generateRules(
     actions: RuleAction[],
     labels: Labels,
     origin: AkeneoRule['origin'],
+    rulePriority = priority,
   ): AkeneoRule => ({
     code,
-    priority,
+    priority: rulePriority,
     enabled: true,
     conditions: [{ operator: 'AND', value: [{ field: codes.classAttribute, operator: 'NOT EMPTY' }, ...conditions] }],
     actions,
@@ -131,6 +136,8 @@ export function generateRules(
 
   // Copy actions per source, in attribute code order. Features needing their own rule are added directly.
   const shared = new Map<string, { actions: RuleAction[]; keys: FeatureKey[] }>();
+  // Class exception actions per source and class.
+  const byClass = new Map<string, { source: string; classId: string; actions: RuleAction[]; keys: FeatureKey[] }>();
   for (const f of mapped) {
     const { source, parts } = f;
     const valueAttr = (parts.value ?? parts.min)!;
@@ -171,6 +178,19 @@ export function generateRules(
       if (parts.label) {
         actions.push({ ...copy(source.attribute, parts.label), reference_entity_attribute: recordAttribute + codes.labelSuffix });
       }
+      const entity = sourceEntityFor(project, source.attribute);
+      const records = project.sourceEntities?.find((e) => e.code === entity)?.records ?? [];
+      for (const classId of exceptionClassIds(records, f.featureId, featureClassIds(release, project, f.featureId))) {
+        const classAttribute = classRecordAttribute(project, f.featureId, classId);
+        const id = `${source.attribute}\n${classId}`;
+        const entry = byClass.get(id) ?? { source: source.attribute, classId, actions: [], keys: [] };
+        entry.actions.push({ ...copy(source.attribute, valueAttr), reference_entity_attribute: classAttribute });
+        if (parts.label) {
+          entry.actions.push({ ...copy(source.attribute, parts.label), reference_entity_attribute: classAttribute + codes.labelSuffix });
+        }
+        entry.keys.push(f.key);
+        byClass.set(id, entry);
+      }
     } else if (parts.min && parts.max) {
       actions.push(copy(source.attribute, parts.min), copy(source.attribute, parts.max));
     } else {
@@ -186,6 +206,16 @@ export function generateRules(
     const labels: Labels = {};
     for (const locale of project.locales) labels[locale] = `ETIM (${fromWord(locale)}: ${source})`;
     rules.push(rule(codes.rulePrefix + source, notEmpty(source), actions, labels, { source, keys }));
+  }
+
+  const classRules = [...byClass.values()].sort((a, b) => (a.source < b.source ? -1 : a.source > b.source ? 1 : a.classId < b.classId ? -1 : 1));
+  for (const { source, classId, actions, keys } of classRules) {
+    const labels: Labels = {};
+    for (const locale of project.locales) labels[locale] = `ETIM (${fromWord(locale)}: ${source}, ${classId})`;
+    const classCondition: RuleFieldCondition = { field: codes.classAttribute, operator: 'IN', value: [codes.classRecordPrefix + classId.toLowerCase()] };
+    rules.push(
+      rule(`${codes.rulePrefix}${source}_${classId.toLowerCase()}`, [classCondition, ...notEmpty(source)], actions, labels, { source, keys }, priority + 1),
+    );
   }
 
   const seen = new Set<string>();

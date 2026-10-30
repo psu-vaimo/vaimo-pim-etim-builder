@@ -7,6 +7,8 @@ import {
   parseAkeneoRecordExport,
   sourceEntityFor,
   sourceRecordsTable,
+  withRecordValue,
+  type EtimRelease,
   type Project,
 } from '../src/index.js';
 import { project, release } from './helpers.js';
@@ -21,6 +23,13 @@ function mapped(patch: Partial<Project> = {}): Project {
     sourceAttributes: [{ code: 'att_fastening', type: 'akeneo_reference_entity', labels: {}, referenceDataName: 'fastening' }],
     ...patch,
   });
+}
+
+/** Fixture release where EC000028 also uses EF005644, with other allowed values. */
+function twoClassRelease(): EtimRelease {
+  const r = release();
+  r.classes.EC000028!.features.push({ nr: '998', featureId: 'EF005644', type: 'A', sortNr: 9, valueIds: ['EV000072', 'EV023258'] });
+  return r;
 }
 
 describe('sourceEntityFor', () => {
@@ -39,8 +48,24 @@ describe('collectSourceEntities', () => {
         code: 'fastening',
         attributes: ['att_fastening'],
         features: [
-          { key: 'EF000139', featureId: 'EF000139', attribute: 'att_fastening', valueIds: [] },
-          { key: 'EF005644', featureId: 'EF005644', attribute: 'att_fastening', valueIds: ['EV023258', 'EV008374', 'EV008325', 'EV000154'] },
+          {
+            key: 'EF000139',
+            featureId: 'EF000139',
+            attribute: 'att_fastening',
+            valueIds: [],
+            classIds: ['EC000009'],
+            classValueIds: { EC000009: [] },
+            exceptionClassIds: [],
+          },
+          {
+            key: 'EF005644',
+            featureId: 'EF005644',
+            attribute: 'att_fastening',
+            valueIds: ['EV023258', 'EV008374', 'EV008325', 'EV000154'],
+            classIds: ['EC000009'],
+            classValueIds: { EC000009: ['EV023258', 'EV008374', 'EV008325', 'EV000154'] },
+            exceptionClassIds: [],
+          },
         ],
         records: [],
       },
@@ -164,6 +189,100 @@ describe('applySourceRecordValues', () => {
         'fastening eye EF015003: EF015003 is not mapped from a source linking to fastening',
         'colour red EF005644: colour is not the reference entity of a mapped A feature in the selected classes',
         'fastening eye EF005644: listed more than once',
+      ],
+    });
+  });
+});
+
+describe('class exceptions', () => {
+  const p = mapped({
+    sourceEntities: [
+      {
+        code: 'fastening',
+        records: [
+          { code: 'eye', labels: {}, values: { EF005644: 'EV023258' }, classValues: { EC000028: { EF005644: 'EV000072' } } },
+          { code: 'hook', labels: {}, values: { EF005644: 'EV008374' } },
+        ],
+      },
+    ],
+  });
+
+  it('collects exception classes and checks class values against the class', () => {
+    const { entities, issues } = collectSourceEntities(twoClassRelease(), p);
+    const feature = entities[0]!.features.find((f) => f.featureId === 'EF005644')!;
+    expect(feature.classIds).toEqual(['EC000009', 'EC000028']);
+    expect(feature.exceptionClassIds).toEqual(['EC000028']);
+    expect(issues.filter((i) => i.message.includes('not allowed'))).toEqual([]);
+
+    const odd = mapped({
+      sourceEntities: [
+        {
+          code: 'fastening',
+          records: [{ code: 'eye', labels: {}, values: {}, classValues: { EC000028: { EF005644: 'EV008374' }, EC999999: { EF005644: 'EV000072' } } }],
+        },
+      ],
+    });
+    expect(collectSourceEntities(twoClassRelease(), odd).issues.map((i) => i.message).filter((m) => m.includes('class'))).toEqual([
+      'Reference entity fastening: 1 class values are for classes that are not selected or do not use the feature, ignored: eye EF005644 EC999999',
+      'Reference entity fastening: 1 values are not allowed by ETIM for the selected classes: eye EF005644=EV008374 in EC000028',
+    ]);
+  });
+
+  it('adds a class column pair filled with the exception, else the default', () => {
+    const r = twoClassRelease();
+    const [plan] = collectSourceEntities(r, p).entities;
+    const rows = sourceRecordsTable(r, p, plan!).rows;
+    expect(rows[0]).toEqual([
+      'referenceEntityIdentifier',
+      'code',
+      'ref_ef000139',
+      'ref_ef000139_label',
+      'ref_ef005644',
+      'ref_ef005644_label',
+      'ref_ef005644_ec000028',
+      'ref_ef005644_ec000028_label',
+    ]);
+    expect(rows.slice(1).map((row) => [row[1], row[4], row[6]])).toEqual([
+      ['eye', 'EV023258', 'EV000072'],
+      ['hook', 'EV008374', 'EV008374'],
+    ]);
+  });
+
+  it('reads class columns back, skipping class values equal to the default', () => {
+    const csv = ['code;ref_ef005644_ec000028;ref_ef005644', 'eye;EV000072;EV023258', 'hook;EV008374;EV008374'].join('\n');
+    expect(parseAkeneoRecordExport(strToU8(csv), 'f.csv', 'ref_').records).toEqual([
+      { code: 'eye', labels: {}, values: { EF005644: 'EV023258' }, classValues: { EC000028: { EF005644: 'EV000072' } } },
+      { code: 'hook', labels: {}, values: { EF005644: 'EV008374' } },
+    ]);
+  });
+
+  it('sets and removes class values on a record', () => {
+    const record = { code: 'eye', labels: {}, values: { EF1: 'EV1' } };
+    const withClass = withRecordValue(record, 'EF1', 'EC1', 'EV2');
+    expect(withClass).toEqual({ ...record, classValues: { EC1: { EF1: 'EV2' } } });
+    expect(withRecordValue(withClass, 'EF1', 'EC1', '')).toEqual(record);
+    expect(withRecordValue(withClass, 'EF1', undefined, '')).toEqual({ code: 'eye', labels: {}, values: {}, classValues: { EC1: { EF1: 'EV2' } } });
+  });
+
+  it('sets class values through applySourceRecordValues, checked against the class', () => {
+    const r = twoClassRelease();
+    const result = applySourceRecordValues(r, p, [{ entity: 'fastening', record: 'hook', featureId: 'EF005644', classId: 'ec000028', valueId: 'EV000072' }]);
+    expect(result.ok && result.project.sourceEntities?.[0]?.records[1]).toEqual({
+      code: 'hook',
+      labels: {},
+      values: { EF005644: 'EV008374' },
+      classValues: { EC000028: { EF005644: 'EV000072' } },
+    });
+    expect(
+      applySourceRecordValues(r, p, [
+        { entity: 'fastening', record: 'hook', featureId: 'EF005644', classId: 'EC000028', valueId: 'EV008374' },
+        { entity: 'fastening', record: 'eye', featureId: 'EF005644', classId: 'EC000001', valueId: 'EV000072' },
+      ]),
+    ).toEqual({
+      ok: false,
+      errors: [
+        'fastening hook EF005644 EC000028: EV008374 is not allowed by ETIM for EF005644 in EC000028',
+        'fastening eye EF005644 EC000001: EC000001 is not a selected class using EF005644',
       ],
     });
   });

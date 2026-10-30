@@ -222,3 +222,42 @@ describe('generateRules', () => {
     expect(generate({ EF999999: { sources: [{ attribute: 'att_x' }] } }).rules).toEqual([]);
   });
 });
+
+describe('class exception rules', () => {
+  it('adds a rule per source and class with exceptions, one priority higher so it runs after the default rule', () => {
+    const r = release();
+    r.classes.EC000028!.features.push({ nr: '998', featureId: 'EF005644', type: 'A', sortNr: 9, valueIds: ['EV000072'] });
+    const p = project({
+      features: { EF005644: { sources: [{ attribute: 'att_fastening' }] } },
+      sourceEntityLinks: { att_fastening: 'fastening' },
+      sourceEntities: [
+        { code: 'fastening', records: [{ code: 'eye', labels: {}, values: { EF005644: 'EV023258' }, classValues: { EC000028: { EF005644: 'EV000072' } } }] },
+      ],
+    });
+    const { attributes } = generateAttributes(r, p);
+    const { rules, issues } = generateRules(r, p, attributes);
+    expect(issues).toEqual([]);
+    expect(rules.map((x) => [x.code, x.priority])).toEqual([
+      ['etim_att_fastening', 99],
+      ['etim_att_fastening_ec000028', 100],
+    ]);
+    expect(rules[1]).toMatchObject({
+      conditions: [
+        {
+          operator: 'AND',
+          value: [
+            { field: 'etim_class', operator: 'NOT EMPTY' },
+            { field: 'etim_class', operator: 'IN', value: ['ec000028'] },
+            { field: 'att_fastening', operator: 'NOT EMPTY' },
+          ],
+        },
+      ],
+      actions: [
+        { type: 'copy', from_field: 'att_fastening', to_field: 'ef005644', reference_entity_attribute: 'ref_ef005644_ec000028' },
+        { type: 'copy', from_field: 'att_fastening', to_field: 'ef005644_label', reference_entity_attribute: 'ref_ef005644_ec000028_label' },
+      ],
+      labels: { en_US: 'ETIM (from: att_fastening, EC000028)', sv_SE: 'ETIM (från: att_fastening, EC000028)' },
+      origin: { source: 'att_fastening', keys: ['EF005644'] },
+    });
+  });
+});

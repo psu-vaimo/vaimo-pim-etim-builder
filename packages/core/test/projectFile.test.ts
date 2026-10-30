@@ -61,11 +61,18 @@ describe('project file', () => {
     const project = {
       ...createProject('x'),
       sourceEntityLinks: { att_a: 'surface' },
-      sourceEntities: [{ code: 'surface', records: [{ code: 'zinc', labels: { en_US: 'Zinc' }, values: { EF000139: 'EV000072' } }] }],
+      sourceEntities: [
+        {
+          code: 'surface',
+          records: [{ code: 'zinc', labels: { en_US: 'Zinc' }, values: { EF000139: 'EV000072' }, classValues: { EC000009: { EF000139: 'EV000154' } } }],
+        },
+      ],
     };
     expect(parseProjectFile(serializeProject(project))).toEqual({ ok: true, project });
     expect(parseProjectFile(JSON.stringify({ ...project, sourceEntityLinks: { att_a: 1 } }))).toMatchObject({ ok: false });
     expect(parseProjectFile(JSON.stringify({ ...project, sourceEntities: [{ code: 'surface', records: [{ code: 'zinc' }] }] }))).toMatchObject({ ok: false });
+    const badClassValues = [{ code: 'surface', records: [{ code: 'zinc', labels: {}, values: {}, classValues: { EC000009: 'EV1' } }] }];
+    expect(parseProjectFile(JSON.stringify({ ...project, sourceEntities: badClassValues }))).toMatchObject({ ok: false });
   });
 
   it('keeps the ETIM source, rejects malformed ones', () => {

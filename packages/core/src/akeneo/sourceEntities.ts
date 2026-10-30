@@ -4,18 +4,8 @@ import type { Table } from '../export/table.js';
 import { withEntityRecords, type ApplySourcesResult } from '../project/sources.js';
 import type { FeatureKey, Project, SourceRecord } from '../project/types.js';
 import { collectProjectFeatures } from './features.js';
-import { sourceRecordAttribute } from './rules.js';
+import { classRecordAttribute, exceptionClassIds, featureClassIds, recordValue, sourceEntityFor, sourceRecordAttribute } from './sourceRecords.js';
 import type { GenerateIssue } from './types.js';
-
-/**
- * Reference entity a source attribute links to: the project link, else the
- * `reference_data_name` from the uploaded Akeneo attribute export.
- */
-export function sourceEntityFor(project: Project, attribute: string): string | undefined {
-  const linked = project.sourceEntityLinks?.[attribute];
-  if (linked) return linked;
-  return project.sourceAttributes?.find((a) => a.code === attribute)?.referenceDataName || undefined;
-}
 
 /** An A feature filled from a source reference entity. */
 export interface SourceEntityFeature {
@@ -25,6 +15,20 @@ export interface SourceEntityFeature {
   attribute: string;
   /** ETIM values allowed for the feature in the selected classes, in ETIM order, first class first. */
   valueIds: string[];
+  /** Selected classes using the feature, in project order. */
+  classIds: string[];
+  /** ETIM values allowed per class, for class exceptions. */
+  classValueIds: Record<string, string[]>;
+  /** Classes with a record exception, sorted. Each gets the record attributes `ref_ef..._ec...` and its own rule. */
+  exceptionClassIds: string[];
+}
+
+/** Record attributes a source entity needs for one feature: value code and label, by default and per exception class. */
+export function featureRecordAttributes(project: Project, feature: SourceEntityFeature): string[] {
+  const suffix = project.settings.codes.labelSuffix;
+  return [sourceRecordAttribute(project, feature.featureId), ...feature.exceptionClassIds.map((c) => classRecordAttribute(project, feature.featureId, c))].flatMap(
+    (code) => [code, code + suffix],
+  );
 }
 
 /** A customer reference entity as needed by the mapped A features. */
@@ -62,12 +66,16 @@ export function collectSourceEntities(release: EtimRelease, project: Project): {
       continue;
     }
     const valueIds = new Set<string>();
-    for (const classId of f.classIds) {
-      for (const cf of release.classes[classId]?.features ?? []) if (cf.featureId === f.featureId) for (const v of cf.valueIds) valueIds.add(v);
+    const classValueIds: Record<string, string[]> = {};
+    const classIds = featureClassIds(release, project, f.featureId);
+    for (const classId of classIds) {
+      const ids = (release.classes[classId]?.features ?? []).filter((cf) => cf.featureId === f.featureId).flatMap((cf) => cf.valueIds);
+      classValueIds[classId] = ids;
+      for (const v of ids) valueIds.add(v);
     }
     const plan = plans.get(code) ?? { code, attributes: [], features: [], records: [] };
     if (!plan.attributes.includes(attribute)) plan.attributes.push(attribute);
-    plan.features.push({ key: f.key, featureId: f.featureId, attribute, valueIds: [...valueIds] });
+    plan.features.push({ key: f.key, featureId: f.featureId, attribute, valueIds: [...valueIds], classIds, classValueIds, exceptionClassIds: [] });
     plans.set(code, plan);
   }
 
@@ -76,32 +84,50 @@ export function collectSourceEntities(release: EtimRelease, project: Project): {
     plan.attributes.sort();
     plan.features.sort((a, b) => (a.featureId < b.featureId ? -1 : 1));
     plan.records = project.sourceEntities?.find((e) => e.code === plan.code)?.records ?? [];
+    for (const f of plan.features) f.exceptionClassIds = exceptionClassIds(plan.records, f.featureId, f.classIds);
     if (plan.records.length === 0) {
       issues.push({ severity: 'warning', message: `Reference entity ${plan.code} has no records, add them on the Source records step` });
       continue;
     }
     let unmapped = 0;
     const notAllowed: string[] = [];
+    const ignored: string[] = [];
     for (const record of plan.records) {
       for (const f of plan.features) {
         const value = record.values[f.featureId];
         if (!value) unmapped++;
         else if (!f.valueIds.includes(value)) notAllowed.push(`${record.code} ${f.featureId}=${value}`);
+        for (const [classId, values] of Object.entries(record.classValues ?? {})) {
+          const classValue = values[f.featureId];
+          if (!classValue) continue;
+          const allowed = f.classValueIds[classId];
+          if (!allowed) ignored.push(`${record.code} ${f.featureId} ${classId}`);
+          else if (allowed.length > 0 && !allowed.includes(classValue)) notAllowed.push(`${record.code} ${f.featureId}=${classValue} in ${classId}`);
+        }
       }
     }
     if (unmapped > 0) {
       const total = plan.records.length * plan.features.length;
       issues.push({ severity: 'warning', message: `Reference entity ${plan.code}: ${unmapped} of ${total} record values have no ETIM value` });
     }
-    if (notAllowed.length > 0) {
-      const shown = notAllowed.slice(0, 5).join(', ') + (notAllowed.length > 5 ? ` and ${notAllowed.length - 5} more` : '');
+    if (ignored.length > 0) {
       issues.push({
         severity: 'warning',
-        message: `Reference entity ${plan.code}: ${notAllowed.length} values are not allowed by ETIM for the selected classes: ${shown}`,
+        message: `Reference entity ${plan.code}: ${ignored.length} class values are for classes that are not selected or do not use the feature, ignored: ${shorten(ignored)}`,
+      });
+    }
+    if (notAllowed.length > 0) {
+      issues.push({
+        severity: 'warning',
+        message: `Reference entity ${plan.code}: ${notAllowed.length} values are not allowed by ETIM for the selected classes: ${shorten(notAllowed)}`,
       });
     }
   }
   return { entities, issues };
+}
+
+function shorten(items: readonly string[]): string {
+  return items.slice(0, 5).join(', ') + (items.length > 5 ? ` and ${items.length - 5} more` : '');
 }
 
 /**
@@ -112,32 +138,41 @@ export function collectSourceEntities(release: EtimRelease, project: Project): {
  */
 export function sourceRecordsTable(release: EtimRelease, project: Project, plan: SourceEntityPlan): Table {
   const locale = project.locales[0];
-  const suffix = project.settings.codes.labelSuffix;
-  const columns = plan.features.flatMap((f) => {
-    const code = sourceRecordAttribute(project, f.featureId);
-    return [code, code + suffix];
-  });
+  // Per feature the default pair, then a pair per exception class filled with the class value, else the default.
+  const columns = plan.features.flatMap((f) => [undefined, ...f.exceptionClassIds].map((classId) => ({ featureId: f.featureId, classId })));
+  const cell = (value: string | undefined) => (value ? [value, labelFor(release.values[value]?.labels ?? {}, locale)] : ['', '']);
   return {
     name: plan.code,
     rows: [
-      ['referenceEntityIdentifier', 'code', ...columns],
-      ...plan.records.map((r) => [
-        plan.code,
-        r.code,
-        ...plan.features.flatMap((f) => {
-          const value = r.values[f.featureId];
-          return value ? [value, labelFor(release.values[value]?.labels ?? {}, locale)] : ['', ''];
-        }),
-      ]),
+      ['referenceEntityIdentifier', 'code', ...plan.features.flatMap((f) => featureRecordAttributes(project, f))],
+      ...plan.records.map((r) => [plan.code, r.code, ...columns.flatMap((c) => cell(recordValue(r, c.featureId, c.classId)))]),
     ],
   };
 }
 
-/** The ETIM value of one source record for one feature, e.g. sent to the API. An empty `valueId` clears it. */
+/** Record with the value of a feature set, for one class when `classId` is given. An empty `valueId` removes it. */
+export function withRecordValue(record: SourceRecord, featureId: string, classId: string | undefined, valueId: string): SourceRecord {
+  const set = (values: Record<string, string>): Record<string, string> => {
+    const { [featureId]: _old, ...rest } = values;
+    return valueId === '' ? rest : { ...rest, [featureId]: valueId };
+  };
+  if (classId === undefined) return { ...record, values: set(record.values) };
+  const { [classId]: current, ...otherClasses } = record.classValues ?? {};
+  const classValues = set(current ?? {});
+  const next = Object.keys(classValues).length > 0 ? { ...otherClasses, [classId]: classValues } : otherClasses;
+  const { classValues: _old, ...rest } = record;
+  return Object.keys(next).length > 0 ? { ...rest, classValues: next } : rest;
+}
+
+/**
+ * The ETIM value of one source record for one feature, e.g. sent to the API.
+ * With `classId` it is an exception for that class. An empty `valueId` clears it.
+ */
 export interface SourceRecordValueInput {
   entity: string;
   record: string;
   featureId: string;
+  classId?: string;
   valueId: string;
 }
 
@@ -145,20 +180,23 @@ export interface SourceRecordValueInput {
  * Sets ETIM values on source records. The entity must be behind an A feature
  * mapped in the project, the feature mapped from a source linking to it, the
  * record must exist and the value must be allowed by ETIM for the feature in
- * the selected classes. Ids are upper-cased. Any error and nothing is applied.
+ * the selected classes, or in the class for a class exception (the class must
+ * be selected and use the feature). Ids are upper-cased. Any error and nothing
+ * is applied.
  */
 export function applySourceRecordValues(release: EtimRelease, project: Project, values: readonly SourceRecordValueInput[]): ApplySourcesResult {
   const errors: string[] = [];
   const { entities } = collectSourceEntities(release, project);
   const seen = new Set<string>();
-  const updates = new Map<string, Map<string, Map<string, string>>>();
+  const updates: { entity: string; record: string; featureId: string; classId: string | undefined; valueId: string }[] = [];
   for (const v of values) {
     const entity = v.entity.trim();
     const record = v.record.trim();
     const featureId = v.featureId.trim().toUpperCase();
+    const classId = v.classId?.trim().toUpperCase() || undefined;
     const valueId = v.valueId.trim().toUpperCase();
-    const where = `${entity} ${record} ${featureId}`;
-    const id = `${entity}\n${record}\n${featureId}`;
+    const where = `${entity} ${record} ${featureId}${classId ? ` ${classId}` : ''}`;
+    const id = `${entity}\n${record}\n${featureId}\n${classId ?? ''}`;
     if (seen.has(id)) {
       errors.push(`${where}: listed more than once`);
       continue;
@@ -172,31 +210,27 @@ export function applySourceRecordValues(release: EtimRelease, project: Project, 
     if (!plan.records.some((r) => r.code === record)) errors.push(`${where}: no record ${record} in ${entity}, add it first`);
     const feature = plan.features.find((f) => f.featureId === featureId);
     if (!feature) errors.push(`${where}: ${featureId} is not mapped from a source linking to ${entity}`);
-    else if (valueId !== '' && !feature.valueIds.includes(valueId)) {
-      errors.push(`${where}: ${valueId} is not allowed by ETIM for ${featureId} in the selected classes`);
+    else if (classId !== undefined && !feature.classIds.includes(classId)) {
+      errors.push(`${where}: ${classId} is not a selected class using ${featureId}`);
+    } else if (valueId !== '') {
+      const allowed = classId === undefined ? feature.valueIds : (feature.classValueIds[classId] ?? []);
+      if (!allowed.includes(valueId)) {
+        errors.push(`${where}: ${valueId} is not allowed by ETIM for ${featureId} ${classId ? `in ${classId}` : 'in the selected classes'}`);
+      }
     }
-    const byRecord = updates.get(entity) ?? new Map<string, Map<string, string>>();
-    const byFeature = byRecord.get(record) ?? new Map<string, string>();
-    byFeature.set(featureId, valueId);
-    byRecord.set(record, byFeature);
-    updates.set(entity, byRecord);
+    updates.push({ entity, record, featureId, classId, valueId });
   }
   if (errors.length > 0) return { ok: false, errors };
 
-  let next = project;
-  for (const [entity, byRecord] of updates) {
-    const plan = entities.find((e) => e.code === entity)!;
-    const records = plan.records.map((r) => {
-      const changes = byRecord.get(r.code);
-      if (!changes) return r;
-      const recordValues = { ...r.values };
-      for (const [featureId, valueId] of changes) {
-        if (valueId === '') delete recordValues[featureId];
-        else recordValues[featureId] = valueId;
-      }
-      return { ...r, values: recordValues };
-    });
-    next = withEntityRecords(next, entity, records);
+  const recordsByEntity = new Map(entities.map((e) => [e.code, e.records]));
+  for (const u of updates) {
+    const records = recordsByEntity.get(u.entity)!;
+    recordsByEntity.set(
+      u.entity,
+      records.map((r) => (r.code === u.record ? withRecordValue(r, u.featureId, u.classId, u.valueId) : r)),
+    );
   }
+  let next = project;
+  for (const entity of new Set(updates.map((u) => u.entity))) next = withEntityRecords(next, entity, recordsByEntity.get(entity)!);
   return { ok: true, project: next };
 }

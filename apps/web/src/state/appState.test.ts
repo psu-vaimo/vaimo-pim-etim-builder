@@ -297,6 +297,20 @@ describe('source entities', () => {
     state = appReducer(state, { type: 'removeSourceRecord', entity: 'zinc', code: 'z' });
     expect(state.project.sourceEntities?.map((e) => e.code)).toEqual(['alu']);
   });
+
+  it('sets class values and keeps them when records are replaced', () => {
+    let state = appReducer(initialState(), { type: 'addSourceRecord', entity: 'alu', record: { code: 'a', labels: {}, values: {} } });
+    state = appReducer(state, { type: 'setSourceRecordValue', entity: 'alu', code: 'a', featureId: 'EF1', classId: 'EC1', valueId: 'EV9' });
+    expect(state.project.sourceEntities?.[0]?.records[0]).toEqual({ code: 'a', labels: {}, values: {}, classValues: { EC1: { EF1: 'EV9' } } });
+    state = appReducer(state, {
+      type: 'replaceSourceRecords',
+      entity: 'alu',
+      records: [{ code: 'a', labels: {}, values: { EF1: 'EV1' }, classValues: { EC2: { EF1: 'EV8' } } }],
+    });
+    expect(state.project.sourceEntities?.[0]?.records[0]?.classValues).toEqual({ EC1: { EF1: 'EV9' }, EC2: { EF1: 'EV8' } });
+    state = appReducer(state, { type: 'setSourceRecordValue', entity: 'alu', code: 'a', featureId: 'EF1', classId: 'EC1', valueId: null });
+    expect(state.project.sourceEntities?.[0]?.records[0]?.classValues).toEqual({ EC2: { EF1: 'EV8' } });
+  });
 });
 
 describe('setSourceAttributes', () => {
