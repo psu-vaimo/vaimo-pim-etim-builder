@@ -2,6 +2,7 @@ import type { EtimRelease, Project } from '@akeneo-etim/core';
 import { Alert, Badge, Button, Group, List, Loader, Modal, Paper, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
+import { SourceEntityTable } from '../components/review/SourceEntityTable.js';
 import { downloadFile } from '../export/download.js';
 import {
   baseName,
@@ -14,6 +15,8 @@ import {
 } from '../export/exportFiles.js';
 import type { ExportJobResult } from '../export/exportJob.js';
 import { runExportJob } from '../export/runExportJob.js';
+import { useGeneratedModel } from '../review/generated.js';
+import { sourceEntitySummaries } from '../review/reviewRows.js';
 import { useAppState } from '../state/AppStateContext.js';
 import { TEXT_COLORS } from '../theme.js';
 
@@ -76,6 +79,8 @@ export function ExportStep() {
   const groups = useMemo(() => (shown ? groupExportFiles(shown.files) : []), [shown]);
   const steps = shown?.manualSteps ?? [];
   const summary = useMemo(() => (shown ? summarizeIssues(shown.issues) : undefined), [shown]);
+  const model = useGeneratedModel(release, project);
+  const entities = useMemo(() => (model ? sourceEntitySummaries(project, model.sourceEntities) : []), [model, project]);
 
   if (!release) return <Text mt="md">Import an ETIM export first.</Text>;
 
@@ -153,6 +158,19 @@ export function ExportStep() {
           </Text>
         )}
       </Paper>
+
+      {entities.length > 0 && (
+        <Paper withBorder p="md" radius="md" data-testid="export-source-records">
+          <Stack gap="xs">
+            <Title order={4}>Source records</Title>
+            <Text size="sm" c="dimmed">
+              Add the record attributes to each reference entity in Akeneo first, then import its 07_records file to fill them.
+              Unmapped values are exported empty.
+            </Text>
+            <SourceEntityTable summaries={entities} testId="export-source-entities" />
+          </Stack>
+        </Paper>
+      )}
 
       {error && (
         <Alert color="red" title="The export could not be built" data-testid="export-error">

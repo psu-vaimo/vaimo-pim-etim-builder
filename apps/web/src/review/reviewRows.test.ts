@@ -9,6 +9,8 @@ import {
   paginate,
   recordReviewRows,
   ruleReviewRows,
+  sourceEntitySummaries,
+  sourceRecordReviewRows,
   truncateList,
 } from './reviewRows.js';
 import { buildExport } from '@akeneo-etim/core';
@@ -78,6 +80,47 @@ describe('review rows', () => {
   it('searches records by label', () => {
     expect(filterBySearch(recordReviewRows(model.valueRecords), 'zinc ev000154')).toHaveLength(0);
     expect(filterBySearch(recordReviewRows(model.valueRecords), 'förzinkad').map((r) => r.record.code)).toEqual(['ev000072']);
+  });
+});
+
+describe('source record rows', () => {
+  const withRecords = project({
+    features: { EF000139: { sources: [{ attribute: 'att_surface_treatment' }] } },
+    sourceEntityLinks: { att_surface_treatment: 'surface' },
+    sourceEntities: [
+      {
+        code: 'surface',
+        records: [
+          { code: 'zinc', labels: { en_US: 'Zinc' }, values: { EF000139: 'EV000072' }, classValues: { EC000009: { EF000139: 'EV000154' } } },
+          { code: 'raw', labels: {}, values: {} },
+        ],
+      },
+    ],
+  });
+  const model = generateModel(release, withRecords);
+
+  it('summarizes each source entity', () => {
+    expect(sourceEntitySummaries(withRecords, model.sourceEntities)).toEqual([
+      {
+        code: 'surface',
+        attributes: ['att_surface_treatment'],
+        features: ['EF000139'],
+        records: 2,
+        mapped: 1,
+        total: 2,
+        classValues: 1,
+        recordAttributes: ['ref_ef000139', 'ref_ef000139_label', 'ref_ef000139_ec000009', 'ref_ef000139_ec000009_label'],
+      },
+    ]);
+  });
+
+  it('lists record values with class exceptions, searchable', () => {
+    const rows = sourceRecordReviewRows(release, model.sourceEntities[0]!, 'en_US');
+    expect(rows[0]?.cells).toEqual([
+      { featureId: 'EF000139', value: 'EV000072 - Zinc plated', classValues: [{ classId: 'EC000009', value: 'EV000154 - Other' }] },
+    ]);
+    expect(rows[1]?.cells[0]?.value).toBeUndefined();
+    expect(filterBySearch(rows, 'other ec000009').map((r) => r.record.code)).toEqual(['zinc']);
   });
 });
 

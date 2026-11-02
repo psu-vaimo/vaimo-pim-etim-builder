@@ -11,6 +11,7 @@ import {
   type EtimRelease,
   type GenerateIssue,
   type Project,
+  type SourceEntityPlan,
 } from '@akeneo-etim/core';
 import { useMemo } from 'react';
 
@@ -23,6 +24,8 @@ export interface GeneratedModel {
   valueRecords: AkeneoRecord[];
   rules: AkeneoRule[];
   dependencies: AkeneoDependency[];
+  /** Customer reference entities behind A feature sources, with their records. */
+  sourceEntities: SourceEntityPlan[];
   /** Attributes, records, rules and source record issues, in that order, like `buildExport`. */
   issues: GeneratedIssue[];
 }
@@ -40,6 +43,7 @@ export function generateModel(release: EtimRelease, project: Project): Generated
     valueRecords: records.values,
     rules: rules.rules,
     dependencies,
+    sourceEntities: sourceEntities.entities,
     issues: [
       ...attrs.issues.map((i) => ({ ...i, step: 'attributes' as const })),
       ...records.issues.map((i) => ({ ...i, step: 'records' as const })),

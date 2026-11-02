@@ -11,7 +11,7 @@ import {
   type SourceEntityPlan,
   type SourceRecord,
 } from '@akeneo-etim/core';
-import { ActionIcon, Alert, Badge, Button, Group, Pagination, Paper, ScrollArea, Select, Stack, Table, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import { ActionIcon, Alert, Badge, Button, Group, Pagination, Paper, ScrollArea, Select, Stack, Table, Text, TextInput, Title, Tooltip, UnstyledButton } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import { memo, useDeferredValue, useMemo, useState } from 'react';
 import { codeError } from '../mapping/sourceMappings.js';
@@ -43,7 +43,7 @@ export function RecordsStep() {
         {sourceRecordAttribute(project, 'EF000139')} (value code) and {sourceRecordAttribute(project, 'EF000139')}
         {project.settings.codes.labelSuffix} (value label). When a record needs another value in one class, add a class value: the
         feature then gets the record attributes {sourceRecordAttribute(project, 'EF000139')}_ec000009 and its label, and a rule that only
-        runs for that class.
+        runs for that class. Click a reference entity to open it.
       </Text>
       {collected.entities.length === 0 && (
         <Alert color="gray" data-testid="records-empty">
@@ -73,7 +73,9 @@ interface PanelProps {
   dispatch: AppDispatch;
 }
 
+/** One reference entity, collapsed by default: the header with its counts, opened to upload, add and map records. */
 const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, dispatch }: PanelProps) {
+  const [open, setOpen] = useState(false);
   const [uploadIssues, setUploadIssues] = useState<GenerateIssue[]>([]);
   const [newCode, setNewCode] = useState('');
   const [search, setSearch] = useState('');
@@ -128,115 +130,124 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
   return (
     <Paper withBorder p="md" radius="md" data-testid={`entity-${plan.code}`}>
       <Stack gap="sm">
-        <Group gap="xs">
-          <Title order={4} ff="monospace">
-            {plan.code}
-          </Title>
-          <Badge variant="light" color="gray">
-            from {plan.attributes.join(', ')}
-          </Badge>
-          <Badge variant="light">{plan.records.length === 1 ? '1 record' : `${plan.records.length} records`}</Badge>
-          {total > 0 && (
-            <Badge variant="light" color={mapped === total ? 'teal' : 'orange'} data-testid="entity-mapped">
-              {mapped} of {total} values mapped
-            </Badge>
-          )}
-          {exceptions > 0 && (
-            <Badge variant="light" color="grape" data-testid="entity-class-values">
-              {exceptions === 1 ? '1 class value' : `${exceptions} class values`}
-            </Badge>
-          )}
-        </Group>
-        <Text size="sm" c="dimmed">
-          Needs the text attributes (not localizable, not scopable) <Text span ff="monospace" size="sm">{recordAttributes.join(', ')}</Text>
-        </Text>
-
-        <Group align="flex-end" gap="sm">
-          <Dropzone
-            onDrop={(files) => files[0] && void upload(files[0])}
-            multiple={false}
-            accept={['.xlsx', '.csv', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']}
-            style={{ flex: 1 }}
-            p="xs"
-            data-testid="records-dropzone"
-          >
-            <Text ta="center" size="sm" fw={600} style={{ pointerEvents: 'none' }}>
-              {plan.records.length > 0
-                ? 'Drop a record export to replace the records (mapped values of matching codes are kept)'
-                : 'Drop the Akeneo record export of this reference entity (XLSX or CSV), or click to choose'}
+        <UnstyledButton onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`entity-toggle-${plan.code}`}>
+          <Group gap="xs">
+            <Text c="dimmed" w={14} aria-hidden>
+              {open ? '▾' : '▸'}
             </Text>
-          </Dropzone>
-          <TextInput
-            label="Add record"
-            placeholder="record_code"
-            value={newCode}
-            error={newCodeTrimmed !== '' ? newCodeError : undefined}
-            onChange={(e) => setNewCode(e.currentTarget.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addRecord()}
-            w={200}
-            data-testid="record-new-code"
-          />
-          <Button variant="light" onClick={addRecord} disabled={newCodeTrimmed === '' || newCodeError !== undefined} data-testid="record-add">
-            Add
-          </Button>
-        </Group>
-        {uploadIssues.map((issue, i) => (
-          <Alert key={i} color={issue.severity === 'error' ? 'red' : 'yellow'} p="xs">
-            <Text size="sm">{issue.message}</Text>
-          </Alert>
-        ))}
-
-        {plan.records.length > 0 && (
+            <Title order={4} ff="monospace">
+              {plan.code}
+            </Title>
+            <Badge variant="light" color="gray">
+              from {plan.attributes.join(', ')}
+            </Badge>
+            <Badge variant="light">{plan.records.length === 1 ? '1 record' : `${plan.records.length} records`}</Badge>
+            {total > 0 && (
+              <Badge variant="light" color={mapped === total ? 'teal' : 'orange'} data-testid="entity-mapped">
+                {mapped} of {total} values mapped
+              </Badge>
+            )}
+            {exceptions > 0 && (
+              <Badge variant="light" color="grape" data-testid="entity-class-values">
+                {exceptions === 1 ? '1 class value' : `${exceptions} class values`}
+              </Badge>
+            )}
+          </Group>
+        </UnstyledButton>
+        {open && (
           <>
-            <TextInput
-              placeholder="Search records, labels or values"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.currentTarget.value);
-                setPage(1);
-              }}
-              maw={360}
-              data-testid="records-search"
-            />
-            <ScrollArea type="auto">
-              <Table withTableBorder verticalSpacing={4} data-testid="records-table">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th miw={180}>Record</Table.Th>
-                    {plan.features.map((f) => (
-                      <Table.Th key={f.featureId} miw={240}>
-                        <Text size="sm" fw={600} ff="monospace">
-                          {f.featureId}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          {labelFor(release.features[f.featureId]?.labels ?? {}, locale)}
-                        </Text>
-                        {f.exceptionClassIds.length > 0 && (
-                          <Text size="xs" c={TEXT_COLORS.accent}>
-                            Class values for {f.exceptionClassIds.join(', ')}
-                          </Text>
-                        )}
-                      </Table.Th>
-                    ))}
-                    <Table.Th w={40} />
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {rows.map((record) => (
-                    <RecordRow
-                      key={record.code}
-                      record={record}
-                      plan={plan}
-                      options={options}
-                      classLabels={classLabels}
-                      locale={locale}
-                      dispatch={dispatch}
-                    />
-                  ))}
-                </Table.Tbody>
-              </Table>
-            </ScrollArea>
-            {totalPages > 1 && <Pagination total={totalPages} value={currentPage} onChange={setPage} size="sm" />}
+            <Text size="sm" c="dimmed">
+              Needs the text attributes (not localizable, not scopable) <Text span ff="monospace" size="sm">{recordAttributes.join(', ')}</Text>
+            </Text>
+
+            <Group align="flex-end" gap="sm">
+              <Dropzone
+                onDrop={(files) => files[0] && void upload(files[0])}
+                multiple={false}
+                accept={['.xlsx', '.csv', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']}
+                style={{ flex: 1 }}
+                p="xs"
+                data-testid="records-dropzone"
+              >
+                <Text ta="center" size="sm" fw={600} style={{ pointerEvents: 'none' }}>
+                  {plan.records.length > 0
+                    ? 'Drop a record export to replace the records (mapped values of matching codes are kept)'
+                    : 'Drop the Akeneo record export of this reference entity (XLSX or CSV), or click to choose'}
+                </Text>
+              </Dropzone>
+              <TextInput
+                label="Add record"
+                placeholder="record_code"
+                value={newCode}
+                error={newCodeTrimmed !== '' ? newCodeError : undefined}
+                onChange={(e) => setNewCode(e.currentTarget.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addRecord()}
+                w={200}
+                data-testid="record-new-code"
+              />
+              <Button variant="light" onClick={addRecord} disabled={newCodeTrimmed === '' || newCodeError !== undefined} data-testid="record-add">
+                Add
+              </Button>
+            </Group>
+            {uploadIssues.map((issue, i) => (
+              <Alert key={i} color={issue.severity === 'error' ? 'red' : 'yellow'} p="xs">
+                <Text size="sm">{issue.message}</Text>
+              </Alert>
+            ))}
+
+            {plan.records.length > 0 && (
+              <>
+                <TextInput
+                  placeholder="Search records, labels or values"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.currentTarget.value);
+                    setPage(1);
+                  }}
+                  maw={360}
+                  data-testid="records-search"
+                />
+                <ScrollArea type="auto">
+                  <Table withTableBorder verticalSpacing={4} data-testid="records-table">
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th miw={180}>Record</Table.Th>
+                        {plan.features.map((f) => (
+                          <Table.Th key={f.featureId} miw={240}>
+                            <Text size="sm" fw={600} ff="monospace">
+                              {f.featureId}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              {labelFor(release.features[f.featureId]?.labels ?? {}, locale)}
+                            </Text>
+                            {f.exceptionClassIds.length > 0 && (
+                              <Text size="xs" c={TEXT_COLORS.accent}>
+                                Class values for {f.exceptionClassIds.join(', ')}
+                              </Text>
+                            )}
+                          </Table.Th>
+                        ))}
+                        <Table.Th w={40} />
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {rows.map((record) => (
+                        <RecordRow
+                          key={record.code}
+                          record={record}
+                          plan={plan}
+                          options={options}
+                          classLabels={classLabels}
+                          locale={locale}
+                          dispatch={dispatch}
+                        />
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </ScrollArea>
+                {totalPages > 1 && <Pagination total={totalPages} value={currentPage} onChange={setPage} size="sm" />}
+              </>
+            )}
           </>
         )}
       </Stack>

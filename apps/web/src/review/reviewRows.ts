@@ -1,4 +1,5 @@
 import {
+  featureRecordAttributes,
   labelFor,
   type AkeneoAttribute,
   type AkeneoAttributeType,
@@ -6,6 +7,10 @@ import {
   type AkeneoRecord,
   type AkeneoRule,
   type DependentAttribute,
+  type EtimRelease,
+  type Project,
+  type SourceEntityPlan,
+  type SourceRecord,
 } from '@akeneo-etim/core';
 import { formatAction, ruleConditions } from '../mapping/sourceMappings.js';
 
@@ -120,6 +125,76 @@ export interface RecordReviewRow extends Searchable {
 
 export function recordReviewRows(records: readonly AkeneoRecord[]): RecordReviewRow[] {
   return records.map((record) => ({ record, searchText: searchText([record.code, ...Object.values(record.labels)]) }));
+}
+
+/** Counts of one customer reference entity behind A feature sources. */
+export interface SourceEntitySummary {
+  code: string;
+  attributes: string[];
+  features: string[];
+  records: number;
+  /** Record and feature pairs with a default ETIM value, out of `total`. */
+  mapped: number;
+  total: number;
+  classValues: number;
+  /** Text attributes the entity needs in Akeneo, `ref_ef...` and `_label`, class pairs included. */
+  recordAttributes: string[];
+}
+
+export function sourceEntitySummaries(project: Project, plans: readonly SourceEntityPlan[]): SourceEntitySummary[] {
+  return plans.map((plan) => ({
+    code: plan.code,
+    attributes: plan.attributes,
+    features: plan.features.map((f) => f.featureId),
+    records: plan.records.length,
+    mapped: plan.records.reduce((n, r) => n + plan.features.filter((f) => r.values[f.featureId]).length, 0),
+    total: plan.records.length * plan.features.length,
+    classValues: plan.records.reduce(
+      (n, r) => n + Object.values(r.classValues ?? {}).reduce((m, v) => m + plan.features.filter((f) => v[f.featureId]).length, 0),
+      0,
+    ),
+    recordAttributes: plan.features.flatMap((f) => featureRecordAttributes(project, f)),
+  }));
+}
+
+/** The ETIM value of a source record for one feature, `EV000072 - Zinc plated`, with its class exceptions. */
+export interface SourceRecordCell {
+  featureId: string;
+  value: string | undefined;
+  classValues: { classId: string; value: string }[];
+}
+
+export interface SourceRecordReviewRow extends Searchable {
+  record: SourceRecord;
+  label: string;
+  /** Same order as the entity's features. */
+  cells: SourceRecordCell[];
+}
+
+export function sourceRecordReviewRows(release: EtimRelease, plan: SourceEntityPlan, locale: string | undefined): SourceRecordReviewRow[] {
+  const valueText = (id: string) => {
+    const label = labelFor(release.values[id]?.labels ?? {}, locale);
+    return label ? `${id} - ${label}` : id;
+  };
+  return plan.records.map((record) => {
+    const cells = plan.features.map((f): SourceRecordCell => {
+      const id = record.values[f.featureId];
+      const classValues = Object.entries(record.classValues ?? {})
+        .flatMap(([classId, values]) => (values[f.featureId] ? [{ classId, value: valueText(values[f.featureId]!) }] : []))
+        .sort((a, b) => (a.classId < b.classId ? -1 : 1));
+      return { featureId: f.featureId, value: id ? valueText(id) : undefined, classValues };
+    });
+    return {
+      record,
+      label: labelFor(record.labels, locale),
+      cells,
+      searchText: searchText([
+        record.code,
+        ...Object.values(record.labels),
+        ...cells.flatMap((c) => [c.value, ...c.classValues.flatMap((v) => [v.classId, v.value])]),
+      ]),
+    };
+  });
 }
 
 /** At most `max` items, plus how many were left out. */

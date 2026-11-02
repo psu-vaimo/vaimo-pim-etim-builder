@@ -1,8 +1,9 @@
-import type { AkeneoDependency } from '@akeneo-etim/core';
-import { Badge, Group, Paper, SegmentedControl, SimpleGrid, Stack, Tabs, Text } from '@mantine/core';
+import { labelFor, type AkeneoDependency } from '@akeneo-etim/core';
+import { Badge, Group, Paper, SegmentedControl, Select, SimpleGrid, Stack, Tabs, Text } from '@mantine/core';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { PagedTable, type Column } from '../components/review/PagedTable.js';
+import { SourceEntityTable } from '../components/review/SourceEntityTable.js';
 import { ATTRIBUTE_TYPE_LABELS } from '../features/featureRows.js';
 import { useGeneratedModel } from '../review/generated.js';
 import {
@@ -11,14 +12,18 @@ import {
   dependencyReviewRows,
   recordReviewRows,
   ruleReviewRows,
+  sourceEntitySummaries,
+  sourceRecordReviewRows,
   truncateList,
   type AttributeReviewRow,
   type DependencyReviewRow,
   type RecordReviewRow,
   type RuleReviewRow,
+  type SourceRecordReviewRow,
 } from '../review/reviewRows.js';
 import { useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
+import { TEXT_COLORS } from '../theme.js';
 
 /** Restricted values listed per attribute in the dependency details. */
 const MAX_VALUES = 40;
@@ -87,12 +92,19 @@ export function ReviewStep() {
   const model = useGeneratedModel(release, project);
   const [records, setRecords] = useState<'classes' | 'values'>('classes');
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const [entityCode, setEntityCode] = useState<string | null>(null);
 
   const attributeRows = useMemo(() => (model ? attributeReviewRows(model.attributes) : []), [model]);
   const ruleRows = useMemo(() => (model ? ruleReviewRows(model.rules, locale) : []), [model, locale]);
   const dependencyRows = useMemo(() => (model ? dependencyReviewRows(model.dependencies, locale) : []), [model, locale]);
   const classRecordRows = useMemo(() => (model ? recordReviewRows(model.classRecords) : []), [model]);
   const valueRecordRows = useMemo(() => (model ? recordReviewRows(model.valueRecords) : []), [model]);
+  const entitySummaries = useMemo(() => (model ? sourceEntitySummaries(project, model.sourceEntities) : []), [model, project]);
+  const entity = model?.sourceEntities.find((e) => e.code === entityCode) ?? model?.sourceEntities[0];
+  const sourceRecordRows = useMemo(
+    () => (release && entity ? sourceRecordReviewRows(release, entity, locale) : []),
+    [release, entity, locale],
+  );
   const toggle = useCallback(
     (row: DependencyReviewRow) =>
       setExpanded((set) => {
@@ -182,12 +194,58 @@ export function ReviewStep() {
     ),
   ];
 
+  const sourceRecordColumns: Column<SourceRecordReviewRow>[] = [
+    {
+      header: 'Record',
+      width: 200,
+      render: (r) => (
+        <Stack gap={0}>
+          {mono(r.record.code)}
+          <Text size="xs" c="dimmed">
+            {r.label}
+          </Text>
+        </Stack>
+      ),
+    },
+    ...(entity?.features ?? []).map(
+      (f, i): Column<SourceRecordReviewRow> => ({
+        header: (
+          <Stack gap={0}>
+            <Text size="sm" fw={600} ff="monospace">
+              {f.featureId}
+            </Text>
+            <Text size="xs" c="dimmed" fw={400}>
+              {labelFor(release?.features[f.featureId]?.labels ?? {}, locale)}
+            </Text>
+          </Stack>
+        ),
+        render: (r) => {
+          const cell = r.cells[i];
+          return (
+            <Stack gap={2}>
+              {cell?.value ? <Text size="sm">{cell.value}</Text> : <Text size="sm" c={TEXT_COLORS.warning}>Not mapped</Text>}
+              {cell?.classValues.map((v) => (
+                <Group key={v.classId} gap={4} wrap="nowrap">
+                  <Badge size="xs" variant="light" color="grape" style={{ flexShrink: 0 }}>
+                    {v.classId}
+                  </Badge>
+                  <Text size="xs">{v.value}</Text>
+                </Group>
+              ))}
+            </Stack>
+          );
+        },
+      }),
+    ),
+  ];
+  const sourceRecordCount = entitySummaries.reduce((n, e) => n + e.records, 0);
+
   return (
     <Stack gap="lg" mt="md">
       <Text size="sm" c="dimmed">
         Everything the export will contain, read only. Go back to a step to change it.
       </Text>
-      <SimpleGrid cols={{ base: 2, sm: 4, lg: 7 }} spacing="sm">
+      <SimpleGrid cols={{ base: 2, sm: 4, lg: 8 }} spacing="sm">
         <Stat label="Attributes" value={model.attributes.length} testId="review-stat-attributes">
           <Group gap={4} mt={6} data-testid="review-attribute-types">
             {countAttributeTypes(model.attributes).map(([type, count]) => (
@@ -199,10 +257,17 @@ export function ReviewStep() {
         </Stat>
         <Stat label="Class records" value={model.classRecords.length} testId="review-stat-class-records" />
         <Stat label="Value records" value={model.valueRecords.length} testId="review-stat-value-records" />
+        <Stat label="Source records" value={sourceRecordCount} testId="review-stat-source-records">
+          {entitySummaries.length > 0 && (
+            <Text size="xs" c="dimmed" mt={6}>
+              {entitySummaries.length === 1 ? '1 reference entity' : `${entitySummaries.length} reference entities`}
+            </Text>
+          )}
+        </Stat>
         <Stat label="Rules" value={model.rules.length} testId="review-stat-rules" />
         <Stat label="Dependencies" value={model.dependencies.length} testId="review-stat-dependencies" />
-        <Stat label="Errors" value={errors} color="red" testId="review-stat-errors" />
-        <Stat label="Warnings" value={warnings} color="yellow.8" testId="review-stat-warnings" />
+        <Stat label="Errors" value={errors} color={TEXT_COLORS.error} testId="review-stat-errors" />
+        <Stat label="Warnings" value={warnings} color={TEXT_COLORS.warning} testId="review-stat-warnings" />
       </SimpleGrid>
 
       <GenerateIssues issues={model.issues} />
@@ -220,6 +285,9 @@ export function ReviewStep() {
           </Tabs.Tab>
           <Tabs.Tab value="records" data-testid="tab-records">
             Records ({(model.classRecords.length + model.valueRecords.length).toLocaleString('en-US')})
+          </Tabs.Tab>
+          <Tabs.Tab value="source-records" data-testid="tab-source-records">
+            Source records ({sourceRecordCount.toLocaleString('en-US')})
           </Tabs.Tab>
         </Tabs.List>
 
@@ -292,6 +360,44 @@ export function ReviewStep() {
               testId="review-records"
             />
           </Stack>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="source-records" pt="md">
+          {entitySummaries.length === 0 ? (
+            <Text size="sm" c="dimmed">
+              No A feature is mapped from a reference entity attribute, so there are no source records to fill.
+            </Text>
+          ) : (
+            <Stack gap="sm">
+              <Text size="sm" c="dimmed">
+                Customer reference entities behind A feature sources. Each record gets the ETIM value per feature in the record
+                attributes listed, class values replace the default in that class.
+              </Text>
+              <SourceEntityTable summaries={entitySummaries} testId="review-source-entities" />
+              {entitySummaries.length > 1 && (
+                <Select
+                  label="Records of"
+                  data={entitySummaries.map((e) => e.code)}
+                  value={entity?.code ?? null}
+                  onChange={setEntityCode}
+                  allowDeselect={false}
+                  w={280}
+                  data-testid="review-source-entity"
+                />
+              )}
+              {entity && entity.records.length > 0 && (
+                <PagedTable
+                  key={entity.code}
+                  rows={sourceRecordRows}
+                  columns={sourceRecordColumns}
+                  rowKey={(r) => r.record.code}
+                  noun="records"
+                  placeholder="Record code, label or value"
+                  testId="review-source-records"
+                />
+              )}
+            </Stack>
+          )}
         </Tabs.Panel>
       </Tabs>
     </Stack>
