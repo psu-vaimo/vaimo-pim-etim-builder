@@ -18,6 +18,7 @@ import { codeError } from '../mapping/sourceMappings.js';
 import type { Dispatch } from 'react';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale, type AppAction } from '../state/appState.js';
+import { ACTION_INPUT, DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
 
 type AppDispatch = Dispatch<AppAction>;
 
@@ -211,7 +212,7 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
                           {labelFor(release.features[f.featureId]?.labels ?? {}, locale)}
                         </Text>
                         {f.exceptionClassIds.length > 0 && (
-                          <Text size="xs" c="grape">
+                          <Text size="xs" c={TEXT_COLORS.accent}>
                             Class values for {f.exceptionClassIds.join(', ')}
                           </Text>
                         )}
@@ -281,6 +282,7 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
               value={record.values[f.featureId] ?? null}
               allowed={options[i]?.all ?? []}
               placeholder="Not mapped"
+              placeholderIsDefault
               onChange={(v) => setValue(f.featureId, undefined, v)}
               testId={`value-${record.code}-${f.featureId}`}
             />
@@ -314,12 +316,14 @@ interface ValueSelectProps {
   value: string | null;
   allowed: Option[];
   placeholder: string;
+  /** The placeholder names what an empty value means, shown like a value. */
+  placeholderIsDefault?: boolean;
   onChange: (v: string | null) => void;
   testId: string;
 }
 
 /** An ETIM value from the allowed list, or typed by hand when ETIM lists none. A value outside the list is shown as an error. */
-function ValueSelect({ value, allowed, placeholder, onChange, testId }: ValueSelectProps) {
+function ValueSelect({ value, allowed, placeholder, placeholderIsDefault, onChange, testId }: ValueSelectProps) {
   if (allowed.length === 0) return <FreeValueInput value={value} onChange={onChange} testId={testId} />;
   const data = value && !allowed.some((o) => o.value === value) ? [...allowed, { value, label: `${value} (not allowed by ETIM)` }] : allowed;
   return (
@@ -328,6 +332,7 @@ function ValueSelect({ value, allowed, placeholder, onChange, testId }: ValueSel
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      {...(placeholderIsDefault ? { classNames: { input: DEFAULT_VALUE_INPUT } } : {})}
       searchable
       clearable
       size="xs"
@@ -408,6 +413,7 @@ function ClassValues({ record, feature, options, classLabels, onChange }: ClassV
             searchable
             size="xs"
             variant="unstyled"
+            classNames={{ input: ACTION_INPUT }}
             comboboxProps={{ withinPortal: true }}
             data-testid={`${testId}-add`}
           />

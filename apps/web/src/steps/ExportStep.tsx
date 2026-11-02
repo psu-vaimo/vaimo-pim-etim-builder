@@ -15,6 +15,7 @@ import {
 import type { ExportJobResult } from '../export/exportJob.js';
 import { runExportJob } from '../export/runExportJob.js';
 import { useAppState } from '../state/AppStateContext.js';
+import { TEXT_COLORS } from '../theme.js';
 
 /** Wait after the last project change before building, typing the project name should not start a build per key. */
 const BUILD_DELAY_MS = 300;
@@ -225,7 +226,7 @@ export function ExportStep() {
             </Text>
             <Stack gap={2}>
               {summary.firstErrors.map((e, i) => (
-                <Text key={i} size="xs" c="red">
+                <Text key={i} size="xs" c={TEXT_COLORS.error}>
                   {e.message}
                 </Text>
               ))}

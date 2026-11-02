@@ -1,0 +1,9 @@
+/* See DEFAULT_VALUE_INPUT in theme.ts. Doubled class to win over Mantine's input placeholder rule. */
+.default-value-input.default-value-input::placeholder {
+  color: var(--mantine-color-text);
+}
+
+/* See ACTION_INPUT in theme.ts. */
+.action-input.action-input::placeholder {
+  color: var(--mantine-color-anchor);
+}

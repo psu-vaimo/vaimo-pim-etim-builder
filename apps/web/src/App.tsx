@@ -30,6 +30,7 @@ import { EXPORT_SECTION, SECTIONS, canOpen, guardReason, type StatusTone } from 
 import { useSectionStatuses } from './workspace/useSectionStatuses.js';
 import { loadMode, saveMode, shouldOfferWorkspace, type ViewMode } from './workspace/viewMode.js';
 import './workspace/layout.css';
+import { TEXT_COLORS } from './theme.js';
 
 function StepContent({ index, label }: { index: number; label: string }) {
   return (
@@ -64,7 +65,7 @@ function StepScreen({ index, label }: { index: number; label: string }) {
   }
 }
 
-const TONE_COLORS: Record<StatusTone, string> = { ok: 'teal', warning: 'orange', error: 'red', muted: 'dimmed' };
+const TONE_COLORS: Record<StatusTone, string> = { ok: TEXT_COLORS.ok, warning: TEXT_COLORS.warning, error: TEXT_COLORS.error, muted: 'dimmed' };
 
 const MODE_OPTIONS = [
   { label: 'Wizard', value: 'wizard' },

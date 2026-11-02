@@ -4,6 +4,7 @@ import { ETIM_LABEL_TABLES, ETIM_REQUIRED_TABLES, ETIM_TABLES, type EtimTableNam
 import { useMemo, useState } from 'react';
 import { isLocaleCode, LOCALE_SUGGESTIONS } from '../etim/locales.js';
 import { assignFiles, missingTables } from '../etim/tableFiles.js';
+import { TEXT_COLORS } from '../theme.js';
 
 export type TableFiles = Partial<Record<EtimTableName, File>>;
 
@@ -50,7 +51,7 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
         data-testid={`${mode}-locale`}
       />
       {mode === 'translation' && existingLocales.includes(locale) && (
-        <Text size="sm" c="yellow.8">
+        <Text size="sm" c={TEXT_COLORS.warning}>
           {locale} is already loaded, its labels will be replaced.
         </Text>
       )}

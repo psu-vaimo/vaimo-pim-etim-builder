@@ -2,6 +2,7 @@ import { Accordion, Badge, Group, ScrollArea, Stack, Text } from '@mantine/core'
 import type { EtimTableName, ParseIssue } from '@akeneo-etim/core';
 import { useMemo } from 'react';
 import { ETIM_TABLES } from '@akeneo-etim/core';
+import { TEXT_COLORS } from '../theme.js';
 
 /** Rows rendered per table, real exports can have thousands of warnings. */
 const MAX_ROWS = 200;
@@ -70,7 +71,7 @@ export function IssueList({ issues }: { issues: readonly ParseIssue[] }) {
                 <Stack gap={2}>
                   {rows.slice(0, MAX_ROWS).map((issue, i) => (
                     <Group key={i} gap="xs" wrap="nowrap" align="flex-start">
-                      <Text size="xs" fw={700} c={issue.severity === 'error' ? 'red' : 'yellow.8'} w={56} style={{ flexShrink: 0 }}>
+                      <Text size="xs" fw={700} c={issue.severity === 'error' ? TEXT_COLORS.error : TEXT_COLORS.warning} w={56} style={{ flexShrink: 0 }}>
                         {issue.severity === 'error' ? 'Error' : 'Warning'}
                       </Text>
                       <Text size="xs" c="dimmed" w={64} style={{ flexShrink: 0 }}>

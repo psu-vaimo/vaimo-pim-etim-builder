@@ -16,6 +16,7 @@ import {
 import { useDeferredValue, useMemo, useState } from 'react';
 import { MissingClassesAlert } from '../components/MissingClassesAlert.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
+import { DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
 import {
   classRows,
   displayLocale,
@@ -117,6 +118,7 @@ export function ClassesStep() {
           <Select
             label="ETIM group"
             placeholder="All groups"
+            classNames={{ input: DEFAULT_VALUE_INPUT }}
             data={groups}
             value={groupId}
             onChange={(v) => {
@@ -152,7 +154,7 @@ export function ClassesStep() {
         </Group>
 
         {unmatched.length > 0 && (
-          <Text size="sm" c="orange" data-testid="class-search-unmatched">
+          <Text size="sm" c={TEXT_COLORS.warning} data-testid="class-search-unmatched">
             No match for {unmatched.length.toLocaleString('en-US')} of the searched items: {unmatched.join(', ')}
           </Text>
         )}

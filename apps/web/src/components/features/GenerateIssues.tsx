@@ -1,5 +1,6 @@
 import type { GenerateIssue } from '@akeneo-etim/core';
 import { Accordion, Alert, ScrollArea, Stack, Text } from '@mantine/core';
+import { TEXT_COLORS } from '../../theme.js';
 
 /** Rows rendered per list, a big selection can give thousands of warnings. */
 const MAX_ROWS = 200;
@@ -40,7 +41,7 @@ export function GenerateIssues({ issues }: { issues: readonly GenerateIssue[] })
         <Accordion variant="contained" chevronPosition="left" data-testid="generate-warnings">
           <Accordion.Item value="warnings">
             <Accordion.Control>
-              <Text size="sm" c="yellow.8" fw={600}>
+              <Text size="sm" c={TEXT_COLORS.warning} fw={600}>
                 {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`}
               </Text>
             </Accordion.Control>
