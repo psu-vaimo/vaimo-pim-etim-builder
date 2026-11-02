@@ -22,13 +22,11 @@ interface Props {
   /** Features with a generator error, highlighted. */
   errorKeys: ReadonlySet<FeatureKey>;
   onEdit: (key: FeatureKey) => void;
-  /** Rule codes per source attribute, shown on the group headers. */
-  rulesBySource: ReadonlyMap<string, readonly string[]>;
   /** Reference entity per source attribute of an A feature. */
   entityFor: (source: string) => string | undefined;
 }
 
-export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys, onEdit, rulesBySource, entityFor }: Props) {
+export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys, onEdit, entityFor }: Props) {
   const [view, setView] = useState<View>('features');
   const [search, setSearch] = useState('');
   const [type, setType] = useState<EtimFeatureType | 'all'>('all');
@@ -104,7 +102,6 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
   };
 
   const renderGroupHeader = ({ source, rows: groupRows }: SourceGroup): ReactNode => {
-    const rules = source === null ? [] : (rulesBySource.get(source) ?? []);
     const entity = source !== null && groupRows.some((r) => r.type === 'A') ? entityFor(source) : undefined;
     const count = groupRows.length === 1 ? '1 feature' : `${groupRows.length} features`;
     return (
@@ -124,11 +121,6 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
             {entity && (
               <Text size="sm" c="dimmed">
                 reference entity <Text span ff="monospace" c="var(--mantine-color-text)">{entity}</Text>
-              </Text>
-            )}
-            {rules.length > 0 && (
-              <Text size="sm" c="dimmed">
-                {rules.length === 1 ? 'rule' : 'rules'} <Text span ff="monospace" c="var(--mantine-color-text)">{rules.join(', ')}</Text>
               </Text>
             )}
           </Group>
