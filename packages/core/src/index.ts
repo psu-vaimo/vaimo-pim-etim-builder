@@ -55,6 +55,7 @@ export {
   applySourceRecordValues,
   collectSourceEntities,
   featureRecordAttributes,
+  isRecordValueAllowed,
   withRecordValue,
   sourceRecordsTable,
   type SourceEntityFeature,

@@ -4,6 +4,7 @@ import {
   addSourceRecords,
   applySourceRecordValues,
   collectSourceEntities,
+  isRecordValueAllowed,
   parseAkeneoRecordExport,
   sourceEntityFor,
   sourceRecordsTable,
@@ -170,6 +171,19 @@ describe('applySourceRecordValues', () => {
       { code: 'eye', labels: {}, values: {} },
       { code: 'hook', labels: {}, values: { EF005644: 'EV023258' } },
     ]);
+  });
+
+  it('accepts any value id for a feature ETIM lists no values for, the same as the checks and the report', () => {
+    const result = applySourceRecordValues(release(), p, [{ entity: 'fastening', record: 'hook', featureId: 'EF000139', valueId: 'ev000072' }]);
+    expect(result.ok && result.project.sourceEntities?.[0]?.records[1]?.values).toEqual({ EF000139: 'EV000072' });
+    expect(result.ok && collectSourceEntities(release(), result.project).issues.filter((i) => i.message.includes('not allowed'))).toEqual([]);
+    expect(applySourceRecordValues(release(), p, [{ entity: 'fastening', record: 'hook', featureId: 'EF000139', valueId: 'zinc' }])).toEqual({
+      ok: false,
+      errors: ['fastening hook EF000139: ZINC is not an ETIM value id like EV000072'],
+    });
+    expect(isRecordValueAllowed([], 'EV000072')).toBe(true);
+    expect(isRecordValueAllowed([], 'X')).toBe(false);
+    expect(isRecordValueAllowed(['EV000001'], 'EV000072')).toBe(false);
   });
 
   it('rejects values ETIM does not allow, unknown records, entities and features', () => {

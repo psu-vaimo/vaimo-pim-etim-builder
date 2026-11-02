@@ -1,6 +1,6 @@
 import type { ProjectFeature } from '../akeneo/features.js';
 import type { AkeneoAttribute, AkeneoDependency, AkeneoRule, GenerateIssue } from '../akeneo/types.js';
-import { featureRecordAttributes, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
+import { featureRecordAttributes, isRecordValueAllowed, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
 import { formatAction, ruleConditions } from '../akeneo/ruleText.js';
 import { classRecordAttribute, sourceEntityFor, sourceRecordAttribute } from '../akeneo/sourceRecords.js';
 import { labelFor } from '../etim/labels.js';
@@ -227,12 +227,12 @@ export function reportTables(input: ReportInput): Table[] {
                 const allowed = f.classValueIds[classId];
                 const status = !allowed
                   ? 'Ignored, class not selected or not using the feature'
-                  : allowed.length > 0 && !allowed.includes(id)
+                  : !isRecordValueAllowed(allowed, id)
                     ? 'Not allowed by ETIM in the class'
                     : 'Class value';
                 return row(classId, id, status);
               });
-            const status = !valueId ? 'Not mapped' : f.valueIds.length === 0 || f.valueIds.includes(valueId) ? 'Mapped' : 'Not allowed by ETIM';
+            const status = !valueId ? 'Not mapped' : isRecordValueAllowed(f.valueIds, valueId) ? 'Mapped' : 'Not allowed by ETIM';
             return [row(undefined, valueId, status), ...classRows];
           }),
         ),

@@ -23,6 +23,16 @@ export interface SourceEntityFeature {
   exceptionClassIds: string[];
 }
 
+const VALUE_ID = /^EV\d{6}$/;
+
+/**
+ * Whether a source record may hold `valueId` for a feature with these allowed values. ETIM lists no
+ * values for some A features, then any value id (`EV000072`) is allowed, as typed on the Source records step.
+ */
+export function isRecordValueAllowed(allowed: readonly string[], valueId: string): boolean {
+  return allowed.length === 0 ? VALUE_ID.test(valueId) : allowed.includes(valueId);
+}
+
 /** Record attributes a source entity needs for one feature: value code and label, by default and per exception class. */
 export function featureRecordAttributes(project: Project, feature: SourceEntityFeature): string[] {
   const suffix = project.settings.codes.labelSuffix;
@@ -96,13 +106,13 @@ export function collectSourceEntities(release: EtimRelease, project: Project): {
       for (const f of plan.features) {
         const value = record.values[f.featureId];
         if (!value) unmapped++;
-        else if (!f.valueIds.includes(value)) notAllowed.push(`${record.code} ${f.featureId}=${value}`);
+        else if (!isRecordValueAllowed(f.valueIds, value)) notAllowed.push(`${record.code} ${f.featureId}=${value}`);
         for (const [classId, values] of Object.entries(record.classValues ?? {})) {
           const classValue = values[f.featureId];
           if (!classValue) continue;
           const allowed = f.classValueIds[classId];
           if (!allowed) ignored.push(`${record.code} ${f.featureId} ${classId}`);
-          else if (allowed.length > 0 && !allowed.includes(classValue)) notAllowed.push(`${record.code} ${f.featureId}=${classValue} in ${classId}`);
+          else if (!isRecordValueAllowed(allowed, classValue)) notAllowed.push(`${record.code} ${f.featureId}=${classValue} in ${classId}`);
         }
       }
     }
@@ -214,7 +224,9 @@ export function applySourceRecordValues(release: EtimRelease, project: Project, 
       errors.push(`${where}: ${classId} is not a selected class using ${featureId}`);
     } else if (valueId !== '') {
       const allowed = classId === undefined ? feature.valueIds : (feature.classValueIds[classId] ?? []);
-      if (!allowed.includes(valueId)) {
+      if (allowed.length === 0 && !VALUE_ID.test(valueId)) {
+        errors.push(`${where}: ${valueId} is not an ETIM value id like EV000072`);
+      } else if (!isRecordValueAllowed(allowed, valueId)) {
         errors.push(`${where}: ${valueId} is not allowed by ETIM for ${featureId} ${classId ? `in ${classId}` : 'in the selected classes'}`);
       }
     }
