@@ -247,6 +247,16 @@ describe('setFeatureSources', () => {
     expect(state.project.features).toEqual({ EF2_EU1: { range: 'minmax-number' } });
   });
 
+  it('skips unmapped features, mapping one removes the skip', () => {
+    let state = appReducer(initialState(), { type: 'setFeatureSkipped', key: 'EF5', skipped: true });
+    state = appReducer(state, { type: 'setFeatureSkipped', key: 'EF6', skipped: true });
+    expect(state.project.features).toEqual({ EF5: { skipped: true }, EF6: { skipped: true } });
+    state = set(state, 'EF5', 'N', [{ attribute: 'att_w' }]);
+    state = appReducer(state, { type: 'setFeatureSkipped', key: 'EF5', skipped: true });
+    state = appReducer(state, { type: 'setFeatureSkipped', key: 'EF6', skipped: false });
+    expect(state.project.features).toEqual({ EF5: { sources: [{ attribute: 'att_w' }] } });
+  });
+
   it('keeps sources when an override is reset', () => {
     let state = set(initialState(), 'EF4_EU1', 'N', [{ attribute: 'att_w' }]);
     state = appReducer(state, { type: 'setFeatureNumeric', key: 'EF4_EU1', value: 'metric' });

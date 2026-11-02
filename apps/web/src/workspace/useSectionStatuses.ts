@@ -39,6 +39,7 @@ export function useSectionStatuses(state: AppState, enabled: boolean): SectionSt
       selectedClasses: release ? classIds.filter((id) => release.classes[id] !== undefined).length : 0,
       features: collected.length,
       mappedFeatures: countMapped(collected, state.project.features),
+      skippedFeatures: countMapped(collected, state.project.features, 'skipped'),
       ...recordCounts(entities),
       generatorErrors: errors,
       generatorWarnings: model && errors !== undefined ? model.issues.length - errors : undefined,

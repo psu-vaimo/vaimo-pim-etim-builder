@@ -1,4 +1,4 @@
-import type { Project, ProjectFeature, SourceEntityPlan } from '@akeneo-etim/core';
+import { mappingStatus, type MappingStatus, type Project, type ProjectFeature, type SourceEntityPlan } from '@akeneo-etim/core';
 
 /**
  * The setup screens, shared by the wizard (Stepper, in order) and the
@@ -60,6 +60,8 @@ export interface StatusInput extends GuardInput {
   selectedClasses: number;
   features: number;
   mappedFeatures: number;
+  /** Features not mapped on purpose. */
+  skippedFeatures: number;
   /** Reference entities behind mapped A features, and their record values (records × features): all and mapped. */
   sourceEntities: number;
   recordValues: number;
@@ -114,7 +116,9 @@ export function sectionStatuses(s: StatusInput): SectionStatus[] {
         return { text: plural(s.features, 'feature'), tone: 'ok' };
       case 'mapping':
         return {
-          text: `${s.mappedFeatures.toLocaleString('en-US')} of ${s.features.toLocaleString('en-US')} mapped`,
+          text:
+            `${s.mappedFeatures.toLocaleString('en-US')} of ${s.features.toLocaleString('en-US')} mapped` +
+            (s.skippedFeatures > 0 ? `, ${s.skippedFeatures.toLocaleString('en-US')} skipped` : ''),
           tone: s.mappedFeatures > 0 ? 'ok' : 'muted',
         };
       case 'records':
@@ -139,8 +143,8 @@ export function clampSection(index: number): number {
 }
 
 /** Features with at least one customer source attribute. */
-export function countMapped(features: readonly ProjectFeature[], config: Project['features']): number {
-  return features.filter((f) => (config[f.key]?.sources?.length ?? 0) > 0).length;
+export function countMapped(features: readonly ProjectFeature[], config: Project['features'], status: MappingStatus = 'mapped'): number {
+  return features.filter((f) => mappingStatus(config[f.key]) === status).length;
 }
 
 /** Record value counts for the status: one value per record and mapped feature of each reference entity. */

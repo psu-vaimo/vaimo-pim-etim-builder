@@ -5,6 +5,7 @@ import { formatAction, ruleConditions } from '../akeneo/ruleText.js';
 import { classRecordAttribute, sourceEntityFor, sourceRecordAttribute } from '../akeneo/sourceRecords.js';
 import { labelFor } from '../etim/labels.js';
 import type { EtimRelease } from '../etim/types.js';
+import { mappingStatus } from '../project/sources.js';
 import type { Project } from '../project/types.js';
 import type { Table } from './table.js';
 
@@ -31,7 +32,9 @@ export function reportTables(input: ReportInput): Table[] {
   }
   const rulesByKey = new Map<string, AkeneoRule[]>();
   for (const r of rules) for (const key of r.origin.keys) rulesByKey.set(key, [...(rulesByKey.get(key) ?? []), r]);
-  const mapped = features.filter((f) => (project.features[f.key]?.sources ?? []).length > 0).length;
+  const statusOf = (key: string) => mappingStatus(project.features[key]);
+  const mapped = features.filter((f) => statusOf(f.key) === 'mapped').length;
+  const skipped = features.filter((f) => statusOf(f.key) === 'skipped').length;
   const valueText = (id: string | undefined) => (id ? labelFor(release.values[id]?.labels ?? {}, locale) : '');
   const featureText = (id: string) => labelFor(release.features[id]?.labels ?? {}, locale);
   const plannedByKey = new Map(sourceEntities.flatMap((e) => e.features.map((f) => [f.key, { entity: e.code, feature: f }] as const)));
@@ -57,6 +60,7 @@ export function reportTables(input: ReportInput): Table[] {
       ['ETIM classes', project.classIds.length],
       ['Features', features.length],
       ['Mapped features', mapped],
+      ['Skipped features (not mapped on purpose)', skipped],
       ['Attributes', attributes.length],
       ['Source reference entities', sourceEntities.length],
       ['Source records', sourceRecords],
@@ -84,6 +88,7 @@ export function reportTables(input: ReportInput): Table[] {
         'Classes',
         'Akeneo attributes',
         'Akeneo types',
+        'Mapping status',
         'Source',
         'Second source',
         'Yes values',
@@ -102,6 +107,7 @@ export function reportTables(input: ReportInput): Table[] {
           f.classIds.join(', '),
           attrs.map((a) => a.code).join(', '),
           attrs.map((a) => a.type).join(', '),
+          { mapped: 'Mapped', skipped: 'Skipped', unmapped: 'Not mapped' }[statusOf(f.key)],
           sources.map((s) => s.attribute).join(', '),
           sources.map((s) => s.second ?? '').filter(Boolean).join(', '),
           sources.flatMap((s) => s.yesValues ?? []).join(', '),

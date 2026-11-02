@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { akeneoCodeError, applySourceEntityLinks, applySourceMappings, createProject, normalizeSources, withSources } from '../src/index.js';
+import {
+  akeneoCodeError,
+  applySkippedFeatures,
+  applySourceEntityLinks,
+  applySourceMappings,
+  createProject,
+  mappingStatus,
+  normalizeSources,
+  withSources,
+} from '../src/index.js';
 
 const draft = (attribute: string, second = '', yesValues: string[] = []) => ({ attribute, second, yesValues });
 
@@ -30,6 +39,53 @@ describe('withSources', () => {
     });
     expect(withSources({ range: 'text', sources: [{ attribute: 'a' }] }, [])).toEqual({ range: 'text' });
     expect(withSources(undefined, [])).toEqual({});
+  });
+
+  it('removes skipped when sources are set', () => {
+    expect(withSources({ skipped: true }, [{ attribute: 'a' }])).toEqual({ sources: [{ attribute: 'a' }] });
+    expect(withSources({ skipped: true }, [])).toEqual({ skipped: true });
+  });
+});
+
+describe('applySkippedFeatures', () => {
+  const project = {
+    ...createProject('Test'),
+    features: { EF000001: { sources: [{ attribute: 'old' }] }, EF000002: { skipped: true as const }, EF000008_EU570448: { numeric: 'metric' as const } },
+  };
+
+  it('skips and unskips features by feature and unit', () => {
+    const result = applySkippedFeatures(project, [
+      { featureId: 'ef000008', unitId: 'eu570448', skipped: true },
+      { featureId: 'EF000002', skipped: false },
+      { featureId: 'EF000003', skipped: true },
+      { featureId: 'EF000001', skipped: false },
+    ]);
+    expect(result).toEqual({
+      ok: true,
+      project: {
+        ...project,
+        features: {
+          EF000001: { sources: [{ attribute: 'old' }] },
+          EF000008_EU570448: { numeric: 'metric', skipped: true },
+          EF000003: { skipped: true },
+        },
+      },
+    });
+    if (!result.ok) return;
+    expect(['EF000001', 'EF000003', 'EF000004'].map((k) => mappingStatus(result.project.features[k]))).toEqual(['mapped', 'skipped', 'unmapped']);
+  });
+
+  it('rejects skipping a mapped feature and duplicates without applying anything', () => {
+    expect(
+      applySkippedFeatures(project, [
+        { featureId: 'EF000001', skipped: true },
+        { featureId: 'EF000003', skipped: true },
+        { featureId: 'ef000003', skipped: false },
+      ]),
+    ).toEqual({
+      ok: false,
+      errors: ['EF000001: is mapped, remove its source before skipping it', 'EF000003: listed more than once'],
+    });
   });
 });
 

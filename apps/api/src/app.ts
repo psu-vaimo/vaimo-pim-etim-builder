@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import {
   addSourceRecords,
+  applySkippedFeatures,
   applySourceEntityLinks,
   applySourceMappings,
   applySourceRecordValues,
@@ -10,6 +11,7 @@ import {
   parseProjectFile,
   type EtimRelease,
   type EtimTables,
+  type FeatureSkipInput,
   type FeatureSourceInput,
   type Project,
   type SourceEntityLinkInput,
@@ -32,6 +34,11 @@ interface ParseBody {
 interface SourcesBody {
   project: unknown;
   mappings: FeatureSourceInput[];
+}
+
+interface SkippedBody {
+  project: unknown;
+  features: FeatureSkipInput[];
 }
 
 interface EntityLinksBody {
@@ -137,6 +144,39 @@ export function buildApp(opts: FastifyServerOptions = {}, { etimFilesDir = DEFAU
     },
     async (req, reply) => {
       const { status, body } = projectResponse(req.body.project, (p) => applySourceMappings(p, req.body.mappings));
+      return reply.code(status).send(body);
+    },
+  );
+
+  // Marks features as skipped (not mapped on purpose, enriched by hand) or unskips them in a project file.
+  app.post<{ Body: SkippedBody }>(
+    '/project/skipped',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['project', 'features'],
+          properties: {
+            project: { type: 'object' },
+            features: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['featureId', 'skipped'],
+                additionalProperties: false,
+                properties: {
+                  featureId: { type: 'string', minLength: 1 },
+                  unitId: { type: 'string' },
+                  skipped: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { status, body } = projectResponse(req.body.project, (p) => applySkippedFeatures(p, req.body.features));
       return reply.code(status).send(body);
     },
   );

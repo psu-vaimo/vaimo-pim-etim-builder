@@ -2,6 +2,7 @@ import {
   createProject,
   defaultSettings,
   labelFor,
+  mappingStatus,
   normalizeSources,
   withEntityRecords as withProjectEntityRecords,
   withRecordValue,
@@ -68,6 +69,8 @@ export type AppAction =
   | { type: 'setFeatureSources'; key: FeatureKey; featureType: EtimFeatureType; sources: readonly SourceMapping[] }
   /** Removes the sources of these features, other overrides stay. Used for mappings of features no longer selected. */
   | { type: 'removeSources'; keys: readonly FeatureKey[] }
+  /** Marks a feature as not mapped on purpose, or takes that back. Ignored for a mapped feature. */
+  | { type: 'setFeatureSkipped'; key: FeatureKey; skipped: boolean }
   /** Customer attributes from an uploaded Akeneo attribute export, `null` removes them. Mappings are kept. */
   | { type: 'setSourceAttributes'; attributes: readonly SourceAttribute[] | null }
   /** Links a source attribute to its reference entity, `null` or empty removes the link (the uploaded reference data name applies again). */
@@ -179,14 +182,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     case 'setFeatureSources': {
       const sources = normalizeSources(action.sources, action.featureType);
+      const features = withFeatureField(state.project.features, action.key, 'sources', sources.length === 0 ? null : sources);
       return {
         ...state,
-        project: {
-          ...state.project,
-          features: withFeatureField(state.project.features, action.key, 'sources', sources.length === 0 ? null : sources),
-        },
+        project: { ...state.project, features: sources.length === 0 ? features : withFeatureField(features, action.key, 'skipped', null) },
       };
     }
+    case 'setFeatureSkipped':
+      if (action.skipped && mappingStatus(state.project.features[action.key]) === 'mapped') return state;
+      return {
+        ...state,
+        project: { ...state.project, features: withFeatureField(state.project.features, action.key, 'skipped', action.skipped ? true : null) },
+      };
     case 'removeSources':
       return { ...state, project: { ...state.project, features: withoutSources(state.project.features, action.keys) } };
     case 'setSourceEntityLink': {

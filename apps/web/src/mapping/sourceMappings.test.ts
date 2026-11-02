@@ -106,9 +106,10 @@ describe('mapping rows', () => {
     { key: 'EF1', featureId: 'EF1', type: 'A', classIds: ['EC2', 'EC1'] },
     { key: 'EF2', featureId: 'EF2', type: 'N', classIds: ['EC1'] },
   ];
-  const rows = mappingRows([row('EF1', 'A'), row('EF2', 'N')], features, {
+  const rows = mappingRows([row('EF1', 'A'), row('EF2', 'N'), row('EF3', 'L')], features, {
     EF1: { sources: [{ attribute: 'att_colour' }] },
     EF2: { numeric: 'metric' },
+    EF3: { skipped: true },
     EF9: { sources: [{ attribute: 'att_gone' }] },
   });
 
@@ -116,30 +117,35 @@ describe('mapping rows', () => {
     expect(rows.map((r) => [r.key, r.firstClassId, r.sources])).toEqual([
       ['EF1', 'EC2', [{ attribute: 'att_colour' }]],
       ['EF2', 'EC1', []],
+      ['EF3', undefined, []],
     ]);
+    expect(rows.map((r) => r.status)).toEqual(['mapped', 'unmapped', 'skipped']);
   });
 
   it('filters by mapped status, type and source code', () => {
     const keys = (f: Parameters<typeof filterMappingRows>[1]) => filterMappingRows(rows, f).map((r) => r.key);
     expect(keys({ search: '', type: null, mapped: 'mapped' })).toEqual(['EF1']);
     expect(keys({ search: '', type: null, mapped: 'unmapped' })).toEqual(['EF2']);
+    expect(keys({ search: '', type: null, mapped: 'skipped' })).toEqual(['EF3']);
     expect(keys({ search: '', type: 'N', mapped: 'all' })).toEqual(['EF2']);
     expect(keys({ search: 'COLOUR', type: null, mapped: 'all' })).toEqual(['EF1']);
   });
 
   it('groups by first and second source, unmapped last, and pages whole groups', () => {
-    const grouped = mappingRows([row('EF1', 'A'), row('EF2', 'R'), row('EF3', 'N'), row('EF4', 'N')], features, {
+    const grouped = mappingRows([row('EF1', 'A'), row('EF2', 'R'), row('EF3', 'N'), row('EF4', 'N'), row('EF5', 'N')], features, {
       EF1: { sources: [{ attribute: 'att_colour' }] },
       EF2: { sources: [{ attribute: 'att_min', second: 'att_colour' }] },
       EF3: { sources: [{ attribute: 'att_colour', second: 'att_colour' }] },
+      EF5: { skipped: true },
     });
     const groups = groupBySource(grouped);
-    expect(groups.map((g) => [g.source, g.rows.map((r) => r.key)])).toEqual([
+    expect(groups.map((g) => [g.source ?? g.status, g.rows.map((r) => r.key)])).toEqual([
       ['att_colour', ['EF1', 'EF2', 'EF3']],
       ['att_min', ['EF2']],
-      [null, ['EF4']],
+      ['unmapped', ['EF4']],
+      ['skipped', ['EF5']],
     ]);
-    expect(pageGroups(groups, 2).map((p) => p.map((g) => g.source))).toEqual([['att_colour'], ['att_min', null]]);
+    expect(pageGroups(groups, 2).map((p) => p.map((g) => g.source ?? g.status))).toEqual([['att_colour'], ['att_min', 'unmapped'], ['skipped']]);
     expect(pageGroups([], 2)).toEqual([]);
   });
 

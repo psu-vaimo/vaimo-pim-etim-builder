@@ -77,24 +77,28 @@ export function MappingStep() {
   );
   const orphans = useMemo(() => (collected ? orphanMappings(collected.features, project.features) : []), [collected, project.features]);
   const onEdit = useCallback((key: FeatureKey) => requestEdit(key), [requestEdit]);
+  const onSkip = useCallback((key: FeatureKey, skip: boolean) => dispatch({ type: 'setFeatureSkipped', key, skipped: skip }), [dispatch]);
   const entityFor = useCallback((source: string) => sourceEntityFor(project, source), [project]);
 
   if (!release || !collected || !generated) return <Text mt="md">Import an ETIM export first.</Text>;
 
-  const mapped = rows.filter((r) => r.sources.length > 0).length;
+  const mapped = rows.filter((r) => r.status === 'mapped').length;
+  const skipped = rows.filter((r) => r.status === 'skipped').length;
   const editingRow = editing === undefined ? undefined : rows.find((r) => r.key === editing);
 
   return (
     <Stack gap="lg" mt="md">
       <Text size="sm" c="dimmed">
         Pick the customer (data model) attribute that feeds each ETIM feature. Mapped features become read only and are filled by
-        Akeneo rules, one rule per source attribute. Unmapped features are enriched by hand.
+        Akeneo rules, one rule per source attribute. Unmapped features are enriched by hand, skip the ones you decided not to
+        map so they no longer count as open.
       </Text>
       <SourceAttributesPanel />
-      <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
+      <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
         <Stat label="Features" value={rows.length} testId="stat-features" />
         <Stat label="Mapped" value={mapped} testId="stat-mapped" />
-        <Stat label="Unmapped" value={rows.length - mapped} testId="stat-unmapped" />
+        <Stat label="Unmapped" value={rows.length - mapped - skipped} testId="stat-unmapped" />
+        <Stat label="Skipped" value={skipped} testId="stat-skipped" />
         <Stat label="Rules" value={generated.rules.length} testId="stat-rules" />
       </SimpleGrid>
 
@@ -126,6 +130,7 @@ export function MappingStep() {
           locale={locale}
           errorKeys={errorKeys}
           onEdit={onEdit}
+          onSkip={onSkip}
           entityFor={entityFor}
         />
       </Stack>

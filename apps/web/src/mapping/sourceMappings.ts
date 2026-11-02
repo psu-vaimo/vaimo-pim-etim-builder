@@ -1,10 +1,12 @@
 import {
   akeneoCodeError,
+  mappingStatus,
   normalizeSources,
   type EtimFeatureType,
   type FeatureConfig,
   type FeatureKey,
   type GenerateIssue,
+  type MappingStatus,
   type ProjectFeature,
   type SourceMapping,
 } from '@akeneo-etim/core';
@@ -89,6 +91,7 @@ export interface MappingRow extends FeatureRow {
   /** First selected class using the feature, enough to generate its attributes for the preview. */
   firstClassId: string | undefined;
   sources: SourceMapping[];
+  status: MappingStatus;
 }
 
 /** Feature rows with the project's sources, search also matches source codes. */
@@ -105,12 +108,13 @@ export function mappingRows(
       ...row,
       firstClassId: byKey.get(row.key)?.classIds[0],
       sources,
+      status: mappingStatus(config[row.key]),
       searchText: codes.length > 0 ? `${row.searchText}\n${codes.join('\n').toLowerCase()}` : row.searchText,
     };
   });
 }
 
-export type MappedFilter = 'all' | 'mapped' | 'unmapped';
+export type MappedFilter = 'all' | MappingStatus;
 
 export interface MappingFilter {
   search: string;
@@ -123,8 +127,7 @@ export function filterMappingRows(rows: readonly MappingRow[], filter: MappingFi
   const words = filter.search.toLowerCase().split(/\s+/).filter(Boolean);
   return rows.filter((row) => {
     if (filter.type !== null && row.type !== filter.type) return false;
-    if (filter.mapped === 'mapped' && row.sources.length === 0) return false;
-    if (filter.mapped === 'unmapped' && row.sources.length > 0) return false;
+    if (filter.mapped !== 'all' && row.status !== filter.mapped) return false;
     return words.every((w) => row.searchText.includes(w));
   });
 }
@@ -160,28 +163,32 @@ export function withoutSources(
 }
 
 export interface SourceGroup {
-  /** Source attribute code, `null` for the unmapped features. */
+  /** Source attribute code, `null` for the unmapped and the skipped features. */
   source: string | null;
+  status: MappingStatus;
   rows: MappingRow[];
 }
 
 /**
- * Rows grouped by source attribute, in code order, unmapped features last. A
+ * Rows grouped by source attribute, in code order, then the unmapped and the skipped features. A
  * feature is listed under its first and its second source, so every use of a
  * source shows up in its group.
  */
 export function groupBySource(rows: readonly MappingRow[]): SourceGroup[] {
   const groups = new Map<string, MappingRow[]>();
   const unmapped: MappingRow[] = [];
+  const skipped: MappingRow[] = [];
   for (const row of rows) {
     const codes = new Set(row.sources.flatMap((s) => [s.attribute, ...(s.second ? [s.second] : [])]));
-    if (codes.size === 0) unmapped.push(row);
+    if (row.status === 'unmapped') unmapped.push(row);
+    if (row.status === 'skipped') skipped.push(row);
     for (const code of codes) groups.set(code, [...(groups.get(code) ?? []), row]);
   }
   const out: SourceGroup[] = [...groups]
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([source, groupRows]) => ({ source, rows: groupRows }));
-  if (unmapped.length > 0) out.push({ source: null, rows: unmapped });
+    .map(([source, groupRows]) => ({ source, status: 'mapped', rows: groupRows }));
+  if (unmapped.length > 0) out.push({ source: null, status: 'unmapped', rows: unmapped });
+  if (skipped.length > 0) out.push({ source: null, status: 'skipped', rows: skipped });
   return out;
 }
 

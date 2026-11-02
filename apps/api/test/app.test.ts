@@ -151,6 +151,18 @@ describe('api with pre-loaded ETIM exports', () => {
     expect(res.json().project.sourceEntityLinks).toEqual({ att_fastening: 'fastening' });
   });
 
+  it('POST /project/skipped skips unmapped features and refuses mapped ones', async () => {
+    const res = await post('/project/skipped', { project: base, features: [{ featureId: 'ef000139', skipped: true }] });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().project.features.EF000139).toEqual({ skipped: true });
+    const unskipped = await post('/project/skipped', { project: res.json().project, features: [{ featureId: 'EF000139', skipped: false }] });
+    expect(unskipped.json().project.features.EF000139).toBeUndefined();
+    const mapped = await post('/project/skipped', { project: base, features: [{ featureId: 'EF005644', skipped: true }] });
+    expect(mapped.statusCode).toBe(400);
+    expect(mapped.json().errors).toEqual(['EF005644: is mapped, remove its source before skipping it']);
+    expect((await post('/project/skipped', { project: base, features: [{ featureId: 'EF005644' }] })).statusCode).toBe(400);
+  });
+
   it('POST /project/record-values uses the pre-loaded export of the project', async () => {
     const linked = (await post('/project/entity-links', { project: base, links: [{ attribute: 'att_fastening', entity: 'fastening' }] })).json().project;
     const value = (valueId: string) => [{ entity: 'fastening', record: 'eye', featureId: 'EF005644', valueId }];

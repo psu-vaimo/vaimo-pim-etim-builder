@@ -35,6 +35,12 @@ export interface FeatureConfig {
    * means unmapped.
    */
   sources?: SourceMapping[];
+  /**
+   * Set by the consultant: the feature is not mapped on purpose and is
+   * enriched by hand. Only kept on features without sources, mapping a
+   * feature removes it.
+   */
+  skipped?: true;
 }
 
 /** A customer (data model) attribute from an uploaded Akeneo attribute export. */

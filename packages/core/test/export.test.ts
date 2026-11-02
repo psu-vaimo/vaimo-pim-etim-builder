@@ -204,6 +204,7 @@ describe('buildExport', () => {
     const p = mappedProject();
     p.etimSource = { library: 'ETIM-10.0', locales: ['en_US'] };
     p.sourceEntities![0]!.records[0]!.classValues = { EC000009: { EF000139: 'EV000154' } };
+    p.features.EF015006_EU570448 = { numeric: 'number', skipped: true };
     const attributes = generateAttributes(r, p).attributes;
     const rules = generateRules(r, p, attributes).rules;
     const sheets = reportTables({
@@ -225,11 +226,15 @@ describe('buildExport', () => {
       'Source records': 2,
       'Source record values mapped': '1 of 2',
       'Class values': 1,
+      'Skipped features (not mapped on purpose)': 1,
     });
     const features = sheets[1]!.rows;
     const ef139 = features.find((row) => row[0] === 'EF000139')!;
     expect(ef139[features[0]!.indexOf('Reference entity')]).toBe('surface_treatment');
     expect(ef139[features[0]!.indexOf('Class values for')]).toBe('EC000009');
+    expect(ef139[features[0]!.indexOf('Mapping status')]).toBe('Mapped');
+    const statusColumn = features[0]!.indexOf('Mapping status');
+    expect(features.find((row) => row[0] === 'EF015006_EU570448')![statusColumn]).toBe('Skipped');
     const records = sheets[3]!.rows;
     expect(records[0]).toEqual([
       'Reference entity',

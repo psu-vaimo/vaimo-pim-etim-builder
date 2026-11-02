@@ -40,10 +40,61 @@ export function normalizeSources(sources: readonly SourceInput[], type: EtimFeat
   return out;
 }
 
-/** Feature config with `sources` replaced, `sources` is left out when empty. */
+/** Feature config with `sources` replaced, `sources` is left out when empty. Sources remove `skipped`. */
 export function withSources(config: FeatureConfig | undefined, sources: readonly SourceMapping[]): FeatureConfig {
   const { sources: _old, ...rest } = config ?? {};
-  return sources.length === 0 ? rest : { ...rest, sources: [...sources] };
+  if (sources.length === 0) return rest;
+  const { skipped: _skipped, ...others } = rest;
+  return { ...others, sources: [...sources] };
+}
+
+export type MappingStatus = 'mapped' | 'skipped' | 'unmapped';
+
+/** Mapped when the feature has a source, else skipped when the consultant skipped it, else unmapped. */
+export function mappingStatus(config: FeatureConfig | undefined): MappingStatus {
+  if ((config?.sources?.length ?? 0) > 0) return 'mapped';
+  return config?.skipped ? 'skipped' : 'unmapped';
+}
+
+/** Feature config with `skipped` set or removed. */
+export function withSkipped(config: FeatureConfig | undefined, skipped: boolean): FeatureConfig {
+  const { skipped: _old, ...rest } = config ?? {};
+  return skipped ? { ...rest, skipped: true } : rest;
+}
+
+/** Skips an ETIM feature (+unit) or takes the skip back, e.g. sent to the API. */
+export interface FeatureSkipInput {
+  featureId: string;
+  unitId?: string;
+  skipped: boolean;
+}
+
+/**
+ * Marks features as skipped (not mapped on purpose) or unskips them. Ids are
+ * upper-cased. Skipping a mapped feature and a feature listed twice are
+ * errors and nothing is applied.
+ */
+export function applySkippedFeatures(project: Project, inputs: readonly FeatureSkipInput[]): ApplySourcesResult {
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  const updates = inputs.map((i) => ({
+    key: featureKey(i.featureId.trim().toUpperCase(), i.unitId?.trim().toUpperCase() || undefined),
+    skipped: i.skipped,
+  }));
+  for (const { key, skipped } of updates) {
+    if (seen.has(key)) errors.push(`${key}: listed more than once`);
+    seen.add(key);
+    if (skipped && mappingStatus(project.features[key]) === 'mapped') errors.push(`${key}: is mapped, remove its source before skipping it`);
+  }
+  if (errors.length > 0) return { ok: false, errors };
+
+  const features = { ...project.features };
+  for (const { key, skipped } of updates) {
+    const config = withSkipped(features[key], skipped);
+    if (Object.keys(config).length === 0) delete features[key];
+    else features[key] = config;
+  }
+  return { ok: true, project: { ...project, features } };
 }
 
 /** One ETIM feature (+unit) to customer source attribute pair, e.g. sent to the API. */

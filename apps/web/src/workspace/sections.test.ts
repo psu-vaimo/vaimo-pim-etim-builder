@@ -21,6 +21,7 @@ const input = (patch: Partial<StatusInput> = {}): StatusInput => ({
   selectedClasses: 3,
   features: 40,
   mappedFeatures: 5,
+  skippedFeatures: 0,
   generatorErrors: 0,
   generatorWarnings: 0,
   sourceEntities: 1,
@@ -105,6 +106,10 @@ describe('sectionStatuses', () => {
     expect(s[6]).toBe('Checking...');
   });
 
+  it('adds skipped features to the mapping status', () => {
+    expect(texts(input({ skippedFeatures: 3 }))[3]).toBe('5 of 40 mapped, 3 skipped');
+  });
+
   it('uses singular words and thousands separators', () => {
     const s = texts(input({ localeCount: 1, features: 1, mappedFeatures: 0 }));
     expect(s[0]).toBe('Ready, 1 locale');
@@ -157,5 +162,6 @@ describe('countMapped', () => {
       EF9: { sources: [{ attribute: 'att_b' }] },
     };
     expect(countMapped(features, config)).toBe(1);
+    expect(countMapped(features, { ...config, EF3: { skipped: true } }, 'skipped')).toBe(1);
   });
 });
