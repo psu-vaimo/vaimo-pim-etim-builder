@@ -20,6 +20,7 @@ export { labelFor } from './etim/labels.js';
 export * from './project/file.js';
 export { generateDependencies } from './akeneo/dependencies.js';
 export { generateRules } from './akeneo/rules.js';
+export { formatAction, formatCondition, ruleConditions } from './akeneo/ruleText.js';
 export {
   classRecordAttribute,
   exceptionClassIds,

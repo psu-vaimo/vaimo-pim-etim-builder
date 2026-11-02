@@ -1,7 +1,19 @@
 import { strFromU8, unzipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { buildExport, toCsv, writeXlsx, zipExport, type ExportFile } from '../src/index.js';
+import {
+  buildExport,
+  collectProjectFeatures,
+  collectSourceEntities,
+  generateAttributes,
+  generateDependencies,
+  generateRules,
+  toCsv,
+  writeXlsx,
+  zipExport,
+  type ExportFile,
+} from '../src/index.js';
+import { reportTables } from '../src/export/report.js';
 import { column } from '../src/export/xlsx.js';
 import { project, release } from './helpers.js';
 
@@ -185,6 +197,65 @@ describe('buildExport', () => {
     expect(text(files, 'README.txt')).toContain('Import the 07 record files (surface_treatment)');
     expect(strFromU8(report['xl/workbook.xml']!)).toContain('name="Sources"');
     expect(strFromU8(report['xl/worksheets/sheet3.xml']!)).toContain('ref_ef000139, ref_ef000139_label');
+  });
+
+  it('reports source records with class values, rules and the summary', () => {
+    const r = release();
+    const p = mappedProject();
+    p.etimSource = { library: 'ETIM-10.0', locales: ['en_US'] };
+    p.sourceEntities![0]!.records[0]!.classValues = { EC000009: { EF000139: 'EV000154' } };
+    const attributes = generateAttributes(r, p).attributes;
+    const rules = generateRules(r, p, attributes).rules;
+    const sheets = reportTables({
+      release: r,
+      project: p,
+      features: collectProjectFeatures(r, p).features,
+      attributes,
+      rules,
+      dependencies: generateDependencies(r, p, attributes),
+      sourceEntities: collectSourceEntities(r, p).entities,
+      issues: [],
+      manualSteps: [],
+    });
+    expect(sheets.map((t) => t.name)).toEqual(['Summary', 'Features', 'Sources', 'Source records', 'Rules', 'Attributes', 'Classes', 'Issues']);
+    const summary = Object.fromEntries(sheets[0]!.rows.map((row) => [row[0], row[1]]));
+    expect(summary).toMatchObject({
+      'ETIM release': 'ETIM-10.0',
+      'Source reference entities': 1,
+      'Source records': 2,
+      'Source record values mapped': '1 of 2',
+      'Class values': 1,
+    });
+    const features = sheets[1]!.rows;
+    const ef139 = features.find((row) => row[0] === 'EF000139')!;
+    expect(ef139[features[0]!.indexOf('Reference entity')]).toBe('surface_treatment');
+    expect(ef139[features[0]!.indexOf('Class values for')]).toBe('EC000009');
+    const records = sheets[3]!.rows;
+    expect(records[0]).toEqual([
+      'Reference entity',
+      'Record',
+      'Label en_US',
+      'Label sv_SE',
+      'Feature',
+      'Feature label',
+      'Class',
+      'ETIM value',
+      'Value label',
+      'Record attribute',
+      'Status',
+    ]);
+    expect(records.slice(1).map((row) => [row[1], row[6], row[7], row[9], row[10]])).toEqual([
+      ['galvanized', undefined, 'EV000072', 'ref_ef000139', 'Mapped'],
+      ['galvanized', 'EC000009', 'EV000154', 'ref_ef000139_ec000009', 'Class value'],
+      ['untreated', undefined, undefined, 'ref_ef000139', 'Not mapped'],
+    ]);
+    const ruleRows = sheets[4]!.rows;
+    expect(ruleRows.slice(1).map((row) => [row[0], row[3]])).toEqual([
+      ['etim_att_surface_treatment', 99],
+      ['etim_att_surface_treatment_ec000009', 100],
+    ]);
+    expect(ruleRows[2]![6]).toBe('etim_class NOT EMPTY; etim_class IN [ec000009]; att_surface_treatment NOT EMPTY');
+    expect(ruleRows[2]![7]).toContain('copy att_surface_treatment (ref_ef000139_ec000009) to ef000139');
   });
 
   it('zips deterministically and flags errors', () => {

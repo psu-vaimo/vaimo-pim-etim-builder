@@ -1,14 +1,11 @@
 import {
   akeneoCodeError,
   normalizeSources,
-  type AkeneoRule,
   type EtimFeatureType,
   type FeatureConfig,
   type FeatureKey,
   type GenerateIssue,
   type ProjectFeature,
-  type RuleAction,
-  type RuleFieldCondition,
   type SourceMapping,
 } from '@akeneo-etim/core';
 import type { FeatureRow } from '../features/featureRows.js';
@@ -74,26 +71,7 @@ export function hasDraftErrors(errors: readonly DraftErrors[]): boolean {
   return errors.some((e) => e.attribute !== undefined || e.second !== undefined);
 }
 
-export function formatCondition(c: RuleFieldCondition): string {
-  return c.value === undefined ? `${c.field} ${c.operator}` : `${c.field} ${c.operator} [${c.value.join(', ')}]`;
-}
-
-/** `copy att_x (etim_value) to ef000139`, `set ef015003 to true`, `concatenate att_a + "-" + att_b to ef000100`. */
-export function formatAction(a: RuleAction): string {
-  switch (a.type) {
-    case 'copy':
-      return `copy ${a.from_field}${a.reference_entity_attribute ? ` (${a.reference_entity_attribute})` : ''} to ${a.to_field}`;
-    case 'set':
-      return `set ${a.field} to ${String(a.value)}`;
-    case 'concatenate':
-      return `concatenate ${a.from.map((f) => ('field' in f ? f.field : JSON.stringify(f.text))).join(' + ')} to ${a.to.field}`;
-  }
-}
-
-/** All conditions of a rule, flattened. */
-export function ruleConditions(rule: AkeneoRule): string[] {
-  return rule.conditions.flatMap((g) => g.value.map(formatCondition));
-}
+export { formatAction, formatCondition, ruleConditions } from '@akeneo-etim/core';
 
 /** Short summary of one source for the table, `att_a`, `att_a + att_b`, `att_a (yes: y, ja)`. */
 export function formatSource(s: SourceMapping): string {

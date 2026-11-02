@@ -169,7 +169,7 @@ Run `pnpm test` and `pnpm typecheck` before committing.
 
 ## Export (`packages/core/src/export`)
 - `buildExport(release, project)` returns all files, issues and the manual Akeneo steps, `zipExport(files)` zips them. Runs in a web worker in the browser (about 2 s for 6000 classes), output is deterministic.
-- Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml` (root key `dependencies`, imported as a file), `mapping_report.xlsx` (with a Sources sheet listing the `ref_` record attributes each source entity needs, class attributes included), the project file.
+- Files: `README.txt` (manual steps), `xlsx/` and `csv/` (attribute groups, attributes, class and value records, Akeneo import columns, `;` CSV), `05_rules.yml`, `06_attribute_dependencies.yml` (root key `dependencies`, imported as a file), `mapping_report.xlsx` (sheets Summary with source record counts and rule priorities, Features with reference entity and class values, Sources with the `ref_` record attributes each source entity needs, Source records with one row per record, feature and class value and a status, Rules with conditions and actions, Attributes, Classes, Issues), the project file.
 - XLSX via a small writer on `fflate` (`writeXlsx`), no spreadsheet library in the bundle.
 - YAML via a small writer (`export/yaml.ts`), the `yaml` package is only used in tests. Block style, no anchors/aliases, anything but simple codes double quoted, YAML 1.1 words like `yes` quoted, so PHP parsers read strings as strings.
 - No attribute options file: ETIM values are reference entity records, there are no select attributes.
