@@ -7,8 +7,10 @@ import {
   filterMappingRows,
   formatAction,
   formatSource,
+  groupBySource,
   mappingRows,
   orphanMappings,
+  pageGroups,
   ruleConditions,
   toDrafts,
   validateDrafts,
@@ -123,6 +125,22 @@ describe('mapping rows', () => {
     expect(keys({ search: '', type: null, mapped: 'unmapped' })).toEqual(['EF2']);
     expect(keys({ search: '', type: 'N', mapped: 'all' })).toEqual(['EF2']);
     expect(keys({ search: 'COLOUR', type: null, mapped: 'all' })).toEqual(['EF1']);
+  });
+
+  it('groups by first and second source, unmapped last, and pages whole groups', () => {
+    const grouped = mappingRows([row('EF1', 'A'), row('EF2', 'R'), row('EF3', 'N'), row('EF4', 'N')], features, {
+      EF1: { sources: [{ attribute: 'att_colour' }] },
+      EF2: { sources: [{ attribute: 'att_min', second: 'att_colour' }] },
+      EF3: { sources: [{ attribute: 'att_colour', second: 'att_colour' }] },
+    });
+    const groups = groupBySource(grouped);
+    expect(groups.map((g) => [g.source, g.rows.map((r) => r.key)])).toEqual([
+      ['att_colour', ['EF1', 'EF2', 'EF3']],
+      ['att_min', ['EF2']],
+      [null, ['EF4']],
+    ]);
+    expect(pageGroups(groups, 2).map((p) => p.map((g) => g.source))).toEqual([['att_colour'], ['att_min', null]]);
+    expect(pageGroups([], 2)).toEqual([]);
   });
 
   it('lists mappings of features outside the selected classes', () => {

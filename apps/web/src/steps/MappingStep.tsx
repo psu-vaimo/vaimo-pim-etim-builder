@@ -1,4 +1,4 @@
-import { collectProjectFeatures, createProject, generateAttributes, generateRules, type FeatureKey } from '@akeneo-etim/core';
+import { collectProjectFeatures, createProject, generateAttributes, generateRules, sourceEntityFor, type FeatureKey } from '@akeneo-etim/core';
 import { Button, Group, Modal, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
@@ -77,6 +77,16 @@ export function MappingStep() {
   );
   const orphans = useMemo(() => (collected ? orphanMappings(collected.features, project.features) : []), [collected, project.features]);
   const onEdit = useCallback((key: FeatureKey) => requestEdit(key), [requestEdit]);
+  const rulesBySource = useMemo(() => {
+    const out = new Map<string, string[]>();
+    for (const r of generated?.rules ?? []) {
+      // A rule with a second source (R features) is listed under both sources.
+      const seconds = r.origin.keys.flatMap((k) => project.features[k]?.sources?.[0]?.second ?? []);
+      for (const source of new Set([r.origin.source, ...seconds])) out.set(source, [...(out.get(source) ?? []), r.code]);
+    }
+    return out;
+  }, [generated, project.features]);
+  const entityFor = useCallback((source: string) => sourceEntityFor(project, source), [project]);
 
   if (!release || !collected || !generated) return <Text mt="md">Import an ETIM export first.</Text>;
 
@@ -120,7 +130,14 @@ export function MappingStep() {
 
       <Stack gap="sm">
         <Title order={4}>Features</Title>
-        <MappingTable rows={rows} locale={locale} errorKeys={errorKeys} onEdit={onEdit} />
+        <MappingTable
+          rows={rows}
+          locale={locale}
+          errorKeys={errorKeys}
+          onEdit={onEdit}
+          rulesBySource={rulesBySource}
+          entityFor={entityFor}
+        />
       </Stack>
 
       <SourceEditor

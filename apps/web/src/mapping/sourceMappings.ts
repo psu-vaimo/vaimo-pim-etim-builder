@@ -158,3 +158,47 @@ export function withoutSources(
   }
   return out;
 }
+
+export interface SourceGroup {
+  /** Source attribute code, `null` for the unmapped features. */
+  source: string | null;
+  rows: MappingRow[];
+}
+
+/**
+ * Rows grouped by source attribute, in code order, unmapped features last. A
+ * feature is listed under its first and its second source, so every use of a
+ * source shows up in its group.
+ */
+export function groupBySource(rows: readonly MappingRow[]): SourceGroup[] {
+  const groups = new Map<string, MappingRow[]>();
+  const unmapped: MappingRow[] = [];
+  for (const row of rows) {
+    const codes = new Set(row.sources.flatMap((s) => [s.attribute, ...(s.second ? [s.second] : [])]));
+    if (codes.size === 0) unmapped.push(row);
+    for (const code of codes) groups.set(code, [...(groups.get(code) ?? []), row]);
+  }
+  const out: SourceGroup[] = [...groups]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([source, groupRows]) => ({ source, rows: groupRows }));
+  if (unmapped.length > 0) out.push({ source: null, rows: unmapped });
+  return out;
+}
+
+/** Whole groups per page, a new page starts once a page holds `size` rows or more. */
+export function pageGroups(groups: readonly SourceGroup[], size: number): SourceGroup[][] {
+  const pages: SourceGroup[][] = [];
+  let page: SourceGroup[] = [];
+  let count = 0;
+  for (const group of groups) {
+    if (count >= size) {
+      pages.push(page);
+      page = [];
+      count = 0;
+    }
+    page.push(group);
+    count += group.rows.length;
+  }
+  if (page.length > 0) pages.push(page);
+  return pages;
+}
