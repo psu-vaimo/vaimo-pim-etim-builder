@@ -134,7 +134,7 @@ const SourcePanel = memo(function SourcePanel({ plan, release, locale, dispatch 
   }
 
   return (
-    <Paper withBorder p="md" radius="md" data-testid={`logical-${plan.attribute}`}>
+    <Paper withBorder p="md" data-testid={`logical-${plan.attribute}`}>
       <Stack gap="sm">
         <UnstyledButton onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`logical-toggle-${plan.attribute}`}>
           <Group gap="xs">
@@ -145,14 +145,14 @@ const SourcePanel = memo(function SourcePanel({ plan, release, locale, dispatch 
               {plan.attribute}
             </Title>
             {plan.type && (
-              <Badge variant="light" color="gray" tt="none">
+              <Badge variant="light" color="gray">
                 {plan.type}
               </Badge>
             )}
-            <Badge variant="light" color={plan.boolean ? 'gray' : 'blue'} tt="none" data-testid="logical-values">
+            <Badge variant="light" color={plan.boolean ? 'gray' : 'blue'} data-testid="logical-values">
               {plan.boolean ? 'copied as Yes/No' : valuesText(plan.options.length)}
             </Badge>
-            <Badge variant="light" color={openFeatures === 0 ? 'teal' : 'orange'} tt="none" data-testid="logical-provides">
+            <Badge variant="light" color={openFeatures === 0 ? 'teal' : 'orange'} data-testid="logical-provides">
               {providesText(plan.features.length)}
             </Badge>
           </Group>
@@ -265,7 +265,7 @@ function OptionRow({ option, plan, locale, dispatch }: RowProps) {
           </Text>
           {!option.listed && (
             <Tooltip label="A yes value that is not in the listed values of the attribute">
-              <Badge size="xs" variant="light" color="orange" tt="none">
+              <Badge size="xs" variant="light" color="orange">
                 not listed
               </Badge>
             </Tooltip>

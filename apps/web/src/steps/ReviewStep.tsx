@@ -31,7 +31,7 @@ const MAX_VALUES = 40;
 
 function Stat({ label, value, testId, color, children }: { label: string; value: number; testId: string; color?: string; children?: ReactNode }) {
   return (
-    <Paper withBorder p="sm" radius="md">
+    <Paper withBorder p="sm">
       <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
         {label}
       </Text>

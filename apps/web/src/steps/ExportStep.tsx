@@ -105,7 +105,7 @@ export function ExportStep() {
   return (
     <Stack gap="lg" mt="md">
 
-      <Paper withBorder p="md" radius="md">
+      <Paper withBorder p="md">
         <Group justify="space-between" align="center">
           <Stack gap={2}>
             <Title order={4}>Export files</Title>
@@ -134,7 +134,7 @@ export function ExportStep() {
       </Paper>
 
       {entities.length > 0 && (
-        <Paper withBorder p="md" radius="md" data-testid="export-source-records">
+        <Paper withBorder p="md" data-testid="export-source-records">
           <Stack gap="xs">
             <Title order={4}>Source records</Title>
             <Text size="sm" c="dimmed">

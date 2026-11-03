@@ -12,6 +12,7 @@ import type { LibraryLocale } from '../etim/library.js';
 import { runEtimJob } from '../etim/runEtimJob.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { isReleaseReady } from '../state/appState.js';
+import { KEEP_CASE } from '../theme.js';
 
 async function readFiles(files: TableFiles): Promise<{ jobFiles: EtimJobFile[]; fileNames: string[] }> {
   const entries = Object.entries(files) as [EtimTableName, File][];
@@ -96,10 +97,10 @@ export function ImportStep() {
           )}
           <MissingClassesAlert />
           {imports.map((entry, i) => (
-            <Paper key={i} withBorder p="sm" radius="md" data-testid="import-entry">
+            <Paper key={i} withBorder p="sm" data-testid="import-entry">
               <Group justify="space-between" mb={entry.issues.length > 0 ? 'xs' : 0}>
                 <Group gap="xs">
-                  <Badge variant="outline">{entry.locale}</Badge>
+                  <Badge variant="outline" styles={KEEP_CASE}>{entry.locale}</Badge>
                   <Text fw={600}>{entry.kind === 'base' ? 'ETIM export' : 'Translation'}</Text>
                   <Text size="sm" c="dimmed">
                     {entry.fileNames.length} files
@@ -119,7 +120,7 @@ export function ImportStep() {
       )}
 
       {(!release || showReplace) && (
-        <Paper withBorder p="md" radius="md">
+        <Paper withBorder p="md">
           <Title order={4} mb="xs">
             {release ? 'Replace ETIM export' : 'ETIM export'}
           </Title>
@@ -145,7 +146,7 @@ export function ImportStep() {
       )}
 
       {release && !baseErrors && (
-        <Paper withBorder p="md" radius="md">
+        <Paper withBorder p="md">
           <Title order={4} mb="xs">
             Add a language
           </Title>

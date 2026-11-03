@@ -19,7 +19,27 @@ p.mantine-Text-root:not(td p, th p)[style*='text-align: center'] {
   margin-inline: auto;
 }
 
-/* Monospaced codes in prose, `<Text span ff="monospace">` and `<Code>`, 1pt smaller than the text around them. */
-:is(p.mantine-Text-root, .mantine-Alert-message) :is(.mantine-Code-root, [style*='--mantine-font-family-monospace']) {
-  font-size: calc(1em - 1pt);
+/*
+ * Monospaced text is set at 12/14 of the text size around it (12px next to 14px text), as the monospace font looks larger.
+ * Text, titles and inputs scale their own size variable, other elements (Code, table cells) the parent size.
+ */
+:root {
+  --app-mono-scale: calc(12 / 14);
+}
+
+.mantine-Code-root,
+[style*='--mantine-font-family-monospace'] {
+  font-size: calc(1em * var(--app-mono-scale));
+}
+
+.mantine-Text-root[style*='--mantine-font-family-monospace'] {
+  font-size: calc(var(--text-fz, 1em) * var(--app-mono-scale));
+}
+
+.mantine-Title-root[style*='--mantine-font-family-monospace'] {
+  font-size: calc(var(--title-fz, 1em) * var(--app-mono-scale));
+}
+
+input[style*='--mantine-font-family-monospace'] {
+  font-size: calc(var(--input-fz, var(--mantine-font-size-sm)) * var(--app-mono-scale));
 }

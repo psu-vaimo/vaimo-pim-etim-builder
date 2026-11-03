@@ -30,7 +30,7 @@ interface Props {
 /** Project defaults for N and R features, each feature can override them in the table below. */
 export function DefaultsPanel({ numeric, range, onNumeric, onRange }: Props) {
   return (
-    <Paper withBorder p="md" radius="md">
+    <Paper withBorder p="md">
       <Title order={4} mb={4}>
         Project defaults
       </Title>

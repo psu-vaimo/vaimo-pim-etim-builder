@@ -211,7 +211,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
         </Badge>
       </Group>
 
-      <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-gray-light)">
+      <Paper withBorder p="sm" bg="var(--mantine-color-gray-light)">
         <TypeHelp row={row} project={project} />
       </Paper>
 
@@ -223,7 +223,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
           {known.size === 0 && ' Upload an Akeneo attribute export on the mapping screen to pick from a list.'}
         </Text>
         {drafts.map((d, i) => (
-          <Paper key={i} withBorder p="sm" radius="md" data-testid={`source-${i}`}>
+          <Paper key={i} withBorder p="sm" data-testid={`source-${i}`}>
             <Group align="flex-start" gap="sm" wrap="nowrap">
               <Stack gap="xs" style={{ flex: 1 }}>
                 {sourceInput(i, 'attribute', row.type === 'R' ? 'Source attribute (first value)' : 'Source attribute', d.attribute, errors[i]?.attribute)}
@@ -296,7 +296,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
       <Stack gap="xs" data-testid="preview-attributes">
         <Title order={5}>Attributes</Title>
         {preview.attributes.map((a) => (
-          <Paper key={a.code} withBorder p="xs" radius="md">
+          <Paper key={a.code} withBorder p="xs">
             <Group gap="xs">
               <Text ff="monospace" size="sm" fw={600}>
                 {a.code}
@@ -333,7 +333,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
           </Text>
         )}
         {preview.rules.map((r) => (
-          <Paper key={r.code} withBorder p="xs" radius="md" data-testid={`preview-rule-${r.code}`}>
+          <Paper key={r.code} withBorder p="xs" data-testid={`preview-rule-${r.code}`}>
             <Group gap="xs">
               <Text ff="monospace" size="sm" fw={600}>
                 {r.code}

@@ -68,8 +68,8 @@
 }
 
 /*
- * A step with its manual work box: the step on the left, the box in a column on the right that stays in view while
- * the step scrolls. Narrow screens put the box above the step.
+ * A step with its manual work box, below the step heading: the step on the left, the box in a column on the right that
+ * stays in view while the step scrolls. Narrow screens put the box between the heading and the step.
  */
 .step-layout {
   display: flex;
@@ -83,6 +83,8 @@
 }
 
 .step-layout-aside {
+  /* Level with the top of the step, which starts with a margin. */
+  margin-top: var(--mantine-spacing-md);
   position: sticky;
   top: calc(var(--app-shell-header-offset, 0rem) + var(--mantine-spacing-md));
   flex-shrink: 0;

@@ -1,0 +1,30 @@
+/*
+ * App fonts. Inter Display (body) comes from the inter-ui package, DINish (headings) and Meslo LG M (monospace) are
+ * kept here with their licenses.
+ */
+@import 'inter-ui/inter-display.css';
+
+@font-face {
+  font-family: 'DINish';
+  src: url('./DINish-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-stretch: 75% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Meslo LG M';
+  src: url('./MesloLGM-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Meslo LG M';
+  src: url('./MesloLGM-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

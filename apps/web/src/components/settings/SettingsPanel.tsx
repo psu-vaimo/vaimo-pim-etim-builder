@@ -75,7 +75,7 @@ export function SettingsPanel({ opened, onClose }: { opened: boolean; onClose: (
           </SimpleGrid>
           <Group gap="xs" mt="xs" data-testid="code-examples">
             {examples.map((e) => (
-              <Badge key={e.label} variant="light" color="gray" tt="none" size="lg">
+              <Badge key={e.label} variant="light" color="gray" size="lg">
                 {e.label} <Code>{e.code}</Code>
               </Badge>
             ))}

@@ -156,14 +156,14 @@ export function App() {
 
         {current && (
           <Box data-testid="workspace-section" data-section={current.id}>
+            <Title order={2}>
+              {active + 1}. {current.label}
+            </Title>
+            <Text c="dimmed" size="sm">
+              {current.description}
+            </Text>
             <div className="step-layout">
               <div className="step-layout-main">
-                <Title order={2}>
-                  {active + 1}. {current.label}
-                </Title>
-                <Text c="dimmed" size="sm">
-                  {current.description}
-                </Text>
                 {blocked ? (
                   <Alert color="gray" mt="md" data-testid="workspace-blocked">
                     {blocked}.

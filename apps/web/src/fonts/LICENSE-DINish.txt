@@ -1,0 +1,2 @@
+DINish-Variable.ttf: DINish, Copyright 2021-2024 The DINish Project Authors (https://github.com/playbeing/dinish).
+Licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org).

@@ -65,7 +65,7 @@ export function ClassesStep() {
 
   return (
     <Stack gap="lg" mt="md">
-      <Paper withBorder p="md" radius="md">
+      <Paper withBorder p="md">
         <Title order={4} mb={4}>
           Project locales
         </Title>

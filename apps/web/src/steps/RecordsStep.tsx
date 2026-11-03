@@ -102,7 +102,7 @@ interface PanelProps {
 }
 
 /** Class pill on a class value: code and description, as written, cut off when long (the tooltip has all of it). */
-const CLASS_PILL = { tt: 'none', maw: '40%', style: { flexShrink: 0 } } as const;
+const CLASS_PILL = { maw: '40%', style: { flexShrink: 0 } } as const;
 
 /**
  * One reference entity, collapsed by default: the header with the client attributes using it, its records and the
@@ -160,7 +160,7 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
   }
 
   return (
-    <Paper withBorder p="md" radius="md" data-testid={`entity-${plan.code}`}>
+    <Paper withBorder p="md" data-testid={`entity-${plan.code}`}>
       <Stack gap="sm">
         <UnstyledButton onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`entity-toggle-${plan.code}`}>
           <Group gap="xs">
@@ -170,16 +170,15 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
             <Title order={4} ff="monospace">
               {plan.code}
             </Title>
-            <Badge variant="light" color="gray" tt="none" data-testid="entity-used-by">
-              used by {plan.attributes.join(', ')}
+            <Badge variant="light" color="gray" data-testid="entity-attributes">
+              {plan.attributes.join(', ')}
             </Badge>
-            <Badge variant="light" color={plan.records.length === 0 ? 'orange' : 'blue'} tt="none" data-testid="entity-records">
+            <Badge variant="light" color={plan.records.length === 0 ? 'orange' : 'blue'} data-testid="entity-records">
               {recordsText(plan.records.length)}
             </Badge>
             <Badge
               variant="light"
               color={summary.features.every((f) => isComplete(f, plan.records.length)) ? 'teal' : 'orange'}
-              tt="none"
               data-testid="entity-provides"
             >
               {providesText(plan.features.length)}

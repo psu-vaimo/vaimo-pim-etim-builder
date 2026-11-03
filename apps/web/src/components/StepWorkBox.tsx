@@ -61,7 +61,7 @@ export function StepWorkBox({ id }: { id: SectionId }) {
   const borderColor = open > 0 ? 'var(--mantine-color-orange-filled)' : 'var(--mantine-color-teal-filled)';
   const statusText = open > 0 ? `${open} to do` : 'All done';
   const status = (
-    <Badge color={open > 0 ? 'orange' : 'teal'} variant="light" tt="none" style={{ flexShrink: 0 }} data-testid="step-work-status">
+    <Badge color={open > 0 ? 'orange' : 'teal'} variant="light" style={{ flexShrink: 0 }} data-testid="step-work-status">
       {statusText}
     </Badge>
   );
@@ -92,7 +92,7 @@ export function StepWorkBox({ id }: { id: SectionId }) {
     <Paper
       withBorder
       p="sm"
-      radius="md"
+     
       w={340}
       maw="100%"
       style={{ flexShrink: 0, borderColor, borderWidth: 2 }}
@@ -127,7 +127,7 @@ export function StepWorkBox({ id }: { id: SectionId }) {
                   {isFamilyStep(s) ? (
                     <Text size="sm" fw={700} span data-testid="family-step">
                       {s}{' '}
-                      <Badge color="orange" size="xs" tt="none">
+                      <Badge color="orange" size="xs">
                         Required
                       </Badge>
                     </Text>

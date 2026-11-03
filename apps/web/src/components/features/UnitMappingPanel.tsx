@@ -93,7 +93,7 @@ interface Props {
 export function UnitMappingPanel({ units, unitMap, release, onChange }: Props) {
   const missing = units.filter((u) => !u.mapped).length;
   return (
-    <Paper withBorder p="md" radius="md" data-testid="unit-mapping">
+    <Paper withBorder p="md" data-testid="unit-mapping">
       <Title order={4} mb={4}>
         Unit mapping
       </Title>

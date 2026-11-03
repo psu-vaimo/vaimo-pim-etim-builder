@@ -19,7 +19,7 @@ import { displayLocale } from '../state/appState.js';
 
 function Stat({ label, value, testId }: { label: string; value: number; testId: string }) {
   return (
-    <Paper withBorder p="sm" radius="md">
+    <Paper withBorder p="sm">
       <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
         {label}
       </Text>
@@ -67,7 +67,7 @@ export function FeaturesStep() {
       <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
         <Stat label="Features" value={rows.length} testId="stat-features" />
         <Stat label="Attributes" value={generated.attributes.length} testId="stat-attributes" />
-        <Paper withBorder p="sm" radius="md">
+        <Paper withBorder p="sm">
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
             Features by ETIM type
           </Text>
@@ -79,7 +79,7 @@ export function FeaturesStep() {
             ))}
           </Group>
         </Paper>
-        <Paper withBorder p="sm" radius="md">
+        <Paper withBorder p="sm">
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
             Attributes by type
           </Text>

@@ -18,7 +18,7 @@ export function SourceAttributesPanel() {
   }
 
   return (
-    <Paper withBorder p="md" radius="md" data-testid="source-attributes">
+    <Paper withBorder p="md" data-testid="source-attributes">
       <Group justify="space-between" mb="xs">
         <Group gap="xs">
           <Title order={4}>Akeneo attributes</Title>
