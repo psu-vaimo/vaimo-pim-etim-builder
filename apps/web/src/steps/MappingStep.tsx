@@ -1,5 +1,5 @@
 import { collectProjectFeatures, createProject, generateAttributes, generateRules, sourceEntityFor, type FeatureKey } from '@akeneo-etim/core';
-import { Button, Group, Modal, Stack, Text, Title } from '@mantine/core';
+import { Button, Group, Modal, Stack, Text } from '@mantine/core';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { MappingTable } from '../components/mapping/MappingTable.js';
@@ -11,6 +11,8 @@ import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
 import { CodeList } from '../components/CodeList.js';
 import { StepSummary, SummaryRow } from '../components/StepSummary.js';
+import { SubStep } from '../components/SubStep.js';
+import { SUB_STEPS } from '../workspace/sections.js';
 
 export function MappingStep() {
   const state = useAppState();
@@ -77,11 +79,6 @@ export function MappingStep() {
 
   return (
     <Stack gap="lg" mt="md">
-      <Text size="sm" c="dimmed">
-        Pick the client (data model) attribute that provides each ETIM feature. Mapped features become read only and are filled by
-        Akeneo rules, one rule per source attribute. Unmapped features are enriched by hand, skip the ones you decided not to
-        map so they no longer count as open.
-      </Text>
       <SourceAttributesPanel />
       <StepSummary>
         <SummaryRow label="Features" value={rows.length} testId="stat-features" />
@@ -93,29 +90,31 @@ export function MappingStep() {
 
       <GenerateIssues issues={generated.issues} />
 
-      {orphans.length > 0 && (
-        <Group gap="sm" wrap="nowrap" align="flex-start" data-testid="orphan-mappings">
-          <div style={{ flex: 1 }}>
-            <Text size="sm" c="dimmed">
-              {orphans.length === 1 ? '1 mapped feature is' : `${orphans.length} mapped features are`} not used by the selected
-              classes, the mapping is kept in the project:
-            </Text>
-            <CodeList items={orphans} c="dimmed" columnWidth={22} mt={2} />
-          </div>
-          <Button
-            size="xs"
-            variant="default"
-            style={{ flexShrink: 0 }}
-            onClick={() => dispatch({ type: 'removeSources', keys: orphans })}
-            data-testid="remove-orphans"
-          >
-            Remove unused mappings
-          </Button>
-        </Group>
-      )}
-
-      <Stack gap="sm">
-        <Title order={4}>Features</Title>
+      <SubStep
+        step={SUB_STEPS.mapFeatures}
+        description="Pick the client (data model) attribute that provides each ETIM feature. Mapped features become read only and are filled by Akeneo rules, one rule per source attribute. Unmapped features are enriched by hand, skip the ones you decided not to map so they no longer count as open."
+        testId="sub-step-map-features"
+      >
+        {orphans.length > 0 && (
+          <Group gap="sm" wrap="nowrap" align="flex-start" data-testid="orphan-mappings">
+            <div style={{ flex: 1 }}>
+              <Text size="sm" c="dimmed">
+                {orphans.length === 1 ? '1 mapped feature is' : `${orphans.length} mapped features are`} not used by the selected
+                classes, the mapping is kept in the project:
+              </Text>
+              <CodeList items={orphans} c="dimmed" columnWidth={22} mt={2} />
+            </div>
+            <Button
+              size="xs"
+              variant="default"
+              style={{ flexShrink: 0 }}
+              onClick={() => dispatch({ type: 'removeSources', keys: orphans })}
+              data-testid="remove-orphans"
+            >
+              Remove unused mappings
+            </Button>
+          </Group>
+        )}
         <MappingTable
           rows={rows}
           locale={locale}
@@ -124,7 +123,7 @@ export function MappingStep() {
           onSkip={onSkip}
           entityFor={entityFor}
         />
-      </Stack>
+      </SubStep>
 
       <SourceEditor
         row={editingRow}

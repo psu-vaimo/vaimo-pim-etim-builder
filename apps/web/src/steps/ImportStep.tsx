@@ -1,5 +1,6 @@
-import { Alert, Badge, Button, Collapse, Group, Paper, Stack, Text, Title } from '@mantine/core';
-import { CollapsibleTitle } from '../components/CollapsibleTitle.js';
+import { Alert, Badge, Button, Group, Paper, Stack, Text } from '@mantine/core';
+import { SubStep } from '../components/SubStep.js';
+import { SUB_STEPS } from '../workspace/sections.js';
 import type { EtimTableName } from '@akeneo-etim/core';
 import { useState } from 'react';
 import { EtimLibraryForm } from '../components/EtimLibraryForm.js';
@@ -28,7 +29,6 @@ export function ImportStep() {
   const [busy, setBusy] = useState<'base' | 'translation' | undefined>();
   const [failure, setFailure] = useState<string | undefined>();
   const [showReplace, setShowReplace] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
   // Remounts the forms after a successful upload so they start empty.
   const [formKey, setFormKey] = useState(0);
 
@@ -88,91 +88,96 @@ export function ImportStep() {
         </Alert>
       )}
 
-      {release && (
-        <Stack gap="sm">
-          <Title order={4}>ETIM release</Title>
-          <ReleaseSummary release={release} />
-          {baseErrors && (
-            <Alert color="red" title="The ETIM export has errors">
-              Fix the files and import them again to continue. Missing tables or columns are errors.
-            </Alert>
-          )}
-          <MissingClassesAlert />
-          {imports.map((entry, i) => (
-            <Paper key={i} withBorder p="sm" data-testid="import-entry">
-              <Group justify="space-between" mb={entry.issues.length > 0 ? 'xs' : 0}>
-                <Group gap="xs">
-                  <Badge variant="outline" styles={KEEP_CASE}>{entry.locale}</Badge>
-                  <Text fw={600}>{entry.kind === 'base' ? 'ETIM export' : 'Translation'}</Text>
-                  <Text size="sm" c="dimmed">
-                    {entry.fileNames.length} files
-                  </Text>
-                  {!entry.applied && (
-                    <Badge color="red" variant="filled">
-                      Not added
-                    </Badge>
-                  )}
-                </Group>
-                <IssueCounts issues={entry.issues} />
+      <SubStep
+        step={SUB_STEPS.etimVersion}
+        description={
+          release
+            ? 'The ETIM export the project is built on, with the languages added to it.'
+            : 'Load the ETIM export the project is built on.'
+        }
+        aside={
+          release &&
+          !showReplace && (
+            <Button size="xs" variant="default" onClick={() => setShowReplace(true)}>
+              Replace ETIM version
+            </Button>
+          )
+        }
+        testId="sub-step-etim-version"
+      >
+        {release && <ReleaseSummary release={release} />}
+        {baseErrors && (
+          <Alert color="red" title="The ETIM export has errors">
+            Fix the files and import them again to continue. Missing tables or columns are errors.
+          </Alert>
+        )}
+        {release && <MissingClassesAlert />}
+        {imports.map((entry, i) => (
+          <Paper key={i} withBorder p="sm" data-testid="import-entry">
+            <Group justify="space-between" mb={entry.issues.length > 0 ? 'xs' : 0}>
+              <Group gap="xs">
+                <Badge variant="outline" styles={KEEP_CASE}>{entry.locale}</Badge>
+                <Text fw={600}>{entry.kind === 'base' ? 'ETIM export' : 'Translation'}</Text>
+                <Text size="sm" c="dimmed">
+                  {entry.fileNames.length} files
+                </Text>
+                {!entry.applied && (
+                  <Badge color="red" variant="filled">
+                    Not added
+                  </Badge>
+                )}
               </Group>
-              <IssueList issues={entry.issues} />
-            </Paper>
-          ))}
-        </Stack>
-      )}
-
-      {(!release || showReplace) && (
-        <Paper withBorder p="md">
-          <Title order={4} mb="xs">
-            {release ? 'Replace ETIM version' : 'ETIM export'}
-          </Title>
-          {release && (
-            <Text size="sm" c="dimmed" mb="sm">
-              A new export replaces the current release and all added languages. Selected classes are kept.
-            </Text>
-          )}
-          <EtimLibraryForm
-            key={`library-${formKey}`}
-            busy={busy === 'base'}
-            onSubmit={(name, base, translations) => void importLibrary(name, base, translations)}
-          />
-          <EtimUploadForm
-            key={`base-${formKey}`}
-            mode="base"
-            busy={busy === 'base'}
-            existingLocales={release?.locales ?? []}
-            submitLabel="Import ETIM export"
-            onSubmit={(locale, files) => void importBase(locale, files)}
-          />
-        </Paper>
-      )}
+              <IssueCounts issues={entry.issues} />
+            </Group>
+            <IssueList issues={entry.issues} />
+          </Paper>
+        ))}
+        {(!release || showReplace) && (
+          <Paper withBorder p="md">
+            {release && (
+              <>
+                <Text fw={600} mb={4}>
+                  Replace ETIM version
+                </Text>
+                <Text size="sm" c="dimmed" mb="sm">
+                  A new export replaces the current release and all added languages. Selected classes are kept.
+                </Text>
+              </>
+            )}
+            <EtimLibraryForm
+              key={`library-${formKey}`}
+              busy={busy === 'base'}
+              onSubmit={(name, base, translations) => void importLibrary(name, base, translations)}
+            />
+            <EtimUploadForm
+              key={`base-${formKey}`}
+              mode="base"
+              busy={busy === 'base'}
+              existingLocales={release?.locales ?? []}
+              submitLabel="Import ETIM export"
+              onSubmit={(locale, files) => void importBase(locale, files)}
+            />
+          </Paper>
+        )}
+      </SubStep>
 
       {release && !baseErrors && (
-        <Paper withBorder p="md" data-testid="add-language">
-          <CollapsibleTitle title="Add a language" open={languageOpen} onToggle={() => setLanguageOpen((o) => !o)} testId="add-language-toggle" />
-          {/* Kept mounted while collapsed, so picked files survive closing the box. */}
-          <Collapse expanded={languageOpen}>
-            <Text size="sm" c="dimmed" mt="xs" mb="sm">
-              Upload the ETIM export in another language to add its labels to the release.
-            </Text>
-            <EtimUploadForm
-              key={`translation-${formKey}`}
-              mode="translation"
-              busy={busy === 'translation'}
-              existingLocales={release.locales}
-              submitLabel="Add language"
-              onSubmit={(locale, files) => void importTranslation(locale, files)}
-            />
-          </Collapse>
-        </Paper>
-      )}
-
-      {release && !showReplace && (
-        <Group>
-          <Button variant="default" onClick={() => setShowReplace(true)}>
-            Replace ETIM version
-          </Button>
-        </Group>
+        <SubStep
+          step={SUB_STEPS.addLanguage}
+          collapsible
+          defaultOpen={false}
+          description="Upload the ETIM export in another language to add its labels to the release."
+          testId="add-language"
+        >
+          <EtimUploadForm
+            key={`translation-${formKey}`}
+            mode="translation"
+            busy={busy === 'translation'}
+            existingLocales={release.locales}
+            submitLabel="Add language"
+            onSubmit={(locale, files) => void importTranslation(locale, files)}
+          />
+        </SubStep>
       )}
     </Stack>
   );

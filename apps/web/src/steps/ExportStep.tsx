@@ -136,7 +136,7 @@ export function ExportStep() {
       {entities.length > 0 && (
         <Paper withBorder p="md" data-testid="export-source-records">
           <Stack gap="xs">
-            <Title order={4}>Source records</Title>
+            <Title order={4}>Create source record attributes</Title>
             <Text size="sm" c="dimmed">
               Add the record attributes to each reference entity in Akeneo first, then import its 07_records file to fill them.
               Unmapped values are exported empty.

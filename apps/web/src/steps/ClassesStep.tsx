@@ -4,16 +4,16 @@ import {
   Checkbox,
   Group,
   Pagination,
-  Paper,
   SegmentedControl,
   Select,
   Stack,
   Table,
   Text,
   Textarea,
-  Title,
 } from '@mantine/core';
 import { useDeferredValue, useMemo, useState } from 'react';
+import { SubStep } from '../components/SubStep.js';
+import { SUB_STEPS } from '../workspace/sections.js';
 import { MissingClassesAlert } from '../components/MissingClassesAlert.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
@@ -65,13 +65,11 @@ export function ClassesStep() {
 
   return (
     <Stack gap="lg" mt="md">
-      <Paper withBorder p="md">
-        <Title order={4} mb={4}>
-          Project locales
-        </Title>
-        <Text size="sm" c="dimmed" mb="sm">
-          Labels are generated for these locales. Add more languages in step 1, Setup ETIM versions.
-        </Text>
+      <SubStep
+        step={SUB_STEPS.locales}
+        description="Labels are generated for these locales. Add more languages in step 1.2, Add a language."
+        testId="sub-step-locales"
+      >
         <Checkbox.Group
           value={project.locales.filter((l) => release.locales.includes(l))}
           onChange={(locales) =>
@@ -88,17 +86,19 @@ export function ClassesStep() {
             ))}
           </Group>
         </Checkbox.Group>
-      </Paper>
+        <MissingClassesAlert />
+      </SubStep>
 
-      <MissingClassesAlert />
-
-      <Stack gap="sm">
-        <Group justify="space-between" align="flex-end">
-          <Title order={4}>Classes</Title>
+      <SubStep
+        step={SUB_STEPS.classes}
+        description="The ETIM classes the client uses. Attributes, records, dependencies and rules are generated for these."
+        aside={
           <Badge size="lg" variant="light" data-testid="selected-count">
             {inRelease.toLocaleString('en-US')} of {rows.length.toLocaleString('en-US')} selected
           </Badge>
-        </Group>
+        }
+        testId="sub-step-classes"
+      >
 
         <Group align="flex-end" gap="sm">
           <Textarea
@@ -273,7 +273,7 @@ export function ClassesStep() {
             <Pagination total={totalPages} value={currentPage} onChange={setPage} size="sm" />
           </Group>
         )}
-      </Stack>
+      </SubStep>
     </Stack>
   );
 }

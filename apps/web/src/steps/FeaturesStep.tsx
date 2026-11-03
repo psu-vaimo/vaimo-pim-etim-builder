@@ -7,13 +7,15 @@ import {
   type NumericSetup,
   type RangeSetup,
 } from '@akeneo-etim/core';
-import { Stack, Text, Title } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { useMemo } from 'react';
 import { DefaultsPanel } from '../components/features/DefaultsPanel.js';
 import { FeatureTable } from '../components/features/FeatureTable.js';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { UnitMappingPanel } from '../components/features/UnitMappingPanel.js';
 import { StepSummary, SummaryRow } from '../components/StepSummary.js';
+import { SubStep } from '../components/SubStep.js';
+import { SUB_STEPS } from '../workspace/sections.js';
 import { ATTRIBUTE_TYPE_LABELS, ETIM_TYPE_LABELS, countBy, featureRows, metricUnitRows } from '../features/featureRows.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
@@ -65,24 +67,40 @@ export function FeaturesStep() {
 
       <GenerateIssues issues={generated.issues} />
 
-      <DefaultsPanel
-        numeric={project.settings.numeric}
-        range={project.settings.range}
-        onNumeric={(value: NumericSetup) => dispatch({ type: 'setNumericDefault', value })}
-        onRange={(value: RangeSetup) => dispatch({ type: 'setRangeDefault', value })}
-      />
+      <SubStep
+        step={SUB_STEPS.defaults}
+        collapsible
+        description="Used by every feature without its own setting in the feature table."
+        testId="sub-step-defaults"
+      >
+        <DefaultsPanel
+          numeric={project.settings.numeric}
+          range={project.settings.range}
+          onNumeric={(value: NumericSetup) => dispatch({ type: 'setNumericDefault', value })}
+          onRange={(value: RangeSetup) => dispatch({ type: 'setRangeDefault', value })}
+        />
+      </SubStep>
 
-      <UnitMappingPanel
-        units={units}
-        unitMap={project.settings.unitMap}
-        release={release}
-        onChange={(unitId, mapping) => dispatch({ type: 'setUnitMapping', unitId, mapping })}
-      />
+      <SubStep
+        step={SUB_STEPS.units}
+        description="Metric attributes need the Akeneo measurement family and unit code for their ETIM unit. Without a mapping the attribute falls back to number."
+        testId="unit-mapping"
+      >
+        <UnitMappingPanel
+          units={units}
+          unitMap={project.settings.unitMap}
+          release={release}
+          onChange={(unitId, mapping) => dispatch({ type: 'setUnitMapping', unitId, mapping })}
+        />
+      </SubStep>
 
-      <Stack gap="sm">
-        <Title order={4}>Features</Title>
+      <SubStep
+        step={SUB_STEPS.features}
+        description="One row per feature and unit over the selected classes, with the Akeneo attributes it becomes. N and R features can override the project defaults."
+        testId="sub-step-features"
+      >
         <FeatureTable rows={rows} project={project} locale={locale} errorKeys={errorKeys} dispatch={dispatch} />
-      </Stack>
+      </SubStep>
     </Stack>
   );
 }

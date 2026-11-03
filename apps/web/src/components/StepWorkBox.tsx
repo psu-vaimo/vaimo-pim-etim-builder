@@ -33,6 +33,11 @@ function TaskRow({ task }: { task: StepTask }) {
   return (
     <List.Item icon={<TaskIcon done={task.done} />}>
       <Text size="sm" span {...(task.done ? { td: 'line-through', c: 'dimmed' } : {})}>
+        {task.subStep && (
+          <Text span inherit c="dimmed" fw={600} mr={6}>
+            {task.subStep}
+          </Text>
+        )}
         {task.label}
       </Text>
       {task.detail && (
@@ -93,7 +98,7 @@ export function StepWorkBox({ id, collapsed }: Props) {
         </Group>
         <List spacing={6} center={false}>
           {work.tasks.map((t) => (
-            <TaskRow key={t.label} task={t} />
+            <TaskRow key={`${t.subStep ?? ''} ${t.label}`} task={t} />
           ))}
         </List>
         {work.akeneoSteps.length > 0 && (

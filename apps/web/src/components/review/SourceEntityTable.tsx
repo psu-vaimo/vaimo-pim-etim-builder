@@ -1,8 +1,7 @@
-import { List, Table, Text, Tooltip } from '@mantine/core';
+import { Stack, Table, Text, Tooltip } from '@mantine/core';
 import { exceptionsText, filledText, isComplete } from '../../format/sourceEntityText.js';
 import type { SourceEntitySummary } from '../../review/reviewRows.js';
 import { TEXT_COLORS } from '../../theme.js';
-import { CodeList } from '../CodeList.js';
 import { RecordAttributeTable } from '../RecordAttributeTable.js';
 
 /**
@@ -29,7 +28,13 @@ export function SourceEntityTable({ summaries, testId }: { summaries: readonly S
           <Table.Tr key={s.code} data-testid={`${testId}-row`} style={{ verticalAlign: 'top' }}>
             <Table.Td ff="monospace">{s.code}</Table.Td>
             <Table.Td>
-              <CodeList items={s.attributes} />
+              <Stack gap={2}>
+                {s.attributes.map((a) => (
+                  <Text key={a} size="sm" ff="monospace">
+                    {a}
+                  </Text>
+                ))}
+              </Stack>
             </Table.Td>
             <Table.Td ta="right">
               {s.records === 0 ? (
@@ -41,9 +46,9 @@ export function SourceEntityTable({ summaries, testId }: { summaries: readonly S
               )}
             </Table.Td>
             <Table.Td>
-              <List size="sm" spacing={4} withPadding data-testid={`${testId}-features`}>
+              <Stack gap={6} data-testid={`${testId}-features`}>
                 {s.features.map((f) => (
-                  <List.Item key={f.featureId}>
+                  <Text key={f.featureId} size="sm" component="div">
                     <Text span inherit ff="monospace">
                       {f.featureId}
                     </Text>{' '}
@@ -58,9 +63,9 @@ export function SourceEntityTable({ summaries, testId }: { summaries: readonly S
                         </Tooltip>
                       )}
                     </Text>
-                  </List.Item>
+                  </Text>
                 ))}
-              </List>
+              </Stack>
             </Table.Td>
             <Table.Td>
               <RecordAttributeTable codes={s.recordAttributes} labelSuffix={s.labelSuffix} size="xs" />

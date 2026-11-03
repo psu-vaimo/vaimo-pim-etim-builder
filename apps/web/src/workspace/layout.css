@@ -151,3 +151,9 @@
   padding-top: 2px;
   border-top: 1px solid var(--mantine-color-default-border);
 }
+
+/* A numbered part of a step (SubStep): a line and some space above each. */
+.sub-step {
+  border-top: 1px solid var(--mantine-color-default-border);
+  padding-top: var(--mantine-spacing-md);
+}

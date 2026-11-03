@@ -21,6 +21,27 @@ export const SECTIONS = [
 
 export type SectionId = (typeof SECTIONS)[number]['id'];
 
+export interface SubStepInfo {
+  /** `2.1`: step and part. */
+  number: string;
+  title: string;
+}
+
+/** The numbered parts of steps 1 to 5, shared by the step views and the tasks in the Tasks box. */
+export const SUB_STEPS = {
+  etimVersion: { number: '1.1', title: 'ETIM version' },
+  addLanguage: { number: '1.2', title: 'Add a language' },
+  locales: { number: '2.1', title: 'Project locales' },
+  classes: { number: '2.2', title: 'Classes' },
+  defaults: { number: '3.1', title: 'Project defaults' },
+  units: { number: '3.2', title: 'Unit mapping' },
+  features: { number: '3.3', title: 'Features' },
+  sourceAttributes: { number: '4.1', title: 'Add Akeneo attributes' },
+  mapFeatures: { number: '4.2', title: 'Map features' },
+  records: { number: '5.1', title: 'Reference entity records of A features' },
+  sourceValues: { number: '5.2', title: 'Source values of L features' },
+} as const satisfies Record<string, SubStepInfo>;
+
 export const SECTION_COUNT = SECTIONS.length;
 
 export interface GuardInput {

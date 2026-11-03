@@ -1,5 +1,5 @@
 import type { AkeneoUnit, EtimRelease } from '@akeneo-etim/core';
-import { Alert, Autocomplete, Badge, Button, Paper, Table, Text, Title } from '@mantine/core';
+import { Alert, Autocomplete, Badge, Button, Table, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { MEASUREMENT_SUGGESTIONS, suggestUnitMapping, unitSuggestions, type MetricUnitRow } from '../../features/featureRows.js';
 
@@ -93,14 +93,7 @@ interface Props {
 export function UnitMappingPanel({ units, unitMap, release, onChange }: Props) {
   const missing = units.filter((u) => !u.mapped).length;
   return (
-    <Paper withBorder p="md" data-testid="unit-mapping">
-      <Title order={4} mb={4}>
-        Unit mapping
-      </Title>
-      <Text size="sm" c="dimmed" mb="sm">
-        Metric attributes need the Akeneo measurement family and unit code for their ETIM unit. Without a mapping the
-        attribute falls back to number.
-      </Text>
+    <>
       {units.length === 0 ? (
         <Text size="sm" c="dimmed" data-testid="unit-mapping-empty">
           No feature is set up as metric, nothing to map.
@@ -139,6 +132,6 @@ export function UnitMappingPanel({ units, unitMap, release, onChange }: Props) {
           </Table>
         </>
       )}
-    </Paper>
+    </>
   );
 }

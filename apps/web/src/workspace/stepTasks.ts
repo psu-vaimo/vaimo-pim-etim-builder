@@ -1,7 +1,9 @@
-import type { SectionId } from './sections.js';
+import { SUB_STEPS, type SectionId } from './sections.js';
 
 /** Work the consultant must do by hand on a step. `done` is left out for work the app cannot check, such as the download. */
 export interface StepTask {
+  /** Number of the part of the step the task belongs to, `2.1`, shown in front of the label. Left out on steps without parts. */
+  subStep?: string;
   label: string;
   done?: boolean;
   /** Short count, `12 open`. */
@@ -50,17 +52,23 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
   const work = (tasks: StepTask[], akeneoSteps: string[] = []): StepWork => ({ tasks, akeneoSteps });
   switch (id) {
     case 'import':
-      return work([{ label: 'Load an ETIM export without errors', done: s.ready }]);
+      return work([{ subStep: SUB_STEPS.etimVersion.number, label: 'Load an ETIM export without errors', done: s.ready }]);
     case 'classes':
       return work([
-        { label: "Select the client's ETIM classes", done: s.selectedClasses > 0, detail: `${count(s.selectedClasses)} selected` },
-        { label: 'Pick the project locales', done: s.projectLocales > 0, detail: `${count(s.projectLocales)} selected` },
+        { subStep: SUB_STEPS.locales.number, label: 'Pick the project locales', done: s.projectLocales > 0, detail: `${count(s.projectLocales)} selected` },
+        {
+          subStep: SUB_STEPS.classes.number,
+          label: "Select the client's ETIM classes",
+          done: s.selectedClasses > 0,
+          detail: `${count(s.selectedClasses)} selected`,
+        },
       ]);
     case 'features':
       return work([
         s.metricUnits === 0
-          ? { label: 'Map ETIM units to Akeneo measurement units', done: true, detail: 'no metric attributes' }
+          ? { subStep: SUB_STEPS.units.number, label: 'Map ETIM units to Akeneo measurement units', done: true, detail: 'no metric attributes' }
           : {
+              subStep: SUB_STEPS.units.number,
               label: 'Map ETIM units to Akeneo measurement units',
               done: s.unmappedUnits === 0,
               detail: s.unmappedUnits === 0 ? `${count(s.metricUnits)} mapped` : `${count(s.unmappedUnits)} open`,
@@ -69,8 +77,14 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
     case 'mapping': {
       const open = s.features - s.mappedFeatures - s.skippedFeatures;
       return work([
-        { label: 'Map or skip every feature', done: open === 0, detail: open === 0 ? `${count(s.features)} done` : `${count(open)} open` },
         {
+          subStep: SUB_STEPS.mapFeatures.number,
+          label: 'Map or skip every feature',
+          done: open === 0,
+          detail: open === 0 ? `${count(s.features)} done` : `${count(open)} open`,
+        },
+        {
+          subStep: SUB_STEPS.mapFeatures.number,
           label: 'Set the reference entity of each A feature source',
           done: s.sourcesWithoutEntity === 0,
           ...(s.sourcesWithoutEntity > 0 ? { detail: `${count(s.sourcesWithoutEntity)} open` } : {}),
@@ -86,11 +100,13 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
           ? []
           : [
               {
+                subStep: SUB_STEPS.records.number,
                 label: 'Add the records of each reference entity',
                 done: s.entitiesWithoutRecords === 0,
                 ...(s.entitiesWithoutRecords > 0 ? { detail: `${count(s.entitiesWithoutRecords)} without records` } : {}),
               },
               {
+                subStep: SUB_STEPS.records.number,
                 label: 'Fill or skip an ETIM value per record and feature',
                 done: s.recordValues > 0 && s.mappedRecordValues + s.skippedRecordValues === s.recordValues,
                 detail:
@@ -98,6 +114,7 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
                   (s.skippedRecordValues > 0 ? `, ${count(s.skippedRecordValues)} skipped` : ''),
               },
               {
+                subStep: SUB_STEPS.records.number,
                 label: 'Create the record attributes on each reference entity in Akeneo',
                 detail: `${count(s.entityAttributes)} text attributes on ${count(s.sourceEntities)} ${s.sourceEntities === 1 ? 'entity' : 'entities'}, listed on each entity`,
               },
@@ -107,6 +124,7 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
           ? []
           : [
               {
+                subStep: SUB_STEPS.sourceValues.number,
                 label: 'Tick the yes values of each L feature',
                 done: s.logicalWithoutYes === 0,
                 ...(s.logicalWithoutYes > 0 ? { detail: `${count(s.logicalWithoutYes)} open` } : {}),
@@ -115,7 +133,14 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
       const linkTasks: StepTask[] =
         s.sourcesWithoutEntity === 0
           ? []
-          : [{ label: 'Set the reference entity of each A feature source (step 4)', done: false, detail: `${count(s.sourcesWithoutEntity)} open` }];
+          : [
+              {
+                subStep: SUB_STEPS.mapFeatures.number,
+                label: 'Set the reference entity of each A feature source',
+                done: false,
+                detail: `${count(s.sourcesWithoutEntity)} open`,
+              },
+            ];
       return work([...linkTasks, ...entityTasks, ...logicalTasks]);
     }
     case 'review': {

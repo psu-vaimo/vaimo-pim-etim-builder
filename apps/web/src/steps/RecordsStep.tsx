@@ -24,6 +24,8 @@ import { RecordAttributeTable } from '../components/RecordAttributeTable.js';
 import { exceptionsText, filledText, isComplete, providesText, recordsText } from '../format/sourceEntityText.js';
 import { sourceEntitySummaries, type SourceEntityFeatureSummary } from '../review/reviewRows.js';
 import { LogicalSources } from './LogicalSources.js';
+import { SubStep } from '../components/SubStep.js';
+import { SUB_STEPS } from '../workspace/sections.js';
 
 type AppDispatch = Dispatch<AppAction>;
 
@@ -45,31 +47,37 @@ export function RecordsStep() {
 
   return (
     <Stack gap="lg" mt="md">
-      <Title order={3}>Reference entity records of A features</Title>
-      <Text size="sm" c="dimmed">
-        A reference entity provides the A features mapped from its client attributes: the selected record provides the ETIM
-        value. Map each record to an ETIM value per feature it provides. The export writes one record import file per reference entity, filling the record attributes{' '}
-        {sourceRecordAttribute(project, 'EF000139')} (value code) and {sourceRecordAttribute(project, 'EF000139')}
-        {project.settings.codes.labelSuffix} (value label). When a record needs another value in one class, add a class value: the
-        feature then gets the record attributes {sourceRecordAttribute(project, 'EF000139')}_ec000009 and its label, and a rule that only
-        runs for that class. Click a reference entity to open it.
-      </Text>
-      {collected.entities.length === 0 && (
-        <Alert color="gray" data-testid="records-empty">
-          No reference entity provides an A feature yet. Map A features in step 4, Mapping: Feature to Source attribute, and set the reference entity of their
-          source attribute (or upload the Akeneo attribute export, which has it).
-        </Alert>
-      )}
-      {collected.issues
-        .filter((i) => i.featureKey !== undefined)
-        .map((issue, i) => (
-          <Alert key={i} color="yellow" p="xs">
-            <Text size="sm">{issue.message}</Text>
+      <SubStep
+        step={SUB_STEPS.records}
+        description={
+          <>
+            A reference entity provides the A features mapped from its client attributes: the selected record provides the ETIM
+            value. Map each record to an ETIM value per feature it provides. The export writes one record import file per reference entity, filling the record attributes{' '}
+            {sourceRecordAttribute(project, 'EF000139')} (value code) and {sourceRecordAttribute(project, 'EF000139')}
+            {project.settings.codes.labelSuffix} (value label). When a record needs another value in one class, add a class value: the
+            feature then gets the record attributes {sourceRecordAttribute(project, 'EF000139')}_ec000009 and its label, and a rule that only
+            runs for that class. Click a reference entity to open it.
+          </>
+        }
+        testId="sub-step-records"
+      >
+        {collected.entities.length === 0 && (
+          <Alert color="gray" data-testid="records-empty">
+            No reference entity provides an A feature yet. Map A features in step 4.2, Map features, and set the reference entity of their
+            source attribute (or upload the Akeneo attribute export in step 4.1, which has it).
           </Alert>
+        )}
+        {collected.issues
+          .filter((i) => i.featureKey !== undefined)
+          .map((issue, i) => (
+            <Alert key={i} color="yellow" p="xs">
+              <Text size="sm">{issue.message}</Text>
+            </Alert>
+          ))}
+        {collected.entities.map((plan) => (
+          <EntityPanel key={plan.code} plan={plan} release={release} project={project} locale={locale} dispatch={dispatch} />
         ))}
-      {collected.entities.map((plan) => (
-        <EntityPanel key={plan.code} plan={plan} release={release} project={project} locale={locale} dispatch={dispatch} />
-      ))}
+      </SubStep>
       <LogicalSources release={release} project={project} locale={locale} dispatch={dispatch} />
     </Stack>
   );

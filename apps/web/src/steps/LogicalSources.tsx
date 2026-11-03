@@ -11,6 +11,8 @@ import { ActionIcon, Alert, Badge, Button, Checkbox, Group, Pagination, Paper, S
 import { Dropzone } from '@mantine/dropzone';
 import { memo, useDeferredValue, useMemo, useState, type Dispatch } from 'react';
 import { codeError } from '../mapping/sourceMappings.js';
+import { SubStep } from '../components/SubStep.js';
+import { SUB_STEPS } from '../workspace/sections.js';
 import type { AppAction } from '../state/appState.js';
 import { TEXT_COLORS } from '../theme.js';
 import { providesText } from '../format/sourceEntityText.js';
@@ -54,16 +56,14 @@ export function LogicalSources({ release, project, locale, dispatch }: Props) {
   }
 
   return (
-    <Stack gap="sm" data-testid="logical-sources">
-      <Title order={3}>Source values of L features</Title>
-      <Text size="sm" c="dimmed">
-        A client attribute provides L (logical) features: a Yes/No attribute is copied, for another attribute, such as a simple select,
-        tick the values meaning yes per feature. Any other value sets the feature to false, an empty source leaves it empty. Upload
-        the Akeneo attribute option export to list the values, or add them by hand. Click a source attribute to open it.
-      </Text>
+    <SubStep
+      step={SUB_STEPS.sourceValues}
+      description="A client attribute provides L (logical) features: a Yes/No attribute is copied, for another attribute, such as a simple select, tick the values meaning yes per feature. Any other value sets the feature to false, an empty source leaves it empty. Upload the Akeneo attribute option export to list the values, or add them by hand. Click a source attribute to open it."
+      testId="logical-sources"
+    >
       {plans.length === 0 ? (
         <Alert color="gray" data-testid="logical-empty">
-          No source attribute provides an L feature yet. Map L features in step 4, Mapping: Feature to Source attribute.
+          No source attribute provides an L feature yet. Map L features in step 4.2, Map features.
         </Alert>
       ) : (
         <>
@@ -89,7 +89,7 @@ export function LogicalSources({ release, project, locale, dispatch }: Props) {
           ))}
         </>
       )}
-    </Stack>
+    </SubStep>
   );
 }
 

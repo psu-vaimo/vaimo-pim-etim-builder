@@ -1,5 +1,5 @@
 import type { NumericSetup, RangeSetup } from '@akeneo-etim/core';
-import { Paper, Radio, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Radio, SimpleGrid, Stack } from '@mantine/core';
 
 const NUMERIC_OPTIONS: { value: NumericSetup; label: string; description: string }[] = [
   { value: 'number', label: 'Number', description: 'Plain number attribute, the unit is only shown in the label.' },
@@ -30,14 +30,7 @@ interface Props {
 /** Project defaults for N and R features, each feature can override them in the table below. */
 export function DefaultsPanel({ numeric, range, onNumeric, onRange }: Props) {
   return (
-    <Paper withBorder p="md">
-      <Title order={4} mb={4}>
-        Project defaults
-      </Title>
-      <Text size="sm" c="dimmed" mb="sm">
-        Used by every feature without its own setting in the feature table.
-      </Text>
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
         <Radio.Group
           label="Numeric features (N)"
           value={numeric}
@@ -62,7 +55,6 @@ export function DefaultsPanel({ numeric, range, onNumeric, onRange }: Props) {
             ))}
           </Stack>
         </Radio.Group>
-      </SimpleGrid>
-    </Paper>
+    </SimpleGrid>
   );
 }
