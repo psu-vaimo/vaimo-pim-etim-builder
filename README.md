@@ -2,7 +2,7 @@
 
 **Build an ETIM data model in Akeneo without the spreadsheet.**
 
-Open the app: [https://psu-vaimo.github.io/vaimo-pim-etim-builder/](https://vaimo.github.io/pim-etim-builder/)
+Open the app: https://vaimo.github.io/pim-etim-builder
 
 ## What is it
 
