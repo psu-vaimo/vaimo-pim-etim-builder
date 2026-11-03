@@ -1,7 +1,6 @@
 import type { ProjectFeature } from '@akeneo-etim/core';
 import { describe, expect, it } from 'vitest';
 import {
-  EXPORT_SECTION,
   SECTIONS,
   canOpen,
   clampSection,
@@ -28,13 +27,14 @@ const input = (patch: Partial<StatusInput> = {}): StatusInput => ({
   recordValues: 10,
   mappedRecordValues: 4,
   skippedRecordValues: 0,
+  logicalSources: 0,
+  logicalWithoutYes: 0,
   ...patch,
 });
 
 describe('sections', () => {
-  it('lists the wizard steps in order, Export last', () => {
+  it('lists the steps in order, Export last', () => {
     expect(SECTIONS.map((s) => s.id)).toEqual(['import', 'classes', 'features', 'mapping', 'records', 'review', 'export']);
-    expect(EXPORT_SECTION).toBe(6);
   });
 
   it('clamps indexes to existing sections', () => {
@@ -132,10 +132,19 @@ describe('records status', () => {
   const status = (patch: Partial<StatusInput>) => sectionStatuses(input(patch))[4];
 
   it('shows mapped record values, muted without entities and a warning without records', () => {
-    expect(status({ sourceEntities: 0, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: 'No reference entity sources', tone: 'muted' });
+    expect(status({ sourceEntities: 0, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: 'No reference entity or L sources', tone: 'muted' });
     expect(status({ sourceEntities: 2, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: '2 entities, no records', tone: 'warning' });
     expect(status({ recordValues: 6, mappedRecordValues: 6 })).toEqual({ text: '6 of 6 values filled', tone: 'ok' });
     expect(status({ recordValues: 6, mappedRecordValues: 4, skippedRecordValues: 2 })).toEqual({ text: '4 of 6 values filled, 2 skipped', tone: 'ok' });
+  });
+
+  it('adds L features without yes values', () => {
+    expect(status({ sourceEntities: 0, logicalSources: 2 })).toEqual({ text: '2 L sources done', tone: 'ok' });
+    expect(status({ sourceEntities: 0, logicalSources: 2, logicalWithoutYes: 1 })).toEqual({ text: '1 L feature without yes values', tone: 'warning' });
+    expect(status({ recordValues: 6, mappedRecordValues: 6, logicalSources: 1, logicalWithoutYes: 2 })).toEqual({
+      text: '6 of 6 values filled, 2 L features without yes values',
+      tone: 'warning',
+    });
   });
 
   it('counts record values per entity', () => {

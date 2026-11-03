@@ -7,6 +7,9 @@ import {
   withEntityRecords as withProjectEntityRecords,
   withRecordSkipped,
   withRecordValue,
+  withSourceOptions,
+  withYesValue,
+  withoutSourceOption,
   type AkeneoUnit,
   type EtimClass,
   type EtimRelease,
@@ -22,6 +25,7 @@ import {
   type RangeSetup,
   type SourceAttribute,
   type SourceMapping,
+  type SourceOption,
   type SourceRecord,
 } from '@akeneo-etim/core';
 import { withoutSources } from '../mapping/sourceMappings.js';
@@ -87,6 +91,18 @@ export type AppAction =
   | { type: 'setSourceRecordValue'; entity: string; code: string; featureId: string; classId?: string; valueId: string | null }
   /** Marks a record as providing no ETIM value for a feature on purpose, or takes that back. Ignored when the record has a value. */
   | { type: 'setSourceRecordSkipped'; entity: string; code: string; featureId: string; skipped: boolean }
+  /** Skips or unskips every listed feature of one record at once, features with a value are left as they are. */
+  | { type: 'setSourceRecordSkippedAll'; entity: string; code: string; featureIds: readonly string[]; skipped: boolean }
+  /**
+   * Replaces the options of the listed source attributes, e.g. from an uploaded attribute option export.
+   * Yes values are kept, a yes value no longer listed shows as not listed.
+   */
+  | { type: 'replaceSourceOptions'; options: Readonly<Record<string, readonly SourceOption[]>> }
+  | { type: 'addSourceOption'; attribute: string; option: SourceOption }
+  /** Removes an option, also from the yes values of the features its attribute provides. */
+  | { type: 'removeSourceOption'; attribute: string; code: string }
+  /** Adds a source value to the yes values of an L feature's source, or removes it. */
+  | { type: 'setYesValue'; key: FeatureKey; value: string; yes: boolean }
   /** Patches code, group and label settings and the rule priority. Values are stored as typed, validation is shown in the UI. */
   | { type: 'updateSettings'; patch: SettingsPatch }
   /** Resets codes, groups, label words and rule priority to the defaults, keeps number/range defaults and unit mappings. */
@@ -232,6 +248,24 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'setSourceRecordSkipped':
       return withEntityRecords(state, action.entity, (old) =>
         old.map((r) => (r.code === action.code ? withRecordSkipped(r, action.featureId, action.skipped) : r)),
+      );
+    case 'replaceSourceOptions': {
+      let project = state.project;
+      for (const [attribute, options] of Object.entries(action.options)) project = withSourceOptions(project, attribute, options);
+      return { ...state, project };
+    }
+    case 'addSourceOption': {
+      const current = state.project.sourceOptions?.[action.attribute] ?? [];
+      if (current.some((o) => o.code === action.option.code)) return state;
+      return { ...state, project: withSourceOptions(state.project, action.attribute, [...current, action.option]) };
+    }
+    case 'removeSourceOption':
+      return { ...state, project: withoutSourceOption(state.project, action.attribute, action.code) };
+    case 'setYesValue':
+      return { ...state, project: withYesValue(state.project, action.key, action.value, action.yes) };
+    case 'setSourceRecordSkippedAll':
+      return withEntityRecords(state, action.entity, (old) =>
+        old.map((r) => (r.code === action.code ? action.featureIds.reduce((rec, id) => withRecordSkipped(rec, id, action.skipped), r) : r)),
       );
     case 'setSourceAttributes': {
       const { sourceAttributes: _old, ...project } = state.project;

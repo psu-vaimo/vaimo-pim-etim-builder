@@ -19,9 +19,9 @@ export interface SourceMapping {
    */
   second?: string;
   /**
-   * L only, source values meaning yes. Given: `true` when the source is one of
-   * them, `false` for any other value. Not given: the source is a boolean and
-   * is copied.
+   * L only, source values meaning yes, picked per source value on the source
+   * record step (5). Given: `true` when the source is one of them, `false` for
+   * any other value. Not given: the source is a boolean and is copied.
    */
   yesValues?: string[];
 }
@@ -129,6 +129,12 @@ export interface SourceRecord {
   skipped?: string[];
 }
 
+/** A value of a client source attribute providing L features, e.g. an option of a simple select. */
+export interface SourceOption {
+  code: string;
+  labels: Record<string, string>;
+}
+
 /** A client reference entity that provides A features, with its records. */
 export interface SourceEntity {
   /** Reference entity code in Akeneo, e.g. `surface_treatment`. */
@@ -167,6 +173,12 @@ export interface Project {
   sourceEntityLinks?: Record<string, string>;
   /** Client reference entities with their records and ETIM value mapping, sorted by code. */
   sourceEntities?: SourceEntity[];
+  /**
+   * Source attribute code to its values (options), for sources of L features,
+   * from an uploaded Akeneo attribute option export or added by hand. Which
+   * of them mean yes is `yesValues` on each feature's source.
+   */
+  sourceOptions?: Record<string, SourceOption[]>;
   /** Set by the ETIM import, left out until an export is imported. */
   etimSource?: EtimSource;
 }

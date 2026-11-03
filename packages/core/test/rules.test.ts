@@ -213,7 +213,7 @@ describe('generateRules', () => {
     );
     expect(issues.map((i) => [i.featureKey, i.message])).toEqual([
       ['EF000139', 'Source att_text is pim_catalog_text, an A feature needs a reference entity attribute (akeneo_reference_entity)'],
-      ['EF015003', 'Source att_select is pim_catalog_simpleselect, without yes values an L feature needs a Yes/No attribute (pim_catalog_boolean)'],
+      ['EF015003', 'Source att_select is pim_catalog_simpleselect, without yes values an L feature needs a Yes/No attribute (pim_catalog_boolean), tick the yes values in step 5'],
       ['EF015006_EU570448', 'Source att_unknown is not in the uploaded Akeneo attributes'],
     ]);
   });

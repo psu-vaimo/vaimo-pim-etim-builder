@@ -1,6 +1,12 @@
 import { createTheme, type CSSVariablesResolver } from '@mantine/core';
 
-export const theme = createTheme({});
+/**
+ * Mantine's dark scale with the background steps (4 to 9) darker, so the body (`dark[7]`), papers and inputs sit on a
+ * near black page. Text steps (0 to 3) are unchanged.
+ */
+const DARK = ['#C9C9C9', '#b8b8b8', '#828282', '#696969', '#383838', '#2c2c2c', '#222222', '#181818', '#121212', '#0b0b0b'] as const;
+
+export const theme = createTheme({ colors: { dark: [...DARK] } });
 
 /**
  * Higher text contrast than the Mantine defaults: dimmed text and placeholders one or two steps darker (lighter in dark mode),

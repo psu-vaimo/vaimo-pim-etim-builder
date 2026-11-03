@@ -254,7 +254,7 @@ function checkKnownSources(
     issues.push({
       severity: 'warning',
       featureKey: key,
-      message: `Source ${attr.code} is ${attr.type}, without yes values an L feature needs a Yes/No attribute (pim_catalog_boolean)`,
+      message: `Source ${attr.code} is ${attr.type}, without yes values an L feature needs a Yes/No attribute (pim_catalog_boolean), tick the yes values in step 5`,
     });
   }
 }

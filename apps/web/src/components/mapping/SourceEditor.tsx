@@ -22,7 +22,6 @@ import {
   Group,
   Paper,
   Stack,
-  TagsInput,
   Text,
   TextInput,
   Title,
@@ -100,8 +99,9 @@ function TypeHelp({ row, project }: { row: MappingRow; project: Project }) {
     case 'L':
       return (
         <Text size="sm">
-          With yes values, {mono(code)} is set to true when the source is one of them and to false for any other value. An empty
-          source leaves it empty. Without yes values the source must be a Yes/No attribute and is copied.
+          A Yes/No source is copied to {mono(code)}. For another source, such as a simple select, pick the values meaning yes in step 5,
+          Mapping: Source record to Value: {mono(code)} is then set to true when the source is one of them and to false for any other
+          value. An empty source leaves it empty.
         </Text>
       );
     case 'R': {
@@ -175,6 +175,8 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
 
   const update = (index: number, patch: Partial<SourceDraft>) =>
     setDrafts((list) => list.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+  // Yes values are picked per source value on step 5, they belong to the saved attribute and go when another one is typed.
+  const yesValuesFor = (attribute: string) => row.sources.find((s) => s.attribute === attribute.trim())?.yesValues ?? [];
   const known = useMemo(() => new Map((project.sourceAttributes ?? []).map((a) => [a.code, a])), [project.sourceAttributes]);
   const codes = useMemo(() => [...known.keys()], [known]);
   const sourceInput = (index: number, field: 'attribute' | 'second', label: string, value: string, error: string | undefined) => (
@@ -186,7 +188,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
       limit={50}
       value={value}
       error={error}
-      onChange={(v) => update(index, { [field]: v })}
+      onChange={(v) => update(index, field === 'attribute' ? { attribute: v, yesValues: yesValuesFor(v) } : { second: v })}
       renderOption={({ option }) => <SourceOption code={option.value} attribute={known.get(option.value)} locale={locale} />}
       styles={MONO_INPUT}
       data-testid={`source-${field}-${index}`}
@@ -239,18 +241,6 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
                     onChange={(e) => setEntityEdit(e.currentTarget.value)}
                     styles={MONO_INPUT}
                     data-testid="source-entity"
-                  />
-                )}
-                {row.type === 'L' && (
-                  <TagsInput
-                    label="Yes values (optional)"
-                    description="Source values meaning yes, press Enter after each"
-                    placeholder="yes"
-                    value={d.yesValues}
-                    onChange={(yesValues) => update(i, { yesValues })}
-                    acceptValueOnBlur
-                    clearable
-                    data-testid={`source-yes-${i}`}
                   />
                 )}
               </Stack>

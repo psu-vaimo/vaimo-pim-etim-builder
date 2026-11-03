@@ -27,7 +27,7 @@ export function MissingClassesAlert() {
       )}
       {locales.length > 0 && (
         <Text size="sm" mt={missing.length > 0 ? 'xs' : 0}>
-          Project locales without ETIM labels, add these languages in step 1, Setup ETIM versions, or deselect them in step 2, Select Classes:
+          Project locales without ETIM labels, add these languages in step 1, Setup ETIM versions, or deselect them in step 2, Select Classes and Locales:
         </Text>
       )}
       {locales.length > 0 && (

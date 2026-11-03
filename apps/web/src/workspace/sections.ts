@@ -1,16 +1,12 @@
 import { isRecordValueSkipped, mappingStatus, type MappingStatus, type Project, type ProjectFeature, type SourceEntityPlan } from '@akeneo-etim/core';
 
-/**
- * The setup screens, shared by the wizard (Stepper, in order) and the
- * workspace (sidebar, any order). The index is the same in both modes, so
- * switching mode keeps the current screen.
- */
+/** The numbered steps of the workspace, opened from the sidebar in any order. */
 export const SECTIONS = [
   { id: 'import', label: 'Setup ETIM versions', description: 'Upload ETIM export and translations' },
-  { id: 'classes', label: 'Select Classes', description: 'Select classes and locales' },
+  { id: 'classes', label: 'Select Classes and Locales', description: 'Select classes and locales' },
   { id: 'features', label: 'Configure Features', description: 'Types, units, ranges' },
   { id: 'mapping', label: 'Mapping: Feature to Source attribute', description: 'Client source attributes' },
-  { id: 'records', label: 'Mapping: Source record to Value', description: 'Reference entity records to ETIM values' },
+  { id: 'records', label: 'Mapping: Source record to Value', description: 'Records and source values to ETIM values' },
   { id: 'review', label: 'Review ETIM data model', description: 'Attributes, dependencies, rules' },
   { id: 'export', label: 'Export ETIM data model', description: 'Akeneo import files' },
 ] as const;
@@ -18,7 +14,6 @@ export const SECTIONS = [
 export type SectionId = (typeof SECTIONS)[number]['id'];
 
 export const SECTION_COUNT = SECTIONS.length;
-export const EXPORT_SECTION = SECTIONS.findIndex((s) => s.id === 'export');
 
 export interface GuardInput {
   /** Base import loaded without errors, see `isReleaseReady`. */
@@ -28,9 +23,9 @@ export interface GuardInput {
 }
 
 /**
- * Why a section cannot be opened, `undefined` when it can. Same guards as the
- * wizard: everything after Import needs a release without errors, everything
- * after Classes needs a selected class.
+ * Why a section cannot be opened, `undefined` when it can: everything after
+ * Import needs a release without errors, everything after Classes needs a
+ * selected class.
  */
 export function guardReason(index: number, { ready, hasClasses }: GuardInput): string | undefined {
   if (index <= 0) return undefined;
@@ -68,6 +63,9 @@ export interface StatusInput extends GuardInput {
   mappedRecordValues: number;
   /** Record values skipped on purpose, no ETIM value. */
   skippedRecordValues: number;
+  /** Source attributes providing L features, and the L features of non Yes/No sources without yes values. */
+  logicalSources: number;
+  logicalWithoutYes: number;
   /** Generator issues, `undefined` while not computed yet. */
   generatorErrors: number | undefined;
   generatorWarnings: number | undefined;
@@ -123,15 +121,23 @@ export function sectionStatuses(s: StatusInput): SectionStatus[] {
             (s.skippedFeatures > 0 ? `, ${s.skippedFeatures.toLocaleString('en-US')} skipped` : ''),
           tone: s.mappedFeatures > 0 ? 'ok' : 'muted',
         };
-      case 'records':
-        if (s.sourceEntities === 0) return { text: 'No reference entity sources', tone: 'muted' };
+      case 'records': {
+        const logical: SectionStatus | undefined =
+          s.logicalWithoutYes > 0 ? { text: `${plural(s.logicalWithoutYes, 'L feature')} without yes values`, tone: 'warning' } : undefined;
+        if (s.sourceEntities === 0) {
+          if (s.logicalSources === 0) return { text: 'No reference entity or L sources', tone: 'muted' };
+          return logical ?? { text: `${plural(s.logicalSources, 'L source')} done`, tone: 'ok' };
+        }
         if (s.recordValues === 0) return { text: plural(s.sourceEntities, 'entity', 'entities') + ', no records', tone: 'warning' };
+        const recordsDone = s.mappedRecordValues + s.skippedRecordValues === s.recordValues;
         return {
           text:
             `${s.mappedRecordValues.toLocaleString('en-US')} of ${s.recordValues.toLocaleString('en-US')} values filled` +
-            (s.skippedRecordValues > 0 ? `, ${s.skippedRecordValues.toLocaleString('en-US')} skipped` : ''),
-          tone: s.mappedRecordValues + s.skippedRecordValues === s.recordValues ? 'ok' : 'warning',
+            (s.skippedRecordValues > 0 ? `, ${s.skippedRecordValues.toLocaleString('en-US')} skipped` : '') +
+            (logical ? `, ${logical.text}` : ''),
+          tone: recordsDone && !logical ? 'ok' : 'warning',
         };
+      }
       case 'review':
         return issues;
       case 'export':

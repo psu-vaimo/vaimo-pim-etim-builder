@@ -1,4 +1,4 @@
-/* Header: one row from md up, two rows below (title and mode switch, then the project bar). */
+/* Header: one row from md up, two rows below (burger and title, then the project bar). */
 .app-header {
   height: 100%;
   padding: 6px var(--mantine-spacing-md);

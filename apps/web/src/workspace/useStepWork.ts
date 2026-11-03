@@ -1,4 +1,12 @@
-import { akeneoManualSteps, collectProjectFeatures, collectSourceEntities, featureRecordAttributes, sourceEntityFor } from '@akeneo-etim/core';
+import {
+  akeneoManualSteps,
+  collectLogicalSources,
+  collectProjectFeatures,
+  collectSourceEntities,
+  featureRecordAttributes,
+  featuresWithoutYesValues,
+  sourceEntityFor,
+} from '@akeneo-etim/core';
 import { useDeferredValue, useMemo } from 'react';
 import { metricUnitRows } from '../features/featureRows.js';
 import { useGeneratedModel } from '../review/generated.js';
@@ -20,6 +28,10 @@ export function useStepWork(state: AppState, id: SectionId): StepWork {
   const features = useMemo(() => (release ? collectProjectFeatures(release, project).features : []), [release, project]);
   const entities = useMemo(
     () => (ready && hasClasses && release ? collectSourceEntities(release, project).entities : []),
+    [ready, hasClasses, release, project],
+  );
+  const logical = useMemo(
+    () => (ready && hasClasses && release ? collectLogicalSources(release, project) : []),
     [ready, hasClasses, release, project],
   );
   const model = useGeneratedModel(ready && hasClasses ? release : undefined, project);
@@ -49,10 +61,12 @@ export function useStepWork(state: AppState, id: SectionId): StepWork {
       recordValues: records.recordValues,
       mappedRecordValues: records.mappedRecordValues,
       skippedRecordValues: records.skippedRecordValues,
+      logicalSources: logical.length,
+      logicalWithoutYes: featuresWithoutYesValues(logical).length,
       entityAttributes: entities.reduce((n, e) => n + e.features.flatMap((f) => featureRecordAttributes(project, f)).length, 0),
       generatorErrors: errors,
       generatorWarnings: model && errors !== undefined ? model.issues.length - errors : undefined,
       akeneoSteps: id === 'export' ? akeneoManualSteps(project, entities) : [],
     });
-  }, [id, ready, release, features, project, locale, entities, model]);
+  }, [id, ready, release, features, project, locale, entities, logical, model]);
 }

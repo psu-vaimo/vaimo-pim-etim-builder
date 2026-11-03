@@ -6,7 +6,7 @@ import { openTasks, type StepTask } from '../workspace/stepTasks.js';
 import { useStepWork } from '../workspace/useStepWork.js';
 import { useAppState } from '../state/AppStateContext.js';
 import { TEXT_COLORS } from '../theme.js';
-import { loadWorkCollapsed, saveWorkCollapsed } from '../workspace/viewMode.js';
+import { loadWorkCollapsed, saveWorkCollapsed } from '../workspace/workCollapsed.js';
 
 /** Done, open, or work the app cannot check (the download, the steps in Akeneo). */
 function TaskIcon({ done }: { done: boolean | undefined }) {

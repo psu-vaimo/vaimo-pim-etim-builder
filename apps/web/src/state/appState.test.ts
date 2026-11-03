@@ -323,6 +323,35 @@ describe('source entities', () => {
   });
 });
 
+describe('setSourceRecordSkippedAll', () => {
+  it('skips and unskips every listed feature without a value', () => {
+    let state = appReducer(initialState(), { type: 'addSourceRecord', entity: 'alu', record: { code: 'a', labels: {}, values: { EF1: 'EV1' } } });
+    state = appReducer(state, { type: 'setSourceRecordSkippedAll', entity: 'alu', code: 'a', featureIds: ['EF1', 'EF3', 'EF2'], skipped: true });
+    expect(state.project.sourceEntities?.[0]?.records[0]?.skipped).toEqual(['EF2', 'EF3']);
+    state = appReducer(state, { type: 'setSourceRecordSkippedAll', entity: 'alu', code: 'a', featureIds: ['EF2', 'EF3'], skipped: false });
+    expect(state.project.sourceEntities?.[0]?.records[0]).toEqual({ code: 'a', labels: {}, values: { EF1: 'EV1' } });
+  });
+});
+
+describe('source options', () => {
+  it('replaces, adds and removes options and sets yes values', () => {
+    let state = appReducer(initialState(), { type: 'setFeatureSources', key: 'EF1', featureType: 'L', sources: [{ attribute: 'att_finish' }] });
+    state = appReducer(state, {
+      type: 'replaceSourceOptions',
+      options: { att_finish: [{ code: 'zinc', labels: {} }, { code: 'none', labels: {} }] },
+    });
+    state = appReducer(state, { type: 'addSourceOption', attribute: 'att_finish', option: { code: 'hot_dip', labels: {} } });
+    state = appReducer(state, { type: 'addSourceOption', attribute: 'att_finish', option: { code: 'zinc', labels: { en_US: 'Again' } } });
+    expect(state.project.sourceOptions?.att_finish?.map((o) => o.code)).toEqual(['zinc', 'none', 'hot_dip']);
+    state = appReducer(state, { type: 'setYesValue', key: 'EF1', value: 'hot_dip', yes: true });
+    state = appReducer(state, { type: 'setYesValue', key: 'EF1', value: 'zinc', yes: true });
+    expect(state.project.features.EF1?.sources).toEqual([{ attribute: 'att_finish', yesValues: ['zinc', 'hot_dip'] }]);
+    state = appReducer(state, { type: 'removeSourceOption', attribute: 'att_finish', code: 'zinc' });
+    expect(state.project.features.EF1?.sources).toEqual([{ attribute: 'att_finish', yesValues: ['hot_dip'] }]);
+    expect(state.project.sourceOptions?.att_finish?.map((o) => o.code)).toEqual(['none', 'hot_dip']);
+  });
+});
+
 describe('setSourceAttributes', () => {
   it('stores and removes the uploaded attributes', () => {
     const attributes = [{ code: 'att_a', type: 'pim_catalog_text', labels: {} }];

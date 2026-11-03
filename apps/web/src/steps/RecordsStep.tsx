@@ -23,13 +23,17 @@ import { ACTION_INPUT, DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
 import { CodeList } from '../components/CodeList.js';
 import { exceptionsText, filledText, isComplete, providesText, recordsText } from '../format/sourceEntityText.js';
 import { sourceEntitySummaries, type SourceEntityFeatureSummary } from '../review/reviewRows.js';
+import { LogicalSources } from './LogicalSources.js';
 
 type AppDispatch = Dispatch<AppAction>;
 
 const PAGE_SIZE = 25;
 const VALUE_ID = /^EV\d{6}$/;
 
-/** Maps the records of the client reference entities that provide A features to ETIM values. */
+/**
+ * Maps the records of the client reference entities that provide A features to ETIM values, and the values of the
+ * client attributes that provide L features to yes or no.
+ */
 export function RecordsStep() {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -41,6 +45,7 @@ export function RecordsStep() {
 
   return (
     <Stack gap="lg" mt="md">
+      <Title order={3}>Reference entity records of A features</Title>
       <Text size="sm" c="dimmed">
         A reference entity provides the A features mapped from its client attributes: the selected record provides the ETIM
         value. Map each record to an ETIM value per feature it provides. The export writes one record import file per reference entity, filling the record attributes{' '}
@@ -65,6 +70,7 @@ export function RecordsStep() {
       {collected.entities.map((plan) => (
         <EntityPanel key={plan.code} plan={plan} release={release} project={project} locale={locale} dispatch={dispatch} />
       ))}
+      <LogicalSources release={release} project={project} locale={locale} dispatch={dispatch} />
     </Stack>
   );
 }
@@ -299,6 +305,9 @@ interface RowProps {
 }
 
 const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, locale, dispatch }: RowProps) {
+  const open = plan.features.filter((f) => !record.values[f.featureId]).map((f) => f.featureId);
+  // The whole record is skipped when every feature without a value is skipped.
+  const recordSkipped = open.length > 0 && open.every((id) => isRecordValueSkipped(record, id));
   const setValue = (featureId: string, classId: string | undefined, valueId: string | null) =>
     dispatch({ type: 'setSourceRecordValue', entity: plan.code, code: record.code, featureId, ...(classId ? { classId } : {}), valueId });
   return (
@@ -346,16 +355,31 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
         </Table.Td>
       ))}
       <Table.Td style={{ verticalAlign: 'top' }}>
-        <Tooltip label="Remove record">
-          <ActionIcon
-            variant="default"
-            aria-label="Remove record"
-            onClick={() => dispatch({ type: 'removeSourceRecord', entity: plan.code, code: record.code })}
-            data-testid={`record-remove-${record.code}`}
-          >
-            ×
-          </ActionIcon>
-        </Tooltip>
+        <Group gap={4} wrap="nowrap">
+          {open.length > 0 && (
+            <Tooltip label={recordSkipped ? 'Back to not mapped' : 'Skip every value of this record without an ETIM value, its record attributes stay empty'}>
+              <Button
+                size="compact-xs"
+                variant="subtle"
+                color="gray"
+                onClick={() => dispatch({ type: 'setSourceRecordSkippedAll', entity: plan.code, code: record.code, featureIds: open, skipped: !recordSkipped })}
+                data-testid={`record-skip-${record.code}`}
+              >
+                {recordSkipped ? 'Unskip record' : 'Skip record'}
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip label="Remove record">
+            <ActionIcon
+              variant="default"
+              aria-label="Remove record"
+              onClick={() => dispatch({ type: 'removeSourceRecord', entity: plan.code, code: record.code })}
+              data-testid={`record-remove-${record.code}`}
+            >
+              ×
+            </ActionIcon>
+          </Tooltip>
+        </Group>
       </Table.Td>
     </Table.Tr>
   );

@@ -16,6 +16,8 @@ const input = (patch: Partial<TaskInput> = {}): TaskInput => ({
   recordValues: 10,
   mappedRecordValues: 8,
   skippedRecordValues: 2,
+  logicalSources: 0,
+  logicalWithoutYes: 0,
   entityAttributes: 4,
   generatorErrors: 2,
   generatorWarnings: 0,
@@ -37,6 +39,13 @@ describe('stepWork', () => {
       { label: 'Create the record attributes on each reference entity in Akeneo', detail: '4 text attributes on 1 entity, listed on each entity' },
     ]);
     expect(stepWork('review', input()).tasks).toEqual([{ label: 'Fix all errors', done: false, detail: '2 open' }]);
+  });
+
+  it('adds the yes values of L features to the records step, also without reference entities', () => {
+    expect(stepWork('records', input({ sourceEntities: 0, logicalSources: 2, logicalWithoutYes: 3 })).tasks).toEqual([
+      { label: 'Tick the yes values of each L feature', done: false, detail: '3 open' },
+    ]);
+    expect(stepWork('records', input({ logicalSources: 1 })).tasks.at(-1)).toEqual({ label: 'Tick the yes values of each L feature', done: true });
   });
 
   it('has nothing open when nothing needs doing', () => {

@@ -7,14 +7,12 @@ import {
   Group,
   NavLink,
   ScrollArea,
-  SegmentedControl,
-  Stack,
-  Stepper,
   Text,
+  ThemeIcon,
   Title,
   Tooltip,
 } from '@mantine/core';
-import { useDisclosure, useMediaQuery } from '@mantine/hooks';
+import { useDisclosure } from '@mantine/hooks';
 import { useState } from 'react';
 import { ProjectBar, type ProjectNotice } from './components/ProjectBar.js';
 import { ClassesStep } from './steps/ClassesStep.js';
@@ -26,9 +24,8 @@ import { RecordsStep } from './steps/RecordsStep.js';
 import { ReviewStep } from './steps/ReviewStep.js';
 import { useAppState } from './state/AppStateContext.js';
 import { hasSelectedClasses, isReleaseReady } from './state/appState.js';
-import { EXPORT_SECTION, SECTIONS, canOpen, guardReason, type StatusTone } from './workspace/sections.js';
+import { SECTIONS, canOpen, guardReason, type StatusTone } from './workspace/sections.js';
 import { useSectionStatuses } from './workspace/useSectionStatuses.js';
-import { loadMode, saveMode, shouldOfferWorkspace, type ViewMode } from './workspace/viewMode.js';
 import './workspace/layout.css';
 import { TEXT_COLORS } from './theme.js';
 import { StepWorkBox } from './components/StepWorkBox.js';
@@ -68,116 +65,81 @@ function StepScreen({ index, label }: { index: number; label: string }) {
 
 const TONE_COLORS: Record<StatusTone, string> = { ok: TEXT_COLORS.ok, warning: TEXT_COLORS.warning, error: TEXT_COLORS.error, muted: 'dimmed' };
 
-const MODE_OPTIONS = [
-  { label: 'Wizard', value: 'wizard' },
-  { label: 'Workspace', value: 'workspace' },
-];
-
 export function App() {
   const state = useAppState();
   const [active, setActive] = useState(0);
-  const [mode, setModeState] = useState<ViewMode>(() => loadMode());
   const [notice, setNotice] = useState<ProjectNotice | undefined>();
-  const [projectLoaded, setProjectLoaded] = useState(false);
-  const [reachedExport, setReachedExport] = useState(false);
-  const [offerDismissed, setOfferDismissed] = useState(false);
   const [navOpened, nav] = useDisclosure(false);
-  const narrow = useMediaQuery('(max-width: 48em)') ?? false;
   const ready = isReleaseReady(state);
   const hasClasses = hasSelectedClasses(state);
   const guard = { ready, hasClasses };
-  const workspace = mode === 'workspace';
-  const statuses = useSectionStatuses(state, workspace);
+  const statuses = useSectionStatuses(state);
 
-  const setMode = (next: ViewMode) => {
-    setModeState(next);
-    saveMode(next);
-    nav.close();
-  };
-  // The wizard and the workspace share the section index, so switching mode keeps the current screen.
   const go = (index: number) => {
     if (!canOpen(index, guard)) return;
     setActive(index);
-    if (index === EXPORT_SECTION && !workspace) setReachedExport(true);
     nav.close();
   };
-  const onNotice = (n: ProjectNotice) => {
-    setNotice(n);
-    if (n.kind === 'loaded') setProjectLoaded(true);
-  };
-  const offer = shouldOfferWorkspace({ mode, ready, projectLoaded, reachedExport, dismissed: offerDismissed });
   const current = SECTIONS[active];
   const blocked = guardReason(active, guard);
+  const next = active + 1 < SECTIONS.length && canOpen(active + 1, guard) ? active + 1 : undefined;
 
   return (
     <AppShell
       header={{ height: { base: 132, sm: 96, md: 56 } }}
-      {...(workspace ? { navbar: { width: 260, breakpoint: 'sm', collapsed: { mobile: !navOpened } } } : {})}
+      navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !navOpened } }}
       padding="md"
     >
       <AppShell.Header>
         <div className="app-header">
-          <Group gap="sm" wrap="nowrap" justify="space-between" className="app-header-main">
-            <Group gap="xs" wrap="nowrap">
-              {workspace && (
-                <Burger opened={navOpened} onClick={nav.toggle} hiddenFrom="sm" size="sm" aria-label="Show sections" data-testid="nav-burger" />
-              )}
-              <Title order={3} className="app-title">
-                Akeneo ETIM
-              </Title>
-            </Group>
-            <SegmentedControl
-              size="xs"
-              value={mode}
-              onChange={(value) => setMode(value === 'workspace' ? 'workspace' : 'wizard')}
-              data={MODE_OPTIONS}
-              aria-label="View mode"
-              data-testid="mode-switch"
-            />
+          <Group gap="xs" wrap="nowrap" className="app-header-main">
+            <Burger opened={navOpened} onClick={nav.toggle} hiddenFrom="sm" size="sm" aria-label="Show steps" data-testid="nav-burger" />
+            <Title order={3} className="app-title">
+              Akeneo ETIM
+            </Title>
           </Group>
           <div className="app-project-bar">
-            <ProjectBar onNotice={onNotice} />
+            <ProjectBar onNotice={setNotice} />
           </div>
         </div>
       </AppShell.Header>
 
-      {workspace && (
-        <AppShell.Navbar p="xs" data-testid="workspace-nav">
-          <AppShell.Section grow component={ScrollArea}>
-            {SECTIONS.map((section, index) => {
-              const status = statuses[index];
-              const reason = guardReason(index, guard);
-              const link = (
-                <NavLink
-                  component="button"
-                  type="button"
-                  active={active === index}
-                  disabled={reason !== undefined}
-                  aria-disabled={reason !== undefined}
-                  aria-current={active === index ? 'page' : undefined}
-                  label={`${index + 1}. ${section.label}`}
-                  description={
-                    status && (
-                      <Text component="span" size="xs" c={TONE_COLORS[status.tone]} data-testid={`nav-status-${section.id}`}>
-                        {status.text}
-                      </Text>
-                    )
-                  }
-                  onClick={() => go(index)}
-                  data-testid={`nav-${section.id}`}
-                />
-              );
-              return reason === undefined ? (
-                <Box key={section.id}>{link}</Box>
-              ) : (
-                <Tooltip key={section.id} label={reason} position="right" withArrow events={{ hover: true, focus: true, touch: true }}>
-                  <Box>{link}</Box>
-                </Tooltip>
-              );
-            })}
-          </AppShell.Section>
-        </AppShell.Navbar>
-      )}
+      <AppShell.Navbar p="xs" data-testid="workspace-nav">
+        <AppShell.Section grow component={ScrollArea}>
+          {SECTIONS.map((section, index) => {
+            const status = statuses[index];
+            const reason = guardReason(index, guard);
+            const link = (
+              <NavLink
+                component="button"
+                type="button"
+                active={active === index}
+                disabled={reason !== undefined}
+                aria-disabled={reason !== undefined}
+                aria-current={active === index ? 'page' : undefined}
+                leftSection={<StepNumber n={index + 1} active={active === index} />}
+                label={section.label}
+                description={
+                  status && (
+                    <Text component="span" size="xs" c={TONE_COLORS[status.tone]} data-testid={`nav-status-${section.id}`}>
+                      {status.text}
+                    </Text>
+                  )
+                }
+                onClick={() => go(index)}
+                data-testid={`nav-${section.id}`}
+              />
+            );
+            return reason === undefined ? (
+              <Box key={section.id}>{link}</Box>
+            ) : (
+              <Tooltip key={section.id} label={reason} position="right" withArrow events={{ hover: true, focus: true, touch: true }}>
+                <Box>{link}</Box>
+              </Tooltip>
+            );
+          })}
+        </AppShell.Section>
+      </AppShell.Navbar>
 
       <AppShell.Main className="app-main">
         {notice && (
@@ -191,30 +153,14 @@ export function App() {
             {notice.message}
           </Alert>
         )}
-        {offer && (
-          <Alert
-            color="blue"
-            mb="md"
-            withCloseButton
-            closeButtonLabel="Not now"
-            onClose={() => setOfferDismissed(true)}
-            title="Continue in the workspace?"
-            data-testid="workspace-offer"
-          >
-            <Stack gap="xs" align="flex-start">
-              <Text size="sm">The workspace shows all sections in a sidebar, so you can open them in any order.</Text>
-              <Button size="xs" onClick={() => setMode('workspace')} data-testid="open-workspace">
-                Open workspace
-              </Button>
-            </Stack>
-          </Alert>
-        )}
 
-        {workspace && current ? (
+        {current && (
           <Box data-testid="workspace-section" data-section={current.id}>
             <div className="step-layout">
               <div className="step-layout-main">
-                <Title order={2}>{current.label}</Title>
+                <Title order={2}>
+                  {active + 1}. {current.label}
+                </Title>
                 <Text c="dimmed" size="sm">
                   {current.description}
                 </Text>
@@ -223,7 +169,16 @@ export function App() {
                     {blocked}.
                   </Alert>
                 ) : (
-                  <StepContent index={active} label={current.label} />
+                  <>
+                    <StepContent index={active} label={current.label} />
+                    {next !== undefined && (
+                      <Group mt="xl">
+                        <Button variant="light" onClick={() => go(next)} data-testid="next">
+                          Next: {next + 1}. {SECTIONS[next]!.label}
+                        </Button>
+                      </Group>
+                    )}
+                  </>
                 )}
               </div>
               {!blocked && (
@@ -233,43 +188,19 @@ export function App() {
               )}
             </div>
           </Box>
-        ) : (
-          <>
-            <Stepper
-              active={active}
-              onStepClick={go}
-              orientation={narrow ? 'vertical' : 'horizontal'}
-              size={narrow ? 'sm' : 'md'}
-            >
-              {SECTIONS.map((step, index) => (
-                <Stepper.Step key={step.id} label={step.label} description={step.description} allowStepSelect={canOpen(index, guard)}>
-                  <div className="step-layout">
-                    <div className="step-layout-main">
-                      <StepContent index={index} label={step.label} />
-                    </div>
-                    <div className="step-layout-aside">
-                      <StepWorkBox id={step.id} />
-                    </div>
-                  </div>
-                </Stepper.Step>
-              ))}
-            </Stepper>
-            <Group mt="xl">
-              <Button variant="default" disabled={active === 0} onClick={() => setActive((s) => Math.max(s - 1, 0))}>
-                Back
-              </Button>
-              <Button disabled={active === SECTIONS.length - 1 || !canOpen(active + 1, guard)} onClick={() => go(active + 1)} data-testid="next">
-                Next
-              </Button>
-              {active === 1 && ready && !hasClasses && (
-                <Text size="sm" c="dimmed" data-testid="next-hint">
-                  Select at least one class to continue
-                </Text>
-              )}
-            </Group>
-          </>
         )}
       </AppShell.Main>
     </AppShell>
+  );
+}
+
+/** Step number in the sidebar, filled for the open step. */
+function StepNumber({ n, active }: { n: number; active: boolean }) {
+  return (
+    <ThemeIcon size={22} radius="xl" variant={active ? 'filled' : 'light'} color={active ? 'blue' : 'gray'} aria-hidden>
+      <Text size="xs" fw={700} span>
+        {n}
+      </Text>
+    </ThemeIcon>
   );
 }

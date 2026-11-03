@@ -56,6 +56,17 @@ export { validateSettings, type SettingsIssue } from './project/settings.js';
 export { parseAkeneoAttributeExport } from './source/attributes.js';
 export { readXlsxRows } from './source/xlsx.js';
 export { parseAkeneoRecordExport } from './source/records.js';
+export { parseAkeneoOptionExport } from './source/options.js';
+export {
+  collectLogicalSources,
+  featuresWithoutYesValues,
+  withSourceOptions,
+  withYesValue,
+  withoutSourceOption,
+  type LogicalSourceFeature,
+  type LogicalSourceOption,
+  type LogicalSourcePlan,
+} from './akeneo/sourceOptions.js';
 export {
   applySourceRecordValues,
   collectSourceEntities,

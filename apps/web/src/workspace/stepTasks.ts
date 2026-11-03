@@ -32,6 +32,9 @@ export interface TaskInput {
   recordValues: number;
   mappedRecordValues: number;
   skippedRecordValues: number;
+  /** Source attributes providing L features, and the L features of non Yes/No sources without yes values. */
+  logicalSources: number;
+  logicalWithoutYes: number;
   /** `ref_` text attributes the reference entities need in Akeneo, label attributes included. */
   entityAttributes: number;
   /** Generator errors, `undefined` while generating. */
@@ -74,26 +77,43 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
         },
       ]);
     }
-    case 'records':
-      if (s.sourceEntities === 0) return work([{ label: 'Map records to ETIM values', done: true, detail: 'no reference entity provides a feature' }]);
-      return work([
-        {
-          label: 'Add the records of each reference entity',
-          done: s.entitiesWithoutRecords === 0,
-          ...(s.entitiesWithoutRecords > 0 ? { detail: `${count(s.entitiesWithoutRecords)} without records` } : {}),
-        },
-        {
-          label: 'Fill or skip an ETIM value per record and feature',
-          done: s.recordValues > 0 && s.mappedRecordValues + s.skippedRecordValues === s.recordValues,
-          detail:
-            `${count(s.mappedRecordValues)} of ${count(s.recordValues)} filled` +
-            (s.skippedRecordValues > 0 ? `, ${count(s.skippedRecordValues)} skipped` : ''),
-        },
-        {
-          label: 'Create the record attributes on each reference entity in Akeneo',
-          detail: `${count(s.entityAttributes)} text attributes on ${count(s.sourceEntities)} ${s.sourceEntities === 1 ? 'entity' : 'entities'}, listed on each entity`,
-        },
-      ]);
+    case 'records': {
+      if (s.sourceEntities === 0 && s.logicalSources === 0) {
+        return work([{ label: 'Map source values to ETIM values', done: true, detail: 'no source provides an A or L feature' }]);
+      }
+      const entityTasks: StepTask[] =
+        s.sourceEntities === 0
+          ? []
+          : [
+              {
+                label: 'Add the records of each reference entity',
+                done: s.entitiesWithoutRecords === 0,
+                ...(s.entitiesWithoutRecords > 0 ? { detail: `${count(s.entitiesWithoutRecords)} without records` } : {}),
+              },
+              {
+                label: 'Fill or skip an ETIM value per record and feature',
+                done: s.recordValues > 0 && s.mappedRecordValues + s.skippedRecordValues === s.recordValues,
+                detail:
+                  `${count(s.mappedRecordValues)} of ${count(s.recordValues)} filled` +
+                  (s.skippedRecordValues > 0 ? `, ${count(s.skippedRecordValues)} skipped` : ''),
+              },
+              {
+                label: 'Create the record attributes on each reference entity in Akeneo',
+                detail: `${count(s.entityAttributes)} text attributes on ${count(s.sourceEntities)} ${s.sourceEntities === 1 ? 'entity' : 'entities'}, listed on each entity`,
+              },
+            ];
+      const logicalTasks: StepTask[] =
+        s.logicalSources === 0
+          ? []
+          : [
+              {
+                label: 'Tick the yes values of each L feature',
+                done: s.logicalWithoutYes === 0,
+                ...(s.logicalWithoutYes > 0 ? { detail: `${count(s.logicalWithoutYes)} open` } : {}),
+              },
+            ];
+      return work([...entityTasks, ...logicalTasks]);
+    }
     case 'review': {
       const errors = s.generatorErrors;
       const warnings = s.generatorWarnings ?? 0;

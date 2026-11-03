@@ -1,6 +1,6 @@
 import type { EtimRelease } from '../etim/types.js';
 import { defaultSettings } from './defaults.js';
-import type { EtimSource, Project, ProjectSettings, SourceAttribute, SourceEntity } from './types.js';
+import type { EtimSource, Project, ProjectSettings, SourceAttribute, SourceEntity, SourceOption } from './types.js';
 
 export type ProjectFileResult = { ok: true; project: Project } | { ok: false; error: string };
 
@@ -22,6 +22,9 @@ const isSourceEntity = (v: unknown): boolean =>
       isStringRecord(r.values) &&
       (r.classValues === undefined || (isRecord(r.classValues) && Object.values(r.classValues).every(isStringRecord))),
   );
+const isSourceOptions = (v: unknown): boolean =>
+  isRecord(v) &&
+  Object.values(v).every((list) => Array.isArray(list) && list.every((o) => isRecord(o) && typeof o.code === 'string' && isStringRecord(o.labels)));
 
 /** Pretty printed JSON, the format users save and load. */
 export function serializeProject(project: Project): string {
@@ -75,6 +78,9 @@ export function parseProjectFile(text: string): ProjectFileResult {
   if (data.sourceEntities !== undefined && !(Array.isArray(data.sourceEntities) && data.sourceEntities.every(isSourceEntity))) {
     return { ok: false, error: 'The project sourceEntities must be a list of reference entities with records.' };
   }
+  if (data.sourceOptions !== undefined && !isSourceOptions(data.sourceOptions)) {
+    return { ok: false, error: 'The project sourceOptions must map attribute codes to lists of options with a code and labels.' };
+  }
   if (data.etimSource !== undefined && !isEtimSource(data.etimSource)) {
     return { ok: false, error: 'The project etimSource must have a list of locales and an optional library release name.' };
   }
@@ -89,6 +95,7 @@ export function parseProjectFile(text: string): ProjectFileResult {
     ...(data.sourceAttributes ? { sourceAttributes: data.sourceAttributes as SourceAttribute[] } : {}),
     ...(data.sourceEntityLinks ? { sourceEntityLinks: data.sourceEntityLinks as Record<string, string> } : {}),
     ...(data.sourceEntities ? { sourceEntities: data.sourceEntities as SourceEntity[] } : {}),
+    ...(data.sourceOptions ? { sourceOptions: data.sourceOptions as Record<string, SourceOption[]> } : {}),
     ...(data.etimSource ? { etimSource: data.etimSource as EtimSource } : {}),
   };
   return { ok: true, project };
