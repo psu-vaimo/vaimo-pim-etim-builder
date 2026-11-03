@@ -1,27 +1,15 @@
+import type { EtimLibrary, LibraryLocale, LibraryRelease } from './libraryTypes.js';
+
+export type { EtimLibrary, LibraryLocale, LibraryRelease } from './libraryTypes.js';
+
 /**
- * ETIM exports shipped with the app in `apps/web/etim-files/<release>/<locale>/`,
- * listed and served by the dev server (see `vite/etimFiles.ts`).
+ * ETIM exports shipped with the app in `apps/web/etim-files/<release>/<locale>/`, listed and served by the dev server
+ * and copied into a build with a static `index.json` (see `vite/etimFiles.ts`). Under the app's base path, which is
+ * `/<repo>/` on GitHub Pages.
  */
-export const ETIM_FILES_URL = '/etim-files';
+export const ETIM_FILES_URL = `${import.meta.env.BASE_URL}etim-files`;
 
-export interface LibraryLocale {
-  /** Folder name, an Akeneo locale code like `en_US`. */
-  locale: string;
-  /** File names in the folder, matched to ETIM tables by name. */
-  files: string[];
-}
-
-export interface LibraryRelease {
-  /** Folder name, e.g. `ETIM-9.0`. */
-  name: string;
-  locales: LibraryLocale[];
-}
-
-export interface EtimLibrary {
-  releases: LibraryRelease[];
-}
-
-/** The pre-loaded exports, empty when the server has none or does not serve the folder (e.g. a static build). */
+/** The pre-loaded exports, empty when the server has none or does not serve the folder. */
 export async function fetchEtimLibrary(): Promise<EtimLibrary> {
   try {
     const response = await fetch(`${ETIM_FILES_URL}/index.json`);

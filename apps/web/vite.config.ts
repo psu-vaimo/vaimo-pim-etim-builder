@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 import { etimFiles } from './vite/etimFiles.js';
 
 export default defineConfig({
+  // GitHub Pages serves the app under /<repo>/, the deploy workflow sets BASE_PATH.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [react(), etimFiles(fileURLToPath(new URL('./etim-files', import.meta.url)))],
   server: {
     proxy: {

@@ -1,7 +1,7 @@
-import { createReadStream, existsSync, readdirSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import type { Connect, Plugin } from 'vite';
-import type { EtimLibrary } from '../src/etim/library.js';
+import type { EtimLibrary } from '../src/etim/libraryTypes.js';
 
 const FILE = /\.(csv|txt)$/i;
 const byName = (a: string, b: string) => a.localeCompare(b, 'en');
@@ -50,15 +50,33 @@ function middleware(root: string, url: string): Connect.NextHandleFunction {
   };
 }
 
-/** Vite plugin for the pre-loaded ETIM exports, dev and preview servers only. */
-export function etimFiles(root: string, url = '/etim-files'): Plugin {
+/**
+ * Vite plugin for the pre-loaded ETIM exports under `<base>etim-files`. The dev and preview servers list the folder on
+ * every request, a build copies the files and a static `index.json` into the output (for GitHub Pages).
+ */
+export function etimFiles(root: string, folder = 'etim-files'): Plugin {
+  let url = `/${folder}`;
   return {
     name: 'etim-files',
+    configResolved(config) {
+      url = `${config.base.replace(/\/$/, '')}/${folder}`;
+    },
     configureServer(server) {
       server.middlewares.use(middleware(root, url));
     },
     configurePreviewServer(server) {
       server.middlewares.use(middleware(root, url));
+    },
+    generateBundle() {
+      const library = scanEtimFiles(root);
+      this.emitFile({ type: 'asset', fileName: `${folder}/index.json`, source: JSON.stringify(library) });
+      for (const release of library.releases) {
+        for (const { locale, files } of release.locales) {
+          for (const file of files) {
+            this.emitFile({ type: 'asset', fileName: `${folder}/${release.name}/${locale}/${file}`, source: readFileSync(join(root, release.name, locale, file)) });
+          }
+        }
+      }
     },
   };
 }

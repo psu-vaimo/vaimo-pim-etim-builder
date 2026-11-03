@@ -14,4 +14,5 @@ etim-files/
 ```
 
 The dev server (`pnpm dev:web`) and `vite preview` list the folder on every request, new files show up after a page reload.
+A build (`vite build`, e.g. for GitHub Pages) copies the files and writes a static `index.json` next to them.
 The exports are committed, so everyone working on the repo gets the same releases.

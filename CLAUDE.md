@@ -6,7 +6,7 @@ Vaimo PIM ETIM Builder (sub title Akeneo): a web app (Node + React) for configur
 
 - Users: Vaimo consultants, one project per client.
 - Target: Akeneo SaaS (Serenity).
-- Hosting: runs locally, no auth. Keep the API stateless so hosting and SSO can be added later.
+- Hosting: runs locally, no auth. The web app is also deployed to GitHub Pages by `.github/workflows/deploy-pages.yml` on every push to main (static build under `/<repo>/`, `BASE_PATH` sets the Vite base, the pre-loaded ETIM exports are copied into the build with a static `index.json`). Keep the API stateless so hosting and SSO can be added later.
 
 ## Scope
 
