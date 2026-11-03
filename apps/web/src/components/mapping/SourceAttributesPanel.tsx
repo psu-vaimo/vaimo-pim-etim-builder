@@ -45,7 +45,7 @@ export function SourceAttributesPanel() {
       </Group>
       <Stack gap="sm">
         <Text size="sm" c="dimmed">
-          Upload the customer's Akeneo attribute export (XLSX or CSV) to pick sources from a list and check their types. It is saved in
+          Upload the client's Akeneo attribute export (XLSX or CSV) to pick sources from a list and check their types. It is saved in
           the project file. Without it, source codes are typed by hand.
         </Text>
         <Dropzone

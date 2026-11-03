@@ -1,5 +1,6 @@
 import {
   featureRecordAttributes,
+  isRecordValueSkipped,
   labelFor,
   type AkeneoAttribute,
   type AkeneoAttributeType,
@@ -127,33 +128,60 @@ export function recordReviewRows(records: readonly AkeneoRecord[]): RecordReview
   return records.map((record) => ({ record, searchText: searchText([record.code, ...Object.values(record.labels)]) }));
 }
 
-/** Counts of one customer reference entity behind A feature sources. */
-export interface SourceEntitySummary {
-  code: string;
-  attributes: string[];
-  features: string[];
-  records: number;
-  /** Record and feature pairs with a default ETIM value, out of `total`. */
-  mapped: number;
-  total: number;
-  classValues: number;
-  /** Text attributes the entity needs in Akeneo, `ref_ef...` and `_label`, class pairs included. */
-  recordAttributes: string[];
+/** One feature a client reference entity provides: how many values its records fill and in how many classes they make exceptions. */
+export interface SourceEntityFeatureSummary {
+  featureId: string;
+  label: string;
+  /** Default values plus class values. Can be more than the record count when records make class exceptions. */
+  filled: number;
+  /** Records with a default value, `records` when every record has one. */
+  defaults: number;
+  /** Records skipped on purpose, no ETIM value. */
+  skipped: number;
+  /** Distinct classes with a class exception for the feature. */
+  exceptionClasses: string[];
 }
 
-export function sourceEntitySummaries(project: Project, plans: readonly SourceEntityPlan[]): SourceEntitySummary[] {
+/** One client reference entity: the client attributes using it, its records and the features it provides. */
+export interface SourceEntitySummary {
+  code: string;
+  /** Client data model attributes using the entity. */
+  attributes: string[];
+  records: number;
+  features: SourceEntityFeatureSummary[];
+  /** Text attributes the entity needs in Akeneo, `ref_ef...` and `_label`, class pairs included. */
+  recordAttributes: string[];
+  /** Label suffix of the project, to show `ref_ef...` and `ref_ef..._label` as one item. */
+  labelSuffix: string;
+}
+
+export function sourceEntitySummaries(
+  release: EtimRelease,
+  project: Project,
+  plans: readonly SourceEntityPlan[],
+  locale: string | undefined,
+): SourceEntitySummary[] {
   return plans.map((plan) => ({
     code: plan.code,
     attributes: plan.attributes,
-    features: plan.features.map((f) => f.featureId),
     records: plan.records.length,
-    mapped: plan.records.reduce((n, r) => n + plan.features.filter((f) => r.values[f.featureId]).length, 0),
-    total: plan.records.length * plan.features.length,
-    classValues: plan.records.reduce(
-      (n, r) => n + Object.values(r.classValues ?? {}).reduce((m, v) => m + plan.features.filter((f) => v[f.featureId]).length, 0),
-      0,
-    ),
+    features: plan.features.map((f) => {
+      const defaults = plan.records.filter((r) => r.values[f.featureId]).length;
+      const classValues = plan.records.reduce(
+        (n, r) => n + f.exceptionClassIds.filter((c) => r.classValues?.[c]?.[f.featureId]).length,
+        0,
+      );
+      return {
+        featureId: f.featureId,
+        label: labelFor(release.features[f.featureId]?.labels ?? {}, locale),
+        filled: defaults + classValues,
+        defaults,
+        skipped: plan.records.filter((r) => !r.values[f.featureId] && isRecordValueSkipped(r, f.featureId)).length,
+        exceptionClasses: f.exceptionClassIds,
+      };
+    }),
     recordAttributes: plan.features.flatMap((f) => featureRecordAttributes(project, f)),
+    labelSuffix: project.settings.codes.labelSuffix,
   }));
 }
 
@@ -161,6 +189,8 @@ export function sourceEntitySummaries(project: Project, plans: readonly SourceEn
 export interface SourceRecordCell {
   featureId: string;
   value: string | undefined;
+  /** No value on purpose. */
+  skipped: boolean;
   classValues: { classId: string; value: string }[];
 }
 
@@ -182,7 +212,7 @@ export function sourceRecordReviewRows(release: EtimRelease, plan: SourceEntityP
       const classValues = Object.entries(record.classValues ?? {})
         .flatMap(([classId, values]) => (values[f.featureId] ? [{ classId, value: valueText(values[f.featureId]!) }] : []))
         .sort((a, b) => (a.classId < b.classId ? -1 : 1));
-      return { featureId: f.featureId, value: id ? valueText(id) : undefined, classValues };
+      return { featureId: f.featureId, value: id ? valueText(id) : undefined, skipped: !id && isRecordValueSkipped(record, f.featureId), classValues };
     });
     return {
       record,

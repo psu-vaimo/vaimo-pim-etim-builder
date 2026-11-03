@@ -24,7 +24,7 @@ export interface GeneratedModel {
   valueRecords: AkeneoRecord[];
   rules: AkeneoRule[];
   dependencies: AkeneoDependency[];
-  /** Customer reference entities behind A feature sources, with their records. */
+  /** Client reference entities that provide A features, with their records. */
   sourceEntities: SourceEntityPlan[];
   /** Attributes, records, rules and source record issues, in that order, like `buildExport`. */
   issues: GeneratedIssue[];

@@ -3,7 +3,7 @@ import type { SourceRecord } from '../project/types.js';
 import { readSpreadsheet } from './attributes.js';
 
 /**
- * Reads an Akeneo record export of a customer reference entity (XLSX or CSV).
+ * Reads an Akeneo record export of a client reference entity (XLSX or CSV).
  * Columns, case-insensitive: `code` (required), `label-<locale>`, and ETIM
  * value columns `<prefix>ef000139` holding a value id like `EV000072`, and
  * class columns `<prefix>ef000139_ec002910`, so a file exported by this app

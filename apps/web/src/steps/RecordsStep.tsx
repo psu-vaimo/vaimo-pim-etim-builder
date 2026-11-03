@@ -1,6 +1,7 @@
 import {
   collectSourceEntities,
   featureRecordAttributes,
+  isRecordValueSkipped,
   labelFor,
   parseAkeneoRecordExport,
   sourceRecordAttribute,
@@ -19,13 +20,16 @@ import type { Dispatch } from 'react';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale, type AppAction } from '../state/appState.js';
 import { ACTION_INPUT, DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
+import { CodeList } from '../components/CodeList.js';
+import { exceptionsText, filledText, isComplete, providesText, recordsText } from '../format/sourceEntityText.js';
+import { sourceEntitySummaries, type SourceEntityFeatureSummary } from '../review/reviewRows.js';
 
 type AppDispatch = Dispatch<AppAction>;
 
 const PAGE_SIZE = 25;
 const VALUE_ID = /^EV\d{6}$/;
 
-/** Maps the records of the customer reference entities behind A feature sources to ETIM values. */
+/** Maps the records of the client reference entities that provide A features to ETIM values. */
 export function RecordsStep() {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -38,8 +42,8 @@ export function RecordsStep() {
   return (
     <Stack gap="lg" mt="md">
       <Text size="sm" c="dimmed">
-        A features mapped from a reference entity attribute get their ETIM value from the selected record. Map each record to an ETIM
-        value per feature. The export writes one record import file per reference entity, filling the record attributes{' '}
+        A reference entity provides the A features mapped from its client attributes: the selected record provides the ETIM
+        value. Map each record to an ETIM value per feature it provides. The export writes one record import file per reference entity, filling the record attributes{' '}
         {sourceRecordAttribute(project, 'EF000139')} (value code) and {sourceRecordAttribute(project, 'EF000139')}
         {project.settings.codes.labelSuffix} (value label). When a record needs another value in one class, add a class value: the
         feature then gets the record attributes {sourceRecordAttribute(project, 'EF000139')}_ec000009 and its label, and a rule that only
@@ -47,7 +51,7 @@ export function RecordsStep() {
       </Text>
       {collected.entities.length === 0 && (
         <Alert color="gray" data-testid="records-empty">
-          No A feature is mapped to a reference entity yet. Map A features on the Mapping step and set the reference entity of their
+          No reference entity provides an A feature yet. Map A features in step 4, Mapping: Feature to Source attribute, and set the reference entity of their
           source attribute (or upload the Akeneo attribute export, which has it).
         </Alert>
       )}
@@ -65,6 +69,24 @@ export function RecordsStep() {
   );
 }
 
+/** Values filled for a feature and the classes its records make exceptions in, under the feature's column header. */
+function FeatureCounts({ feature, records, classLabels }: { feature: SourceEntityFeatureSummary; records: number; classLabels: Record<string, string> }) {
+  return (
+    <>
+      <Text size="xs" c={isComplete(feature, records) ? TEXT_COLORS.ok : TEXT_COLORS.warning} data-testid={`feature-filled-${feature.featureId}`}>
+        {filledText(feature, records)}
+      </Text>
+      {feature.exceptionClasses.length > 0 && (
+        <Tooltip label={feature.exceptionClasses.map((c) => (classLabels[c] ? `${c} - ${classLabels[c]}` : c)).join(', ')} multiline maw={360}>
+          <Text size="xs" c={TEXT_COLORS.accent} data-testid={`feature-exceptions-${feature.featureId}`}>
+            {exceptionsText(feature).replace(/^c/, 'C')}
+          </Text>
+        </Tooltip>
+      )}
+    </>
+  );
+}
+
 interface PanelProps {
   plan: SourceEntityPlan;
   release: EtimRelease;
@@ -73,7 +95,13 @@ interface PanelProps {
   dispatch: AppDispatch;
 }
 
-/** One reference entity, collapsed by default: the header with its counts, opened to upload, add and map records. */
+/** Class pill on a class value: code and description, as written, cut off when long (the tooltip has all of it). */
+const CLASS_PILL = { tt: 'none', maw: '40%', style: { flexShrink: 0 } } as const;
+
+/**
+ * One reference entity, collapsed by default: the header with the client attributes using it, its records and the
+ * features it provides, opened to upload, add and map records. Each feature column shows its values filled and class exceptions.
+ */
 const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, dispatch }: PanelProps) {
   const [open, setOpen] = useState(false);
   const [uploadIssues, setUploadIssues] = useState<GenerateIssue[]>([]);
@@ -107,13 +135,11 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
   const currentPage = Math.min(page, totalPages);
   const rows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const mapped = plan.records.reduce((n, r) => n + plan.features.filter((f) => r.values[f.featureId]).length, 0);
-  const total = plan.records.length * plan.features.length;
+  const summary = useMemo(() => sourceEntitySummaries(release, project, [plan], locale)[0]!, [release, project, plan, locale]);
   const newCodeTrimmed = newCode.trim();
   const newCodeError =
     codeError(newCodeTrimmed) ?? (plan.records.some((r) => r.code === newCodeTrimmed) ? `${newCodeTrimmed} already exists` : undefined);
   const recordAttributes = plan.features.flatMap((f) => featureRecordAttributes(project, f));
-  const exceptions = plan.records.reduce((n, r) => n + Object.values(r.classValues ?? {}).reduce((m, v) => m + Object.keys(v).length, 0), 0);
 
   async function upload(file: File) {
     const parsed = parseAkeneoRecordExport(new Uint8Array(await file.arrayBuffer()), file.name, codes.sourceRecordAttributePrefix);
@@ -138,27 +164,30 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
             <Title order={4} ff="monospace">
               {plan.code}
             </Title>
-            <Badge variant="light" color="gray">
-              from {plan.attributes.join(', ')}
+            <Badge variant="light" color="gray" tt="none" data-testid="entity-used-by">
+              used by {plan.attributes.join(', ')}
             </Badge>
-            <Badge variant="light">{plan.records.length === 1 ? '1 record' : `${plan.records.length} records`}</Badge>
-            {total > 0 && (
-              <Badge variant="light" color={mapped === total ? 'teal' : 'orange'} data-testid="entity-mapped">
-                {mapped} of {total} values mapped
-              </Badge>
-            )}
-            {exceptions > 0 && (
-              <Badge variant="light" color="grape" data-testid="entity-class-values">
-                {exceptions === 1 ? '1 class value' : `${exceptions} class values`}
-              </Badge>
-            )}
+            <Badge variant="light" color={plan.records.length === 0 ? 'orange' : 'blue'} tt="none" data-testid="entity-records">
+              {recordsText(plan.records.length)}
+            </Badge>
+            <Badge
+              variant="light"
+              color={summary.features.every((f) => isComplete(f, plan.records.length)) ? 'teal' : 'orange'}
+              tt="none"
+              data-testid="entity-provides"
+            >
+              {providesText(plan.features.length)}
+            </Badge>
           </Group>
         </UnstyledButton>
         {open && (
           <>
-            <Text size="sm" c="dimmed">
-              Needs the text attributes (not localizable, not scopable) <Text span ff="monospace" size="sm">{recordAttributes.join(', ')}</Text>
-            </Text>
+            <div>
+              <Text size="sm" c="dimmed">
+                Needs the text attributes (not localizable, not scopable):
+              </Text>
+              <CodeList items={recordAttributes} labelSuffix={project.settings.codes.labelSuffix} mt={2} testId={`entity-attributes-${plan.code}`} />
+            </div>
 
             <Group align="flex-end" gap="sm">
               <Dropzone
@@ -212,7 +241,7 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
                     <Table.Thead>
                       <Table.Tr>
                         <Table.Th miw={180}>Record</Table.Th>
-                        {plan.features.map((f) => (
+                        {plan.features.map((f, i) => (
                           <Table.Th key={f.featureId} miw={240}>
                             <Text size="sm" fw={600} ff="monospace">
                               {f.featureId}
@@ -220,11 +249,7 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
                             <Text size="xs" c="dimmed">
                               {labelFor(release.features[f.featureId]?.labels ?? {}, locale)}
                             </Text>
-                            {f.exceptionClassIds.length > 0 && (
-                              <Text size="xs" c={TEXT_COLORS.accent}>
-                                Class values for {f.exceptionClassIds.join(', ')}
-                              </Text>
-                            )}
+                            <FeatureCounts feature={summary.features[i]!} records={plan.records.length} classLabels={classLabels} />
                           </Table.Th>
                         ))}
                         <Table.Th w={40} />
@@ -289,14 +314,27 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
       {plan.features.map((f, i) => (
         <Table.Td key={f.featureId} style={{ verticalAlign: 'top' }}>
           <Stack gap={4}>
-            <ValueSelect
-              value={record.values[f.featureId] ?? null}
-              allowed={options[i]?.all ?? []}
-              placeholder="Not mapped"
-              placeholderIsDefault
-              onChange={(v) => setValue(f.featureId, undefined, v)}
-              testId={`value-${record.code}-${f.featureId}`}
-            />
+            <Group gap={4} wrap="nowrap" align="center">
+              <div style={{ flex: 1 }}>
+                <ValueSelect
+                  value={record.values[f.featureId] ?? null}
+                  allowed={options[i]?.all ?? []}
+                  placeholder={isRecordValueSkipped(record, f.featureId) ? 'Skipped, no ETIM value' : 'Not mapped'}
+                  placeholderIsDefault
+                  onChange={(v) => setValue(f.featureId, undefined, v)}
+                  testId={`value-${record.code}-${f.featureId}`}
+                />
+              </div>
+              {!record.values[f.featureId] && (
+                <SkipButton
+                  skipped={isRecordValueSkipped(record, f.featureId)}
+                  onChange={(skipped) =>
+                    dispatch({ type: 'setSourceRecordSkipped', entity: plan.code, code: record.code, featureId: f.featureId, skipped })
+                  }
+                  testId={`skip-${record.code}-${f.featureId}`}
+                />
+              )}
+            </Group>
             <ClassValues
               record={record}
               feature={f}
@@ -322,6 +360,17 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
     </Table.Tr>
   );
 });
+
+/** Skips a record value on purpose (no ETIM value, done for the to do), or takes the skip back. */
+function SkipButton({ skipped, onChange, testId }: { skipped: boolean; onChange: (skipped: boolean) => void; testId: string }) {
+  return (
+    <Tooltip label={skipped ? 'Back to not mapped' : 'No ETIM value on purpose, the record attribute stays empty'}>
+      <Button size="compact-xs" variant="subtle" color="gray" onClick={() => onChange(!skipped)} style={{ flexShrink: 0 }} data-testid={testId}>
+        {skipped ? 'Unskip' : 'Skip'}
+      </Button>
+    </Tooltip>
+  );
+}
 
 interface ValueSelectProps {
   value: string | null;
@@ -372,13 +421,14 @@ function ClassValues({ record, feature, options, classLabels, onChange }: ClassV
     .sort((a, b) => (a.classId < b.classId ? -1 : 1));
   const free = feature.classIds.filter((c) => !current.some((e) => e.classId === c));
   const testId = `class-values-${record.code}-${featureId}`;
+  const classText = (classId: string) => (classLabels[classId] ? `${classId} - ${classLabels[classId]}` : classId);
   return (
     <>
       {current.map(({ classId, valueId }) => (
         <Group key={classId} gap={4} wrap="nowrap" align="center">
           <Tooltip label={feature.classIds.includes(classId) ? classLabels[classId] || classId : `${classId} is not a selected class using ${featureId}, ignored`}>
-            <Badge size="sm" variant="light" color={feature.classIds.includes(classId) ? 'grape' : 'red'} style={{ flexShrink: 0 }}>
-              {classId}
+            <Badge size="sm" variant="light" color={feature.classIds.includes(classId) ? 'grape' : 'red'} {...CLASS_PILL}>
+              {classText(classId)}
             </Badge>
           </Tooltip>
           <div style={{ flex: 1 }}>
@@ -394,8 +444,8 @@ function ClassValues({ record, feature, options, classLabels, onChange }: ClassV
       ))}
       {adding !== null ? (
         <Group gap={4} wrap="nowrap" align="center">
-          <Badge size="sm" variant="light" color="grape" style={{ flexShrink: 0 }}>
-            {adding}
+          <Badge size="sm" variant="light" color="grape" {...CLASS_PILL}>
+            {classText(adding)}
           </Badge>
           <div style={{ flex: 1 }}>
             <ValueSelect

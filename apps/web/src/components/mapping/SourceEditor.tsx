@@ -216,8 +216,8 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
       <Stack gap="xs">
         <Title order={5}>Source attribute</Title>
         <Text size="sm" c="dimmed">
-          The customer (data model) attribute that fills this feature. One source per feature, a source can fill many features: its
-          rule gets one copy action per feature.
+          The client (data model) attribute that provides this feature. One source per feature, a source can provide many
+          features: its rule gets one copy action per feature.
           {known.size === 0 && ' Upload an Akeneo attribute export on the mapping screen to pick from a list.'}
         </Text>
         {drafts.map((d, i) => (
@@ -231,7 +231,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
                     label="Reference entity"
                     description={
                       `Akeneo reference entity the source links to, shared by all features mapped from ${d.attribute.trim() || 'it'}. ` +
-                      'Its records are mapped to ETIM values on the Source records step.'
+                      'Its records are mapped to ETIM values in step 5, Mapping: Source record to Value.'
                     }
                     placeholder={known.get(d.attribute.trim())?.referenceDataName ?? 'reference_entity_code'}
                     value={entity}

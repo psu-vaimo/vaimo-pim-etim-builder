@@ -112,7 +112,7 @@ export function buildApp(opts: FastifyServerOptions = {}, { etimFilesDir = DEFAU
     async (req) => parseEtimExport(req.body.tables, req.body.locale),
   );
 
-  // Maps ETIM features to customer source attributes in a project file and returns the updated project.
+  // Maps ETIM features to client source attributes in a project file and returns the updated project.
   app.post<{ Body: SourcesBody }>(
     '/project/sources',
     {
@@ -181,7 +181,7 @@ export function buildApp(opts: FastifyServerOptions = {}, { etimFilesDir = DEFAU
     },
   );
 
-  // Links source attributes to their customer reference entity in a project file.
+  // Links source attributes to their client reference entity in a project file.
   app.post<{ Body: EntityLinksBody }>(
     '/project/entity-links',
     {
@@ -210,7 +210,7 @@ export function buildApp(opts: FastifyServerOptions = {}, { etimFilesDir = DEFAU
     },
   );
 
-  // Adds records to a customer reference entity in a project file, codes and labels only.
+  // Adds records to a client reference entity in a project file, codes and labels only.
   app.post<{ Body: RecordsBody }>(
     '/project/records',
     {

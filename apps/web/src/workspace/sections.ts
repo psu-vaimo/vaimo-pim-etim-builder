@@ -1,4 +1,4 @@
-import { mappingStatus, type MappingStatus, type Project, type ProjectFeature, type SourceEntityPlan } from '@akeneo-etim/core';
+import { isRecordValueSkipped, mappingStatus, type MappingStatus, type Project, type ProjectFeature, type SourceEntityPlan } from '@akeneo-etim/core';
 
 /**
  * The setup screens, shared by the wizard (Stepper, in order) and the
@@ -6,13 +6,13 @@ import { mappingStatus, type MappingStatus, type Project, type ProjectFeature, t
  * switching mode keeps the current screen.
  */
 export const SECTIONS = [
-  { id: 'import', label: 'Import ETIM', description: 'Upload ETIM export and translations' },
-  { id: 'classes', label: 'Classes', description: 'Select classes and locales' },
-  { id: 'features', label: 'Features', description: 'Types, units, ranges' },
-  { id: 'mapping', label: 'Mapping', description: 'Customer source attributes' },
-  { id: 'records', label: 'Source records', description: 'Reference entity records to ETIM values' },
-  { id: 'review', label: 'Review', description: 'Attributes, dependencies, rules' },
-  { id: 'export', label: 'Export', description: 'Akeneo import files' },
+  { id: 'import', label: 'Setup ETIM versions', description: 'Upload ETIM export and translations' },
+  { id: 'classes', label: 'Select Classes', description: 'Select classes and locales' },
+  { id: 'features', label: 'Configure Features', description: 'Types, units, ranges' },
+  { id: 'mapping', label: 'Mapping: Feature to Source attribute', description: 'Client source attributes' },
+  { id: 'records', label: 'Mapping: Source record to Value', description: 'Reference entity records to ETIM values' },
+  { id: 'review', label: 'Review ETIM data model', description: 'Attributes, dependencies, rules' },
+  { id: 'export', label: 'Export ETIM data model', description: 'Akeneo import files' },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]['id'];
@@ -66,6 +66,8 @@ export interface StatusInput extends GuardInput {
   sourceEntities: number;
   recordValues: number;
   mappedRecordValues: number;
+  /** Record values skipped on purpose, no ETIM value. */
+  skippedRecordValues: number;
   /** Generator issues, `undefined` while not computed yet. */
   generatorErrors: number | undefined;
   generatorWarnings: number | undefined;
@@ -125,8 +127,10 @@ export function sectionStatuses(s: StatusInput): SectionStatus[] {
         if (s.sourceEntities === 0) return { text: 'No reference entity sources', tone: 'muted' };
         if (s.recordValues === 0) return { text: plural(s.sourceEntities, 'entity', 'entities') + ', no records', tone: 'warning' };
         return {
-          text: `${s.mappedRecordValues.toLocaleString('en-US')} of ${s.recordValues.toLocaleString('en-US')} values mapped`,
-          tone: s.mappedRecordValues === s.recordValues ? 'ok' : 'warning',
+          text:
+            `${s.mappedRecordValues.toLocaleString('en-US')} of ${s.recordValues.toLocaleString('en-US')} values filled` +
+            (s.skippedRecordValues > 0 ? `, ${s.skippedRecordValues.toLocaleString('en-US')} skipped` : ''),
+          tone: s.mappedRecordValues + s.skippedRecordValues === s.recordValues ? 'ok' : 'warning',
         };
       case 'review':
         return issues;
@@ -142,18 +146,24 @@ export function clampSection(index: number): number {
   return Math.min(Math.max(index, 0), SECTION_COUNT - 1);
 }
 
-/** Features with at least one customer source attribute. */
+/** Features with at least one client source attribute. */
 export function countMapped(features: readonly ProjectFeature[], config: Project['features'], status: MappingStatus = 'mapped'): number {
   return features.filter((f) => mappingStatus(config[f.key]) === status).length;
 }
 
 /** Record value counts for the status: one value per record and mapped feature of each reference entity. */
-export function recordCounts(entities: readonly SourceEntityPlan[]): Pick<StatusInput, 'sourceEntities' | 'recordValues' | 'mappedRecordValues'> {
+export function recordCounts(
+  entities: readonly SourceEntityPlan[],
+): Pick<StatusInput, 'sourceEntities' | 'recordValues' | 'mappedRecordValues' | 'skippedRecordValues'> {
   let recordValues = 0;
   let mappedRecordValues = 0;
+  let skippedRecordValues = 0;
   for (const e of entities) {
     recordValues += e.records.length * e.features.length;
-    for (const r of e.records) mappedRecordValues += e.features.filter((f) => r.values[f.featureId]).length;
+    for (const r of e.records) {
+      mappedRecordValues += e.features.filter((f) => r.values[f.featureId]).length;
+      skippedRecordValues += e.features.filter((f) => !r.values[f.featureId] && isRecordValueSkipped(r, f.featureId)).length;
+    }
   }
-  return { sourceEntities: entities.length, recordValues, mappedRecordValues };
+  return { sourceEntities: entities.length, recordValues, mappedRecordValues, skippedRecordValues };
 }

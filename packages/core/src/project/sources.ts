@@ -97,7 +97,7 @@ export function applySkippedFeatures(project: Project, inputs: readonly FeatureS
   return { ok: true, project: { ...project, features } };
 }
 
-/** One ETIM feature (+unit) to customer source attribute pair, e.g. sent to the API. */
+/** One ETIM feature (+unit) to client source attribute pair, e.g. sent to the API. */
 export interface FeatureSourceInput extends SourceInput {
   featureId: string;
   unitId?: string;
@@ -151,7 +151,7 @@ export function withEntityRecords(project: Project, entity: string, records: rea
   return next.length > 0 ? { ...rest, sourceEntities: next } : rest;
 }
 
-/** A customer reference entity record to add, e.g. sent to the API. */
+/** A client reference entity record to add, e.g. sent to the API. */
 export interface SourceRecordInput {
   code: string;
   labels?: Record<string, string>;
@@ -189,7 +189,7 @@ export function addSourceRecords(project: Project, entity: string, records: read
   return { ok: true, project: withEntityRecords(project, entityCode, [...updated, ...added]) };
 }
 
-/** A source attribute to customer reference entity link, e.g. sent to the API. An empty `entity` removes the link. */
+/** A source attribute to client reference entity link, e.g. sent to the API. An empty `entity` removes the link. */
 export interface SourceEntityLinkInput {
   attribute: string;
   entity: string;

@@ -5,6 +5,7 @@ import {
   mappingStatus,
   normalizeSources,
   withEntityRecords as withProjectEntityRecords,
+  withRecordSkipped,
   withRecordValue,
   type AkeneoUnit,
   type EtimClass,
@@ -71,7 +72,7 @@ export type AppAction =
   | { type: 'removeSources'; keys: readonly FeatureKey[] }
   /** Marks a feature as not mapped on purpose, or takes that back. Ignored for a mapped feature. */
   | { type: 'setFeatureSkipped'; key: FeatureKey; skipped: boolean }
-  /** Customer attributes from an uploaded Akeneo attribute export, `null` removes them. Mappings are kept. */
+  /** Client attributes from an uploaded Akeneo attribute export, `null` removes them. Mappings are kept. */
   | { type: 'setSourceAttributes'; attributes: readonly SourceAttribute[] | null }
   /** Links a source attribute to its reference entity, `null` or empty removes the link (the uploaded reference data name applies again). */
   | { type: 'setSourceEntityLink'; attribute: string; entity: string | null }
@@ -84,6 +85,8 @@ export type AppAction =
   | { type: 'removeSourceRecord'; entity: string; code: string }
   /** Sets the ETIM value of one record for one feature, for one class when `classId` is given, `null` clears it. */
   | { type: 'setSourceRecordValue'; entity: string; code: string; featureId: string; classId?: string; valueId: string | null }
+  /** Marks a record as providing no ETIM value for a feature on purpose, or takes that back. Ignored when the record has a value. */
+  | { type: 'setSourceRecordSkipped'; entity: string; code: string; featureId: string; skipped: boolean }
   /** Patches code, group and label settings and the rule priority. Values are stored as typed, validation is shown in the UI. */
   | { type: 'updateSettings'; patch: SettingsPatch }
   /** Resets codes, groups, label words and rule priority to the defaults, keeps number/range defaults and unit mappings. */
@@ -210,7 +213,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           const previous = byCode.get(r.code)?.classValues ?? {};
           const classValues = { ...previous };
           for (const [classId, values] of Object.entries(r.classValues ?? {})) classValues[classId] = { ...previous[classId], ...values };
-          const merged: SourceRecord = { ...r, values: { ...byCode.get(r.code)?.values, ...r.values } };
+          const values = { ...byCode.get(r.code)?.values, ...r.values };
+          const skipped = (byCode.get(r.code)?.skipped ?? []).filter((id) => !values[id]);
+          const merged: SourceRecord = { ...r, values, ...(skipped.length > 0 ? { skipped } : {}) };
           return Object.keys(classValues).length > 0 ? { ...merged, classValues } : merged;
         });
       });
@@ -223,6 +228,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'setSourceRecordValue':
       return withEntityRecords(state, action.entity, (old) =>
         old.map((r) => (r.code === action.code ? withRecordValue(r, action.featureId, action.classId, action.valueId ?? '') : r)),
+      );
+    case 'setSourceRecordSkipped':
+      return withEntityRecords(state, action.entity, (old) =>
+        old.map((r) => (r.code === action.code ? withRecordSkipped(r, action.featureId, action.skipped) : r)),
       );
     case 'setSourceAttributes': {
       const { sourceAttributes: _old, ...project } = state.project;

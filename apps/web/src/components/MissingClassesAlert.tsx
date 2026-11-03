@@ -1,7 +1,8 @@
-import { Alert, Button, Code, Group, Text } from '@mantine/core';
+import { Alert, Button, Group, Text } from '@mantine/core';
 import { useMemo } from 'react';
 import { missingClassIds, missingLocales } from '@akeneo-etim/core';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
+import { CodeList } from './CodeList.js';
 
 const MAX_LISTED = 50;
 
@@ -21,21 +22,16 @@ export function MissingClassesAlert() {
             {missing.length === 1 ? '1 selected class is' : `${missing.length} selected classes are`} not in the
             release:
           </Text>
-          <Text size="sm" mt={4}>
-            {missing.slice(0, MAX_LISTED).map((id) => (
-              <Code key={id} mr={4}>
-                {id}
-              </Code>
-            ))}
-            {missing.length > MAX_LISTED && `and ${missing.length - MAX_LISTED} more`}
-          </Text>
+          <CodeList items={missing.slice(0, MAX_LISTED)} more={Math.max(0, missing.length - MAX_LISTED)} columnWidth={14} mt={4} />
         </>
       )}
       {locales.length > 0 && (
         <Text size="sm" mt={missing.length > 0 ? 'xs' : 0}>
-          Project locales without ETIM labels: {locales.join(', ')}. Add these languages in step 1, or deselect them
-          in step 2.
+          Project locales without ETIM labels, add these languages in step 1, Setup ETIM versions, or deselect them in step 2, Select Classes:
         </Text>
+      )}
+      {locales.length > 0 && (
+        <CodeList items={locales} mt={2} />
       )}
       {missing.length > 0 && (
         <Group mt="xs">

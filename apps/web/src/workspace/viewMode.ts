@@ -59,3 +59,23 @@ export function shouldOfferWorkspace(s: OfferInput): boolean {
   if (s.mode !== 'wizard' || s.dismissed) return false;
   return (s.projectLoaded && s.ready) || s.reachedExport;
 }
+
+export const WORK_COLLAPSED_STORAGE_KEY = 'akeneo-etim.workCollapsed';
+
+/** Whether the manual work column was collapsed, open by default. */
+export function loadWorkCollapsed(storage: ReadStorage | undefined = browserStorage()): boolean {
+  try {
+    return storage?.getItem(WORK_COLLAPSED_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/** Remembers the manual work column state, silently does nothing when storage is not available. */
+export function saveWorkCollapsed(collapsed: boolean, storage: WriteStorage | undefined = browserStorage()): void {
+  try {
+    storage?.setItem(WORK_COLLAPSED_STORAGE_KEY, String(collapsed));
+  } catch {
+    // Not remembered.
+  }
+}

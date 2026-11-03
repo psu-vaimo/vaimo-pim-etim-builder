@@ -41,7 +41,7 @@ export function featureRecordAttributes(project: Project, feature: SourceEntityF
   );
 }
 
-/** A customer reference entity as needed by the mapped A features. */
+/** A client reference entity as needed by the mapped A features. */
 export interface SourceEntityPlan {
   code: string;
   /** Source attributes linking to it, sorted. */
@@ -105,8 +105,9 @@ export function collectSourceEntities(release: EtimRelease, project: Project): {
     for (const record of plan.records) {
       for (const f of plan.features) {
         const value = record.values[f.featureId];
-        if (!value) unmapped++;
-        else if (!isRecordValueAllowed(f.valueIds, value)) notAllowed.push(`${record.code} ${f.featureId}=${value}`);
+        if (!value) {
+          if (!isRecordValueSkipped(record, f.featureId)) unmapped++;
+        } else if (!isRecordValueAllowed(f.valueIds, value)) notAllowed.push(`${record.code} ${f.featureId}=${value}`);
         for (const [classId, values] of Object.entries(record.classValues ?? {})) {
           const classValue = values[f.featureId];
           if (!classValue) continue;
@@ -118,7 +119,7 @@ export function collectSourceEntities(release: EtimRelease, project: Project): {
     }
     if (unmapped > 0) {
       const total = plan.records.length * plan.features.length;
-      issues.push({ severity: 'warning', message: `Reference entity ${plan.code}: ${unmapped} of ${total} record values have no ETIM value` });
+      issues.push({ severity: 'warning', message: `Reference entity ${plan.code}: ${unmapped} of ${total} record values have no ETIM value and are not skipped` });
     }
     if (ignored.length > 0) {
       issues.push({
@@ -166,12 +167,33 @@ export function withRecordValue(record: SourceRecord, featureId: string, classId
     const { [featureId]: _old, ...rest } = values;
     return valueId === '' ? rest : { ...rest, [featureId]: valueId };
   };
-  if (classId === undefined) return { ...record, values: set(record.values) };
+  if (classId === undefined) {
+    const next = { ...record, values: set(record.values) };
+    return valueId === '' ? next : withRecordSkipped(next, featureId, false);
+  }
   const { [classId]: current, ...otherClasses } = record.classValues ?? {};
   const classValues = set(current ?? {});
   const next = Object.keys(classValues).length > 0 ? { ...otherClasses, [classId]: classValues } : otherClasses;
   const { classValues: _old, ...rest } = record;
   return Object.keys(next).length > 0 ? { ...rest, classValues: next } : rest;
+}
+
+/** Whether the record provides no ETIM value for the feature on purpose. */
+export function isRecordValueSkipped(record: SourceRecord, featureId: string): boolean {
+  return record.skipped?.includes(featureId) ?? false;
+}
+
+/**
+ * Marks a record as providing no ETIM value for a feature on purpose, or takes
+ * that back. A record with a default value for the feature cannot be skipped
+ * and is returned unchanged.
+ */
+export function withRecordSkipped(record: SourceRecord, featureId: string, skipped: boolean): SourceRecord {
+  if (skipped && record.values[featureId]) return record;
+  const others = (record.skipped ?? []).filter((id) => id !== featureId);
+  const next = skipped ? [...others, featureId].sort() : others;
+  const { skipped: _old, ...rest } = record;
+  return next.length > 0 ? { ...rest, skipped: next } : rest;
 }
 
 /**

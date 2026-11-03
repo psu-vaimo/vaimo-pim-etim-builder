@@ -24,6 +24,7 @@ import {
 import { useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
 import { TEXT_COLORS } from '../theme.js';
+import { CodeList } from '../components/CodeList.js';
 
 /** Restricted values listed per attribute in the dependency details. */
 const MAX_VALUES = 40;
@@ -74,10 +75,7 @@ function DependencyDetails({ dependency }: { dependency: AkeneoDependency }) {
                 Restricted to {d.values.length} values
               </Badge>
             </Group>
-            <Text size="xs" ff="monospace" c="dimmed">
-              {shown.join(', ')}
-              {more > 0 ? ` and ${more} more` : ''}
-            </Text>
+            <CodeList items={shown} more={more} size="xs" c="dimmed" columnWidth={12} />
           </Stack>
         );
       })}
@@ -99,7 +97,7 @@ export function ReviewStep() {
   const dependencyRows = useMemo(() => (model ? dependencyReviewRows(model.dependencies, locale) : []), [model, locale]);
   const classRecordRows = useMemo(() => (model ? recordReviewRows(model.classRecords) : []), [model]);
   const valueRecordRows = useMemo(() => (model ? recordReviewRows(model.valueRecords) : []), [model]);
-  const entitySummaries = useMemo(() => (model ? sourceEntitySummaries(project, model.sourceEntities) : []), [model, project]);
+  const entitySummaries = useMemo(() => (model && release ? sourceEntitySummaries(release, project, model.sourceEntities, locale) : []), [model, release, project, locale]);
   const entity = model?.sourceEntities.find((e) => e.code === entityCode) ?? model?.sourceEntities[0];
   const sourceRecordRows = useMemo(
     () => (release && entity ? sourceRecordReviewRows(release, entity, locale) : []),
@@ -223,7 +221,17 @@ export function ReviewStep() {
           const cell = r.cells[i];
           return (
             <Stack gap={2}>
-              {cell?.value ? <Text size="sm">{cell.value}</Text> : <Text size="sm" c={TEXT_COLORS.warning}>Not mapped</Text>}
+              {cell?.value ? (
+                <Text size="sm">{cell.value}</Text>
+              ) : cell?.skipped ? (
+                <Text size="sm" c="dimmed">
+                  Skipped
+                </Text>
+              ) : (
+                <Text size="sm" c={TEXT_COLORS.warning}>
+                  Not mapped
+                </Text>
+              )}
               {cell?.classValues.map((v) => (
                 <Group key={v.classId} gap={4} wrap="nowrap">
                   <Badge size="xs" variant="light" color="grape" style={{ flexShrink: 0 }}>
@@ -305,7 +313,7 @@ export function ReviewStep() {
         <Tabs.Panel value="rules" pt="md">
           {ruleRows.length === 0 ? (
             <Text size="sm" c="dimmed">
-              No rules, map customer source attributes in the Mapping step to generate them.
+              No rules, map client source attributes in step 4, Mapping: Feature to Source attribute, to generate them.
             </Text>
           ) : (
             <PagedTable
@@ -365,13 +373,13 @@ export function ReviewStep() {
         <Tabs.Panel value="source-records" pt="md">
           {entitySummaries.length === 0 ? (
             <Text size="sm" c="dimmed">
-              No A feature is mapped from a reference entity attribute, so there are no source records to fill.
+              No reference entity provides an A feature, so there are no source records to fill.
             </Text>
           ) : (
             <Stack gap="sm">
               <Text size="sm" c="dimmed">
-                Customer reference entities behind A feature sources. Each record gets the ETIM value per feature in the record
-                attributes listed, class values replace the default in that class.
+                Client reference entities that provide A features. Each record provides one ETIM value per feature in the record
+                attributes listed, class exceptions replace the default in that class.
               </Text>
               <SourceEntityTable summaries={entitySummaries} testId="review-source-entities" />
               {entitySummaries.length > 1 && (

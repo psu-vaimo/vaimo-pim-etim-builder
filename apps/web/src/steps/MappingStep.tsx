@@ -9,6 +9,7 @@ import { featureRows } from '../features/featureRows.js';
 import { mappingRows, orphanMappings } from '../mapping/sourceMappings.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
+import { CodeList } from '../components/CodeList.js';
 
 function Stat({ label, value, testId }: { label: string; value: number; testId: string }) {
   return (
@@ -89,7 +90,7 @@ export function MappingStep() {
   return (
     <Stack gap="lg" mt="md">
       <Text size="sm" c="dimmed">
-        Pick the customer (data model) attribute that feeds each ETIM feature. Mapped features become read only and are filled by
+        Pick the client (data model) attribute that provides each ETIM feature. Mapped features become read only and are filled by
         Akeneo rules, one rule per source attribute. Unmapped features are enriched by hand, skip the ones you decided not to
         map so they no longer count as open.
       </Text>
@@ -106,10 +107,13 @@ export function MappingStep() {
 
       {orphans.length > 0 && (
         <Group gap="sm" wrap="nowrap" align="flex-start" data-testid="orphan-mappings">
-          <Text size="sm" c="dimmed" style={{ flex: 1 }}>
-            {orphans.length === 1 ? '1 mapped feature is' : `${orphans.length} mapped features are`} not used by the selected
-            classes, the mapping is kept in the project: {orphans.join(', ')}
-          </Text>
+          <div style={{ flex: 1 }}>
+            <Text size="sm" c="dimmed">
+              {orphans.length === 1 ? '1 mapped feature is' : `${orphans.length} mapped features are`} not used by the selected
+              classes, the mapping is kept in the project:
+            </Text>
+            <CodeList items={orphans} c="dimmed" columnWidth={22} mt={2} />
+          </div>
           <Button
             size="xs"
             variant="subtle"

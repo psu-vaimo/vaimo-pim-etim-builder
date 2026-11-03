@@ -51,11 +51,11 @@ export function ProjectBar({ onNotice }: { onNotice: (notice: ProjectNotice) => 
     onNotice({ kind: 'importing', color: 'blue', message: `Loaded project ${name}, importing ETIM export ${plan.release} (${locales})...` });
     try {
       const ok = await importLibraryRelease(dispatch, plan.release, plan.base, plan.translations);
-      const missing = plan.missing.length > 0 ? ` ${plan.missing.join(', ')} ${plan.missing.length === 1 ? 'is' : 'are'} not in the etim-files folder, add ${plan.missing.length === 1 ? 'it' : 'them'} on the Import step.` : '';
+      const missing = plan.missing.length > 0 ? ` ${plan.missing.join(', ')} ${plan.missing.length === 1 ? 'is' : 'are'} not in the etim-files folder, add ${plan.missing.length === 1 ? 'it' : 'them'} in step 1, Setup ETIM versions.` : '';
       onNotice(
         ok
           ? { kind: 'loaded', color: missing ? 'orange' : 'green', message: `Loaded project ${name} with ETIM export ${plan.release} (${locales}).${missing}` }
-          : { kind: 'loaded', color: 'red', message: `Loaded project ${name}, but ETIM export ${plan.release} has errors. See the Import step.` },
+          : { kind: 'loaded', color: 'red', message: `Loaded project ${name}, but ETIM export ${plan.release} has errors. See step 1, Setup ETIM versions.` },
       );
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);

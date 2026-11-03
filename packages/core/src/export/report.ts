@@ -1,6 +1,6 @@
 import type { ProjectFeature } from '../akeneo/features.js';
 import type { AkeneoAttribute, AkeneoDependency, AkeneoRule, GenerateIssue } from '../akeneo/types.js';
-import { featureRecordAttributes, isRecordValueAllowed, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
+import { featureRecordAttributes, isRecordValueAllowed, isRecordValueSkipped, type SourceEntityPlan } from '../akeneo/sourceEntities.js';
 import { formatAction, ruleConditions } from '../akeneo/ruleText.js';
 import { classRecordAttribute, sourceEntityFor, sourceRecordAttribute } from '../akeneo/sourceRecords.js';
 import { labelFor } from '../etim/labels.js';
@@ -21,7 +21,7 @@ export interface ReportInput {
   manualSteps: string[];
 }
 
-/** Sheets of the mapping report for customer review. */
+/** Sheets of the mapping report for client review. */
 export function reportTables(input: ReportInput): Table[] {
   const { release, project, features, attributes, rules, dependencies, sourceEntities, issues } = input;
   const locale = project.locales[0];
@@ -165,7 +165,7 @@ export function reportTables(input: ReportInput): Table[] {
     ],
   };
 
-  // One row per source attribute: what it feeds, and for A features the record attributes its reference entity needs.
+  // One row per source attribute: the features it provides, and for A features the record attributes its reference entity needs.
   const featureById = new Map(features.map((f) => [f.key, f]));
   const known = new Map((project.sourceAttributes ?? []).map((a) => [a.code, a]));
   const bySource = new Map<string, string[]>();
@@ -176,7 +176,7 @@ export function reportTables(input: ReportInput): Table[] {
   const sourceSheet: Table = {
     name: 'Sources',
     rows: [
-      ['Source attribute', 'Akeneo type', 'Reference entity', 'Features', 'Record attributes needed', 'Rules'],
+      ['Source attribute', 'Akeneo type', 'Reference entity', 'Provides features', 'Record attributes needed', 'Rules'],
       ...[...bySource.keys()].sort().map((source) => {
         const keys = bySource.get(source) ?? [];
         const recordAttributes = keys.flatMap((k) => {
@@ -238,7 +238,13 @@ export function reportTables(input: ReportInput): Table[] {
                     : 'Class value';
                 return row(classId, id, status);
               });
-            const status = !valueId ? 'Not mapped' : isRecordValueAllowed(f.valueIds, valueId) ? 'Mapped' : 'Not allowed by ETIM';
+            const status = !valueId
+              ? isRecordValueSkipped(r, f.featureId)
+                ? 'Skipped'
+                : 'Not mapped'
+              : isRecordValueAllowed(f.valueIds, valueId)
+                ? 'Mapped'
+                : 'Not allowed by ETIM';
             return [row(undefined, valueId, status), ...classRows];
           }),
         ),

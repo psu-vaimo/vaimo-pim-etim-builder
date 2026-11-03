@@ -31,6 +31,7 @@ import { useSectionStatuses } from './workspace/useSectionStatuses.js';
 import { loadMode, saveMode, shouldOfferWorkspace, type ViewMode } from './workspace/viewMode.js';
 import './workspace/layout.css';
 import { TEXT_COLORS } from './theme.js';
+import { StepWorkBox } from './components/StepWorkBox.js';
 
 function StepContent({ index, label }: { index: number; label: string }) {
   return (
@@ -211,17 +212,26 @@ export function App() {
 
         {workspace && current ? (
           <Box data-testid="workspace-section" data-section={current.id}>
-            <Title order={2}>{current.label}</Title>
-            <Text c="dimmed" size="sm">
-              {current.description}
-            </Text>
-            {blocked ? (
-              <Alert color="gray" mt="md" data-testid="workspace-blocked">
-                {blocked}.
-              </Alert>
-            ) : (
-              <StepContent index={active} label={current.label} />
-            )}
+            <div className="step-layout">
+              <div className="step-layout-main">
+                <Title order={2}>{current.label}</Title>
+                <Text c="dimmed" size="sm">
+                  {current.description}
+                </Text>
+                {blocked ? (
+                  <Alert color="gray" mt="md" data-testid="workspace-blocked">
+                    {blocked}.
+                  </Alert>
+                ) : (
+                  <StepContent index={active} label={current.label} />
+                )}
+              </div>
+              {!blocked && (
+                <div className="step-layout-aside">
+                  <StepWorkBox id={current.id} />
+                </div>
+              )}
+            </div>
           </Box>
         ) : (
           <>
@@ -233,7 +243,14 @@ export function App() {
             >
               {SECTIONS.map((step, index) => (
                 <Stepper.Step key={step.id} label={step.label} description={step.description} allowStepSelect={canOpen(index, guard)}>
-                  <StepContent index={index} label={step.label} />
+                  <div className="step-layout">
+                    <div className="step-layout-main">
+                      <StepContent index={index} label={step.label} />
+                    </div>
+                    <div className="step-layout-aside">
+                      <StepWorkBox id={step.id} />
+                    </div>
+                  </div>
                 </Stepper.Step>
               ))}
             </Stepper>

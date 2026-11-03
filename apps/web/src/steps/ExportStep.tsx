@@ -1,5 +1,5 @@
 import type { EtimRelease, Project } from '@akeneo-etim/core';
-import { Alert, Badge, Button, Group, List, Loader, Modal, Paper, Stack, Table, Text, Title } from '@mantine/core';
+import { Alert, Button, Group, Loader, Modal, Paper, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { SourceEntityTable } from '../components/review/SourceEntityTable.js';
@@ -8,7 +8,6 @@ import {
   baseName,
   formatBytes,
   groupExportFiles,
-  isFamilyStep,
   mimeType,
   summarizeIssues,
   zipFileName,
@@ -18,6 +17,7 @@ import { runExportJob } from '../export/runExportJob.js';
 import { useGeneratedModel } from '../review/generated.js';
 import { sourceEntitySummaries } from '../review/reviewRows.js';
 import { useAppState } from '../state/AppStateContext.js';
+import { displayLocale } from '../state/appState.js';
 import { TEXT_COLORS } from '../theme.js';
 
 /** Wait after the last project change before building, typing the project name should not start a build per key. */
@@ -71,16 +71,17 @@ function useExportBuild(release: EtimRelease | undefined, project: Project) {
 }
 
 export function ExportStep() {
-  const { release, project } = useAppState();
+  const state = useAppState();
+  const { release, project } = state;
+  const locale = displayLocale(state);
   const { result, previous, building, error } = useExportBuild(release, project);
   const [confirm, setConfirm] = useState<Download | undefined>();
 
   const shown = result ?? previous;
   const groups = useMemo(() => (shown ? groupExportFiles(shown.files) : []), [shown]);
-  const steps = shown?.manualSteps ?? [];
   const summary = useMemo(() => (shown ? summarizeIssues(shown.issues) : undefined), [shown]);
   const model = useGeneratedModel(release, project);
-  const entities = useMemo(() => (model ? sourceEntitySummaries(project, model.sourceEntities) : []), [model, project]);
+  const entities = useMemo(() => (model && release ? sourceEntitySummaries(release, project, model.sourceEntities, locale) : []), [model, release, project, locale]);
 
   if (!release) return <Text mt="md">Import an ETIM export first.</Text>;
 
@@ -103,33 +104,6 @@ export function ExportStep() {
 
   return (
     <Stack gap="lg" mt="md">
-      <Alert color="blue" title="Manual steps in Akeneo" data-testid="manual-steps">
-        {steps.length === 0 ? (
-          <Text size="sm">The steps are listed once the export is ready.</Text>
-        ) : (
-          <List type="ordered" spacing={4} size="sm">
-            {steps.map((step, i) => (
-              <List.Item key={i}>
-                {isFamilyStep(step) ? (
-                  <Group gap="xs" wrap="nowrap" data-testid="family-step">
-                    <Text size="sm" fw={700}>
-                      {step}
-                    </Text>
-                    <Badge color="orange" size="sm" style={{ flexShrink: 0 }}>
-                      Required
-                    </Badge>
-                  </Group>
-                ) : (
-                  step
-                )}
-              </List.Item>
-            ))}
-          </List>
-        )}
-        <Text size="xs" c="dimmed" mt="sm">
-          The same steps are in README.txt in the zip.
-        </Text>
-      </Alert>
 
       <Paper withBorder p="md" radius="md">
         <Group justify="space-between" align="center">

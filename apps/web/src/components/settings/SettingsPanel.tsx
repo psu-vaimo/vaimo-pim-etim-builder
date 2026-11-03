@@ -44,7 +44,7 @@ export function SettingsPanel({ opened, onClose }: { opened: boolean; onClose: (
     <Drawer opened={opened} onClose={onClose} position="right" size="xl" title={<Title order={3}>Project settings</Title>}>
       <Stack gap="lg">
         <Text size="sm" c="dimmed">
-          These settings change generated codes and labels. Defaults follow the prototype, change them only when the customer needs other
+          These settings change generated codes and labels. Defaults follow the prototype, change them only when the client needs other
           codes.
         </Text>
 
@@ -185,7 +185,7 @@ export function SettingsPanel({ opened, onClose }: { opened: boolean; onClose: (
             </Button>
           )}
           <Text size="xs" c="dimmed">
-            Number and range defaults and unit mappings are kept, change those in the Features step.
+            Number and range defaults and unit mappings are kept, change those in step 3, Configure Features.
           </Text>
         </Group>
       </Stack>

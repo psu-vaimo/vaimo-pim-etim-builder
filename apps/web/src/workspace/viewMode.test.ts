@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_MODE, MODE_STORAGE_KEY, loadMode, saveMode, shouldOfferWorkspace, type OfferInput } from './viewMode.js';
+import {
+  DEFAULT_MODE,
+  MODE_STORAGE_KEY,
+  loadMode,
+  loadWorkCollapsed,
+  saveMode,
+  saveWorkCollapsed,
+  shouldOfferWorkspace,
+  type OfferInput,
+} from './viewMode.js';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
@@ -18,6 +27,17 @@ const throwing = {
     throw new Error('blocked');
   },
 };
+
+describe('loadWorkCollapsed and saveWorkCollapsed', () => {
+  it('is open by default and round trips', () => {
+    const s = memoryStorage();
+    expect(loadWorkCollapsed(s)).toBe(false);
+    saveWorkCollapsed(true, s);
+    expect(loadWorkCollapsed(s)).toBe(true);
+    expect(loadWorkCollapsed(throwing)).toBe(false);
+    expect(() => saveWorkCollapsed(true, throwing)).not.toThrow();
+  });
+});
 
 describe('loadMode and saveMode', () => {
   it('defaults to the wizard', () => {

@@ -51,7 +51,7 @@ export function buildExport(release: EtimRelease, project: Project): ExportResul
     ...rules.issues.map((i) => ({ ...i, step: 'rules' as const })),
     ...sourceEntities.issues.map((i) => ({ ...i, step: 'records' as const })),
   ];
-  const manualSteps = manualStepsFor(project, sourceEntities.entities);
+  const manualSteps = akeneoManualSteps(project, sourceEntities.entities);
 
   const tables: [string, Table][] = [
     ['01_attribute_groups', attributeGroupsTable(project, attrs.attributes)],
@@ -98,7 +98,8 @@ export function zipExport(files: ExportFile[]): Uint8Array {
   );
 }
 
-function manualStepsFor(project: Project, sourceEntities: SourceEntityPlan[]): string[] {
+/** What the consultant must do by hand in Akeneo after the export, in order. Also shown in the app before the export is built. */
+export function akeneoManualSteps(project: Project, sourceEntities: readonly SourceEntityPlan[]): string[] {
   const { codes } = project.settings;
   const withRecords = sourceEntities.filter((e) => e.records.length > 0);
   return [
@@ -120,10 +121,10 @@ function readme(project: Project, manualSteps: string[]): string {
     `ETIM export for ${project.name || 'unnamed project'}`,
     '',
     'Files:',
-    '  xlsx/ and csv/   Akeneo import files, same content in both formats, 07 files fill the customer reference entity records',
+    '  xlsx/ and csv/   Akeneo import files, same content in both formats, 07 files fill the client reference entity records',
     '  05_rules.yml     enrichment rules',
     '  06_attribute_dependencies.yml   one dependency per ETIM class',
-    '  mapping_report.xlsx   review report for the customer',
+    '  mapping_report.xlsx   review report for the client',
     '  *.etim-project.json   the project file, load it in the app to continue',
     '',
     'Steps in Akeneo:',

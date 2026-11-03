@@ -7,3 +7,19 @@
 .action-input.action-input::placeholder {
   color: var(--mantine-color-anchor);
 }
+
+/* Prose: paragraphs and alert texts stop at a readable line length. Table cells keep their column width. */
+p.mantine-Text-root:not(td p, th p),
+.mantine-Alert-message {
+  max-width: 75ch;
+}
+
+/* A centered paragraph stays centered in a wider box, e.g. drop zones. */
+p.mantine-Text-root:not(td p, th p)[style*='text-align: center'] {
+  margin-inline: auto;
+}
+
+/* Monospaced codes in prose, `<Text span ff="monospace">` and `<Code>`, 1pt smaller than the text around them. */
+:is(p.mantine-Text-root, .mantine-Alert-message) :is(.mantine-Code-root, [style*='--mantine-font-family-monospace']) {
+  font-size: calc(1em - 1pt);
+}

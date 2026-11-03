@@ -27,6 +27,7 @@ const input = (patch: Partial<StatusInput> = {}): StatusInput => ({
   sourceEntities: 1,
   recordValues: 10,
   mappedRecordValues: 4,
+  skippedRecordValues: 0,
   ...patch,
 });
 
@@ -73,7 +74,7 @@ describe('sectionStatuses', () => {
   const texts = (s: StatusInput) => sectionStatuses(s).map((x) => x.text);
 
   it('shows counts when everything is open', () => {
-    expect(texts(input())).toEqual(['Ready, 2 locales', '3 selected', '40 features', '5 of 40 mapped', '4 of 10 values mapped', 'No errors', 'Ready']);
+    expect(texts(input())).toEqual(['Ready, 2 locales', '3 selected', '40 features', '5 of 40 mapped', '4 of 10 values filled', 'No errors', 'Ready']);
   });
 
   it('shows the guard reason for blocked sections', () => {
@@ -133,20 +134,22 @@ describe('records status', () => {
   it('shows mapped record values, muted without entities and a warning without records', () => {
     expect(status({ sourceEntities: 0, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: 'No reference entity sources', tone: 'muted' });
     expect(status({ sourceEntities: 2, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: '2 entities, no records', tone: 'warning' });
-    expect(status({ recordValues: 6, mappedRecordValues: 6 })).toEqual({ text: '6 of 6 values mapped', tone: 'ok' });
+    expect(status({ recordValues: 6, mappedRecordValues: 6 })).toEqual({ text: '6 of 6 values filled', tone: 'ok' });
+    expect(status({ recordValues: 6, mappedRecordValues: 4, skippedRecordValues: 2 })).toEqual({ text: '4 of 6 values filled, 2 skipped', tone: 'ok' });
   });
 
   it('counts record values per entity', () => {
-    const plan = (records: Record<string, string>[], features: string[]) => ({
+    const plan = (records: Record<string, string>[], features: string[], skipped: string[] = []) => ({
       code: 'x',
       attributes: ['att'],
       features: features.map((featureId) => ({ key: featureId, featureId, attribute: 'att', valueIds: [], classIds: [], classValueIds: {}, exceptionClassIds: [] })),
-      records: records.map((values, i) => ({ code: `r${i}`, labels: {}, values })),
+      records: records.map((values, i) => ({ code: `r${i}`, labels: {}, values, ...(i === 1 && skipped.length > 0 ? { skipped } : {}) })),
     });
-    expect(recordCounts([plan([{ EF1: 'EV1' }, {}], ['EF1', 'EF2']), plan([], ['EF3'])])).toEqual({
+    expect(recordCounts([plan([{ EF1: 'EV1' }, {}], ['EF1', 'EF2'], ['EF2']), plan([], ['EF3'])])).toEqual({
       sourceEntities: 2,
       recordValues: 4,
       mappedRecordValues: 1,
+      skippedRecordValues: 1,
     });
   });
 });

@@ -10,7 +10,7 @@ export type NumericSetup = 'number' | 'metric';
 /** How R features are stored: two number or metric attributes, or one text `10-20`. */
 export type RangeSetup = 'minmax-number' | 'minmax-metric' | 'text';
 
-/** A customer attribute that feeds an ETIM feature through rules. */
+/** A client attribute that provides an ETIM feature through rules. */
 export interface SourceMapping {
   attribute: string;
   /**
@@ -30,7 +30,7 @@ export interface FeatureConfig {
   numeric?: NumericSetup;
   range?: RangeSetup;
   /**
-   * The data model attribute feeding the feature. At most one, kept as a list
+   * The data model attribute providing the feature. At most one, kept as a list
    * so older project files load, more than one is an error. Empty or missing
    * means unmapped.
    */
@@ -43,7 +43,7 @@ export interface FeatureConfig {
   skipped?: true;
 }
 
-/** A customer (data model) attribute from an uploaded Akeneo attribute export. */
+/** A client (data model) attribute from an uploaded Akeneo attribute export. */
 export interface SourceAttribute {
   code: string;
   /** Akeneo attribute type, `pim_catalog_text`, `akeneo_reference_entity`... */
@@ -90,7 +90,7 @@ export interface ProjectSettings {
     dependencyPrefix: string;
     /**
      * Prepended to the lower-case feature id for the record attribute on the
-     * customer's source reference entities holding the ETIM value code, `ref_`
+     * client's source reference entities holding the ETIM value code, `ref_`
      * gives `ref_ef000139`. The value label is in that code plus the label suffix.
      */
     sourceRecordAttributePrefix: string;
@@ -110,7 +110,7 @@ export interface ProjectSettings {
   labelTexts: Record<string, LabelTexts>;
 }
 
-/** A record of a customer reference entity, mapped to ETIM values. */
+/** A record of a client reference entity, mapped to ETIM values. */
 export interface SourceRecord {
   code: string;
   labels: Record<string, string>;
@@ -121,9 +121,15 @@ export interface SourceRecord {
    * id, `{ EC002910: { EF000012: 'EV000154' } }`. Left out when there are none.
    */
   classValues?: Record<string, Record<string, string>>;
+  /**
+   * Feature ids the record provides no ETIM value for on purpose, sorted. Only
+   * for features without a default value, setting one removes the skip. Left
+   * out when empty.
+   */
+  skipped?: string[];
 }
 
-/** A customer reference entity behind A feature sources, with its records. */
+/** A client reference entity that provides A features, with its records. */
 export interface SourceEntity {
   /** Reference entity code in Akeneo, e.g. `surface_treatment`. */
   code: string;
@@ -152,14 +158,14 @@ export interface Project {
   settings: ProjectSettings;
   /** Per feature overrides and mappings. */
   features: Record<FeatureKey, FeatureConfig>;
-  /** Customer attributes from an uploaded Akeneo attribute export, offered as sources. */
+  /** Client attributes from an uploaded Akeneo attribute export, offered as sources. */
   sourceAttributes?: SourceAttribute[];
   /**
    * Source attribute code to the reference entity it links to, for A feature
    * sources. Overrides the `referenceDataName` of an uploaded attribute.
    */
   sourceEntityLinks?: Record<string, string>;
-  /** Customer reference entities with their records and ETIM value mapping, sorted by code. */
+  /** Client reference entities with their records and ETIM value mapping, sorted by code. */
   sourceEntities?: SourceEntity[];
   /** Set by the ETIM import, left out until an export is imported. */
   etimSource?: EtimSource;

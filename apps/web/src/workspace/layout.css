@@ -66,3 +66,57 @@
   min-width: 0;
   overflow-x: auto;
 }
+
+/*
+ * A step with its manual work box: the step on the left, the box in a column on the right that stays in view while
+ * the step scrolls. Narrow screens put the box above the step.
+ */
+.step-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mantine-spacing-lg);
+}
+
+.step-layout-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-layout-aside {
+  position: sticky;
+  top: calc(var(--app-shell-header-offset, 0rem) + var(--mantine-spacing-md));
+  flex-shrink: 0;
+  max-height: calc(100vh - var(--app-shell-header-offset, 0rem) - 2 * var(--mantine-spacing-md));
+  overflow-y: auto;
+}
+
+@media (max-width: 75em) {
+  .step-layout {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .step-layout-aside {
+    position: static;
+    max-height: none;
+    align-self: flex-end;
+  }
+}
+
+/* The collapsed manual work box: a slim tab with the open count, upright text in the right column. */
+.step-work-collapsed {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  padding: var(--mantine-spacing-xs);
+  border: 2px solid;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-body);
+}
+
+@media (min-width: 75em) {
+  .step-work-collapsed {
+    writing-mode: vertical-rl;
+    padding: var(--mantine-spacing-sm) var(--mantine-spacing-xs);
+  }
+}

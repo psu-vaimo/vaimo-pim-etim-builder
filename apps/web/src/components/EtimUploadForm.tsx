@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { isLocaleCode, LOCALE_SUGGESTIONS } from '../etim/locales.js';
 import { assignFiles, missingTables } from '../etim/tableFiles.js';
 import { TEXT_COLORS } from '../theme.js';
+import { CodeList } from './CodeList.js';
 
 export type TableFiles = Partial<Record<EtimTableName, File>>;
 
@@ -101,15 +102,17 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
 
       {assignment.unrecognized.length > 0 && (
         <Alert color="yellow" title="Files not recognized" p="xs">
-          <Text size="sm">
-            {assignment.unrecognized.map((f) => f.name).join(', ')}. The file name must contain exactly one ETIM table name.
-          </Text>
+          <Text size="sm">The file name must contain exactly one ETIM table name.</Text>
+          <CodeList items={assignment.unrecognized.map((f) => f.name)} mono={false} mt={4} />
         </Alert>
       )}
       {assignment.notNeeded.length > 0 && (
-        <Text size="sm" c="dimmed">
-          Not needed here, ignored: {assignment.notNeeded.map((f) => f.name).join(', ')}
-        </Text>
+        <div>
+          <Text size="sm" c="dimmed">
+            Not needed here, ignored:
+          </Text>
+          <CodeList items={assignment.notNeeded.map((f) => f.name)} mono={false} c="dimmed" mt={2} />
+        </div>
       )}
 
       <Group>

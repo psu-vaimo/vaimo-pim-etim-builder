@@ -100,16 +100,14 @@ describe('source record rows', () => {
   const model = generateModel(release, withRecords);
 
   it('summarizes each source entity', () => {
-    expect(sourceEntitySummaries(withRecords, model.sourceEntities)).toEqual([
+    expect(sourceEntitySummaries(release, withRecords, model.sourceEntities, 'en_US')).toEqual([
       {
         code: 'surface',
         attributes: ['att_surface_treatment'],
-        features: ['EF000139'],
         records: 2,
-        mapped: 1,
-        total: 2,
-        classValues: 1,
+        features: [{ featureId: 'EF000139', label: 'Surface protection', filled: 2, defaults: 1, skipped: 0, exceptionClasses: ['EC000009'] }],
         recordAttributes: ['ref_ef000139', 'ref_ef000139_label', 'ref_ef000139_ec000009', 'ref_ef000139_ec000009_label'],
+        labelSuffix: '_label',
       },
     ]);
   });
@@ -117,7 +115,7 @@ describe('source record rows', () => {
   it('lists record values with class exceptions, searchable', () => {
     const rows = sourceRecordReviewRows(release, model.sourceEntities[0]!, 'en_US');
     expect(rows[0]?.cells).toEqual([
-      { featureId: 'EF000139', value: 'EV000072 - Zinc plated', classValues: [{ classId: 'EC000009', value: 'EV000154 - Other' }] },
+      { featureId: 'EF000139', value: 'EV000072 - Zinc plated', skipped: false, classValues: [{ classId: 'EC000009', value: 'EV000154 - Other' }] },
     ]);
     expect(rows[1]?.cells[0]?.value).toBeUndefined();
     expect(filterBySearch(rows, 'other ec000009').map((r) => r.record.code)).toEqual(['zinc']);

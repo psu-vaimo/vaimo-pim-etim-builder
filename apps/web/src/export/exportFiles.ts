@@ -8,7 +8,7 @@ export const FILE_GROUP_LABELS: Record<FileGroupId, string> = {
   csv: 'Akeneo import files, CSV',
   rules: 'Rules',
   dependencies: 'Attribute dependencies',
-  report: 'Mapping report for the customer',
+  report: 'Mapping report for the client',
   project: 'Project file',
   other: 'Other files',
 };

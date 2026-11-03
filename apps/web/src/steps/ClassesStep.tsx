@@ -25,6 +25,7 @@ import {
   unmatchedSearchTerms,
   type SelectionFilter,
 } from '../state/appState.js';
+import { CodeList } from '../components/CodeList.js';
 
 const PAGE_SIZE = 50;
 
@@ -69,7 +70,7 @@ export function ClassesStep() {
           Project locales
         </Title>
         <Text size="sm" c="dimmed" mb="sm">
-          Labels are generated for these locales. Add more languages in step 1.
+          Labels are generated for these locales. Add more languages in step 1, Setup ETIM versions.
         </Text>
         <Checkbox.Group
           value={project.locales.filter((l) => release.locales.includes(l))}
@@ -154,9 +155,12 @@ export function ClassesStep() {
         </Group>
 
         {unmatched.length > 0 && (
-          <Text size="sm" c={TEXT_COLORS.warning} data-testid="class-search-unmatched">
-            No match for {unmatched.length.toLocaleString('en-US')} of the searched items: {unmatched.join(', ')}
-          </Text>
+          <div data-testid="class-search-unmatched">
+            <Text size="sm" c={TEXT_COLORS.warning}>
+              No match for {unmatched.length.toLocaleString('en-US')} of the searched items:
+            </Text>
+            <CodeList items={unmatched} c={TEXT_COLORS.warning} columnWidth={16} mt={2} />
+          </div>
         )}
 
         <Group gap="xs">

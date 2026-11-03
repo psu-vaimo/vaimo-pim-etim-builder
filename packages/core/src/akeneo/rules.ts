@@ -28,7 +28,7 @@ interface MappedFeature {
 /**
  * Generates the enrichment rules for mapped features, from the attributes
  * returned by `generateAttributes`. A feature has one source (data model
- * attribute), a source can feed many features.
+ * attribute), a source can provide many features.
  *
  * One rule per source, `<rule prefix><source>`, with a copy action per
  * feature the source is mapped to. Conditions: class attribute and source NOT

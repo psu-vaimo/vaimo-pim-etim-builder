@@ -8,6 +8,7 @@ import {
   parseAkeneoRecordExport,
   sourceEntityFor,
   sourceRecordsTable,
+  withRecordSkipped,
   withRecordValue,
   type EtimRelease,
   type Project,
@@ -86,13 +87,14 @@ describe('collectSourceEntities', () => {
             { code: 'eye', labels: {}, values: { EF005644: 'EV023258' } },
             { code: 'odd', labels: {}, values: { EF005644: 'EV000072' } },
             { code: 'none', labels: {}, values: {} },
+            { code: 'skip', labels: {}, values: {}, skipped: ['EF005644'] },
           ],
         },
       ],
     });
     expect(collectSourceEntities(release(), p).issues.map((i) => i.message)).toEqual([
       'Source att_colour of EF000007 has no reference entity, register it on the mapping to map its records',
-      'Reference entity fastening: 1 of 3 record values have no ETIM value',
+      'Reference entity fastening: 1 of 4 record values have no ETIM value and are not skipped',
       'Reference entity fastening: 1 values are not allowed by ETIM for the selected classes: odd EF005644=EV000072',
     ]);
   });
@@ -276,6 +278,18 @@ describe('class exceptions', () => {
     expect(withClass).toEqual({ ...record, classValues: { EC1: { EF1: 'EV2' } } });
     expect(withRecordValue(withClass, 'EF1', 'EC1', '')).toEqual(record);
     expect(withRecordValue(withClass, 'EF1', undefined, '')).toEqual({ code: 'eye', labels: {}, values: {}, classValues: { EC1: { EF1: 'EV2' } } });
+  });
+
+  it('skips a record value without a default value, a value removes the skip', () => {
+    const record = { code: 'eye', labels: {}, values: {} };
+    const skipped = withRecordSkipped(withRecordSkipped(record, 'EF2', true), 'EF1', true);
+    expect(skipped).toEqual({ ...record, skipped: ['EF1', 'EF2'] });
+    expect(withRecordSkipped(skipped, 'EF2', false)).toEqual({ ...record, skipped: ['EF1'] });
+    expect(withRecordValue(skipped, 'EF1', undefined, 'EV1')).toEqual({ ...record, values: { EF1: 'EV1' }, skipped: ['EF2'] });
+    expect(withRecordValue(skipped, 'EF1', 'EC1', 'EV1').skipped).toEqual(['EF1', 'EF2']);
+    const valued = { ...record, values: { EF1: 'EV1' } };
+    expect(withRecordSkipped(valued, 'EF1', true)).toBe(valued);
+    expect(withRecordSkipped(withRecordSkipped(record, 'EF1', true), 'EF1', false)).toEqual(record);
   });
 
   it('sets class values through applySourceRecordValues, checked against the class', () => {

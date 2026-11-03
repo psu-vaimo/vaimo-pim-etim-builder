@@ -29,7 +29,7 @@ export {
   sourceEntityFor,
   sourceRecordAttribute,
 } from './akeneo/sourceRecords.js';
-export { buildExport, zipExport, type ExportFile, type ExportIssue, type ExportResult } from './export/bundle.js';
+export { akeneoManualSteps, buildExport, zipExport, type ExportFile, type ExportIssue, type ExportResult } from './export/bundle.js';
 export { toCsv, type Cell, type Table } from './export/table.js';
 export { writeXlsx } from './export/xlsx.js';
 export {
@@ -61,6 +61,8 @@ export {
   collectSourceEntities,
   featureRecordAttributes,
   isRecordValueAllowed,
+  isRecordValueSkipped,
+  withRecordSkipped,
   withRecordValue,
   sourceRecordsTable,
   type SourceEntityFeature,

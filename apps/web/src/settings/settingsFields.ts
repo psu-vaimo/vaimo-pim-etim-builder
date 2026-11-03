@@ -23,13 +23,13 @@ export const CODE_FIELDS: readonly FieldInfo<CodeKey>[] = [
   {
     key: 'sourceRecordAttributePrefix',
     label: 'Source record attribute prefix',
-    description: 'Before the feature id, record attribute on the customer source entities holding the ETIM value code (ref_ef000139)',
+    description: 'Before the feature id, record attribute on the client source entities holding the ETIM value code (ref_ef000139)',
   },
 ];
 
 export const GROUP_FIELDS: readonly FieldInfo<GroupKey>[] = [
   { key: 'general', label: 'Class attribute group', description: 'Group of the class attribute' },
-  { key: 'mapped', label: 'Mapped group', description: 'Features filled from customer attributes' },
+  { key: 'mapped', label: 'Mapped group', description: 'Features filled from client attributes' },
   { key: 'unmapped', label: 'Unmapped group', description: 'All other ETIM features' },
 ];
 
