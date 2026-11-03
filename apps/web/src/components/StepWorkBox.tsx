@@ -106,7 +106,7 @@ export function StepWorkBox({ id }: { id: SectionId }) {
           </Text>
           <Group gap={4} wrap="nowrap">
             {status}
-            <ActionIcon variant="subtle" color="gray" size="sm" onClick={toggle} aria-expanded aria-label="Hide manual work" data-testid="step-work-toggle">
+            <ActionIcon variant="default" size="sm" onClick={toggle} aria-expanded aria-label="Hide manual work" data-testid="step-work-toggle">
               ›
             </ActionIcon>
           </Group>

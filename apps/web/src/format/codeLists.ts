@@ -5,9 +5,9 @@ export interface ListedCode {
 }
 
 /**
- * Joins each code with its label attribute right after it, so
- * `ref_ef000013, ref_ef000013_label` is shown as `ref_ef000013 (and _label)`.
- * Without a suffix nothing is joined.
+ * Pairs each code with its label attribute right after it, so
+ * `ref_ef000013, ref_ef000013_label` is one row of the record attribute table.
+ * Without a suffix nothing is paired.
  */
 export function pairLabelCodes(codes: readonly string[], labelSuffix: string | undefined): ListedCode[] {
   const out: ListedCode[] = [];

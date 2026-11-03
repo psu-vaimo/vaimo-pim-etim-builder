@@ -166,7 +166,7 @@ export function ImportStep() {
 
       {release && !showReplace && (
         <Group>
-          <Button variant="subtle" onClick={() => setShowReplace(true)}>
+          <Button variant="default" onClick={() => setShowReplace(true)}>
             Replace ETIM export
           </Button>
         </Group>

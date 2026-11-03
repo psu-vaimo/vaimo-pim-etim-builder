@@ -3,6 +3,7 @@ import { exceptionsText, filledText, isComplete } from '../../format/sourceEntit
 import type { SourceEntitySummary } from '../../review/reviewRows.js';
 import { TEXT_COLORS } from '../../theme.js';
 import { CodeList } from '../CodeList.js';
+import { RecordAttributeTable } from '../RecordAttributeTable.js';
 
 /**
  * One row per client reference entity: the client attributes using it, its
@@ -62,7 +63,7 @@ export function SourceEntityTable({ summaries, testId }: { summaries: readonly S
               </List>
             </Table.Td>
             <Table.Td>
-              <CodeList items={s.recordAttributes} labelSuffix={s.labelSuffix} size="xs" />
+              <RecordAttributeTable codes={s.recordAttributes} labelSuffix={s.labelSuffix} size="xs" />
             </Table.Td>
           </Table.Tr>
         ))}

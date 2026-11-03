@@ -188,7 +188,7 @@ export function ClassesStep() {
             {isFiltered ? `Deselect ${filtered.length.toLocaleString('en-US')} matching` : 'Deselect all'}
           </Button>
           {isFiltered && project.classIds.length > 0 && (
-            <Button size="xs" variant="subtle" color="gray" onClick={() => dispatch({ type: 'setClassIds', ids: [] })}>
+            <Button size="xs" variant="default" onClick={() => dispatch({ type: 'setClassIds', ids: [] })}>
               Clear whole selection
             </Button>
           )}

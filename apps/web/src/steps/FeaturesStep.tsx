@@ -7,13 +7,14 @@ import {
   type NumericSetup,
   type RangeSetup,
 } from '@akeneo-etim/core';
-import { Badge, Group, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { useMemo } from 'react';
 import { DefaultsPanel } from '../components/features/DefaultsPanel.js';
 import { FeatureTable } from '../components/features/FeatureTable.js';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { UnitMappingPanel } from '../components/features/UnitMappingPanel.js';
-import { ATTRIBUTE_TYPE_LABELS, countBy, featureRows, metricUnitRows } from '../features/featureRows.js';
+import { CountTable } from '../components/CountTable.js';
+import { ATTRIBUTE_TYPE_LABELS, ETIM_TYPE_LABELS, countBy, featureRows, metricUnitRows } from '../features/featureRows.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
 
@@ -71,25 +72,22 @@ export function FeaturesStep() {
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
             Features by ETIM type
           </Text>
-          <Group gap={4} mt={6}>
-            {ETIM_FEATURE_TYPES.map((t: EtimFeatureType) => (
-              <Badge key={t} variant="light" color="gray">
-                {t} {byEtimType[t] ?? 0}
-              </Badge>
-            ))}
-          </Group>
+          <CountTable
+            rows={ETIM_FEATURE_TYPES.map((t: EtimFeatureType) => ({ code: t, label: ETIM_TYPE_LABELS[t], count: byEtimType[t] ?? 0 }))}
+            testId="stat-feature-types"
+          />
         </Paper>
         <Paper withBorder p="sm">
           <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
             Attributes by type
           </Text>
-          <Group gap={4} mt={6} data-testid="stat-attribute-types">
-            {Object.entries(byAttrType).map(([type, count]) => (
-              <Badge key={type} variant="light">
-                {ATTRIBUTE_TYPE_LABELS[type as keyof typeof ATTRIBUTE_TYPE_LABELS]} {count}
-              </Badge>
-            ))}
-          </Group>
+          <CountTable
+            rows={Object.entries(byAttrType).map(([type, count]) => ({
+              label: ATTRIBUTE_TYPE_LABELS[type as keyof typeof ATTRIBUTE_TYPE_LABELS],
+              count: count ?? 0,
+            }))}
+            testId="stat-attribute-types"
+          />
         </Paper>
       </SimpleGrid>
 

@@ -120,7 +120,7 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
           {submitLabel}
         </Button>
         {files.length > 0 && (
-          <Button variant="subtle" color="gray" disabled={busy} onClick={() => setFiles([])}>
+          <Button variant="default" disabled={busy} onClick={() => setFiles([])}>
             Clear files
           </Button>
         )}

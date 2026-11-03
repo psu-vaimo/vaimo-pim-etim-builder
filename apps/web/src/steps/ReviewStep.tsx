@@ -21,6 +21,7 @@ import {
   type RuleReviewRow,
   type SourceRecordReviewRow,
 } from '../review/reviewRows.js';
+import { CountTable } from '../components/CountTable.js';
 import { useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
 import { TEXT_COLORS } from '../theme.js';
@@ -255,13 +256,10 @@ export function ReviewStep() {
       </Text>
       <SimpleGrid cols={{ base: 2, sm: 4, lg: 8 }} spacing="sm">
         <Stat label="Attributes" value={model.attributes.length} testId="review-stat-attributes">
-          <Group gap={4} mt={6} data-testid="review-attribute-types">
-            {countAttributeTypes(model.attributes).map(([type, count]) => (
-              <Badge key={type} size="xs" variant="light">
-                {ATTRIBUTE_TYPE_LABELS[type]} {count.toLocaleString('en-US')}
-              </Badge>
-            ))}
-          </Group>
+          <CountTable
+            rows={countAttributeTypes(model.attributes).map(([type, count]) => ({ label: ATTRIBUTE_TYPE_LABELS[type], count }))}
+            testId="review-attribute-types"
+          />
         </Stat>
         <Stat label="Class records" value={model.classRecords.length} testId="review-stat-class-records" />
         <Stat label="Value records" value={model.valueRecords.length} testId="review-stat-value-records" />

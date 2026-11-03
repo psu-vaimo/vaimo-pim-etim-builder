@@ -116,8 +116,7 @@ export function MappingStep() {
           </div>
           <Button
             size="xs"
-            variant="subtle"
-            color="gray"
+            variant="default"
             style={{ flexShrink: 0 }}
             onClick={() => dispatch({ type: 'removeSources', keys: orphans })}
             data-testid="remove-orphans"

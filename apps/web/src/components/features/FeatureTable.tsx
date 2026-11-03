@@ -1,4 +1,4 @@
-import { ETIM_FEATURE_TYPES, type EtimFeatureType, type FeatureKey, type NumericSetup, type Project, type RangeSetup } from '@akeneo-etim/core';
+import { type EtimFeatureType, type FeatureKey, type NumericSetup, type Project, type RangeSetup } from '@akeneo-etim/core';
 import { Badge, Group, NativeSelect, Pagination, SegmentedControl, Stack, Table, Text, TextInput, Tooltip } from '@mantine/core';
 import { memo, useDeferredValue, useMemo, useState, type Dispatch } from 'react';
 import {
@@ -10,8 +10,14 @@ import {
   type FeatureRow,
 } from '../../features/featureRows.js';
 import type { AppAction } from '../../state/appState.js';
+import { KEEP_CASE } from '../../theme.js';
+import { ETIM_TYPE_OPTIONS, NARROW, NoUnit } from './tableCells.js';
 
 const PAGE_SIZE = 50;
+/** Same line height for attribute codes and their types, so the two columns line up. */
+const LINE = '22px';
+/** Badge labels are cut off with an ellipsis by default, the type pills keep their full text so the column fits them. */
+const FULL_LABEL = { root: { flexShrink: 0 }, label: { overflow: 'visible' } } as const;
 const DEFAULT = 'default';
 
 interface OverrideProps {
@@ -103,10 +109,7 @@ export const FeatureTable = memo(function FeatureTable({ rows, project, locale, 
           data-testid="feature-search"
         />
         <SegmentedControl
-          data={[
-            { value: 'all', label: 'All types' },
-            ...ETIM_FEATURE_TYPES.map((t) => ({ value: t, label: `${t} ${ETIM_TYPE_LABELS[t]}` })),
-          ]}
+          data={ETIM_TYPE_OPTIONS}
           value={type}
           onChange={(v) => {
             setType(v as EtimFeatureType | 'all');
@@ -128,10 +131,9 @@ export const FeatureTable = memo(function FeatureTable({ rows, project, locale, 
             <Table.Th>Label{locale ? ` (${locale})` : ''}</Table.Th>
             <Table.Th w={60}>Type</Table.Th>
             <Table.Th w={110}>Unit</Table.Th>
-            <Table.Th w={80} ta="right">
-              Classes
-            </Table.Th>
+            <Table.Th {...NARROW}>Classes</Table.Th>
             <Table.Th>Akeneo attributes</Table.Th>
+            <Table.Th>Akeneo type</Table.Th>
             <Table.Th w={230}>Setup</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -148,7 +150,7 @@ export const FeatureTable = memo(function FeatureTable({ rows, project, locale, 
                 <Table.Td>{row.label || <Text c="dimmed">No label</Text>}</Table.Td>
                 <Table.Td>
                   <Tooltip label={ETIM_TYPE_LABELS[row.type]}>
-                    <Badge variant="light" color="gray">
+                    <Badge variant="light" color="gray" styles={KEEP_CASE}>
                       {row.type}
                     </Badge>
                   </Tooltip>
@@ -159,20 +161,24 @@ export const FeatureTable = memo(function FeatureTable({ rows, project, locale, 
                       <Text size="sm">{row.unitLabel || row.unitId}</Text>
                     </Tooltip>
                   ) : (
-                    <Text size="sm" c="dimmed">
-                      None
-                    </Text>
+                    <NoUnit />
                   )}
                 </Table.Td>
-                <Table.Td ta="right">{row.classCount}</Table.Td>
+                <Table.Td>{row.classCount}</Table.Td>
                 <Table.Td>
                   <Stack gap={2}>
                     {row.attributes.map((a) => (
-                      <Group key={a.code} gap={6} wrap="nowrap">
-                        <Text size="sm" ff="monospace">
-                          {a.code}
-                        </Text>
-                        <Badge size="sm" variant="light" color={a.type === 'pim_catalog_metric' ? 'teal' : 'blue'} data-testid="attr-type">
+                      <Text key={a.code} size="sm" ff="monospace" lh={LINE}>
+                        {a.code}
+                      </Text>
+                    ))}
+                  </Stack>
+                </Table.Td>
+                <Table.Td>
+                  <Stack gap={2}>
+                    {row.attributes.map((a) => (
+                      <Group key={a.code} h={LINE} align="center">
+                        <Badge size="sm" variant="light" color={a.type === 'pim_catalog_metric' ? 'teal' : 'blue'} styles={FULL_LABEL} data-testid="attr-type">
                           {ATTRIBUTE_TYPE_LABELS[a.type]}
                         </Badge>
                       </Group>
@@ -187,7 +193,7 @@ export const FeatureTable = memo(function FeatureTable({ rows, project, locale, 
           })}
           {pageRows.length === 0 && (
             <Table.Tr>
-              <Table.Td colSpan={7}>
+              <Table.Td colSpan={8}>
                 <Text c="dimmed" ta="center" py="md">
                   {rows.length === 0 ? 'The selected classes have no features' : 'No features match the filters'}
                 </Text>

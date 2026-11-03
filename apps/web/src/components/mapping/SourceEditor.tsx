@@ -43,6 +43,7 @@ import {
   type SourceDraft,
 } from '../../mapping/sourceMappings.js';
 import { normalizeSources, withSources } from '@akeneo-etim/core';
+import { KEEP_CASE } from '../../theme.js';
 
 const MONO_INPUT = { input: { fontFamily: 'var(--mantine-font-family-monospace)' } };
 
@@ -198,8 +199,8 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
   return (
     <Stack gap="md" data-testid={`editor-${row.key}`}>
       <Group gap="xs">
-        <Badge variant="light" color="gray">
-          {row.type} {ETIM_TYPE_LABELS[row.type]}
+        <Badge variant="light" color="gray" styles={KEEP_CASE}>
+          {row.type} {ETIM_TYPE_LABELS[row.type].toLowerCase()}
         </Badge>
         {row.unitId && (
           <Badge variant="light" color="gray">
@@ -283,7 +284,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
           </Button>
         </Group>
         {row.sources.length > 0 && (
-          <Button variant="subtle" color="red" onClick={() => onSave(row, [], '')} data-testid="source-unmap">
+          <Button variant="light" color="red" onClick={() => onSave(row, [], '')} data-testid="source-unmap">
             Remove mapping
           </Button>
         )}

@@ -20,7 +20,7 @@ import type { Dispatch } from 'react';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale, type AppAction } from '../state/appState.js';
 import { ACTION_INPUT, DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
-import { CodeList } from '../components/CodeList.js';
+import { RecordAttributeTable } from '../components/RecordAttributeTable.js';
 import { exceptionsText, filledText, isComplete, providesText, recordsText } from '../format/sourceEntityText.js';
 import { sourceEntitySummaries, type SourceEntityFeatureSummary } from '../review/reviewRows.js';
 import { LogicalSources } from './LogicalSources.js';
@@ -191,7 +191,7 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
               <Text size="sm" c="dimmed">
                 Needs the text attributes (not localizable, not scopable):
               </Text>
-              <CodeList items={recordAttributes} labelSuffix={project.settings.codes.labelSuffix} mt={2} testId={`entity-attributes-${plan.code}`} />
+              <RecordAttributeTable codes={recordAttributes} labelSuffix={project.settings.codes.labelSuffix} testId={`entity-attributes-${plan.code}`} />
             </div>
 
             <Group align="flex-end" gap="sm">
@@ -305,7 +305,7 @@ interface RowProps {
 
 const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, locale, dispatch }: RowProps) {
   const open = plan.features.filter((f) => !record.values[f.featureId]).map((f) => f.featureId);
-  // The whole record is skipped when every feature without a value is skipped.
+  // The whole record is skipped when every feature without a value is skipped. With one open value the cell's own Skip does the same.
   const recordSkipped = open.length > 0 && open.every((id) => isRecordValueSkipped(record, id));
   const setValue = (featureId: string, classId: string | undefined, valueId: string | null) =>
     dispatch({ type: 'setSourceRecordValue', entity: plan.code, code: record.code, featureId, ...(classId ? { classId } : {}), valueId });
@@ -355,12 +355,11 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
       ))}
       <Table.Td style={{ verticalAlign: 'top' }}>
         <Group gap={4} wrap="nowrap">
-          {open.length > 0 && (
+          {open.length > 1 && (
             <Tooltip label={recordSkipped ? 'Back to not mapped' : 'Skip every value of this record without an ETIM value, its record attributes stay empty'}>
               <Button
                 size="compact-xs"
-                variant="subtle"
-                color="gray"
+                variant="default"
                 onClick={() => dispatch({ type: 'setSourceRecordSkippedAll', entity: plan.code, code: record.code, featureIds: open, skipped: !recordSkipped })}
                 data-testid={`record-skip-${record.code}`}
               >
@@ -388,7 +387,7 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
 function SkipButton({ skipped, onChange, testId }: { skipped: boolean; onChange: (skipped: boolean) => void; testId: string }) {
   return (
     <Tooltip label={skipped ? 'Back to not mapped' : 'No ETIM value on purpose, the record attribute stays empty'}>
-      <Button size="compact-xs" variant="subtle" color="gray" onClick={() => onChange(!skipped)} style={{ flexShrink: 0 }} data-testid={testId}>
+      <Button size="compact-xs" variant="default" onClick={() => onChange(!skipped)} style={{ flexShrink: 0 }} data-testid={testId}>
         {skipped ? 'Unskip' : 'Skip'}
       </Button>
     </Tooltip>
@@ -482,7 +481,7 @@ function ClassValues({ record, feature, options, classLabels, onChange }: ClassV
               testId={`${testId}-new-value`}
             />
           </div>
-          <ActionIcon size="sm" variant="subtle" color="gray" aria-label="Cancel" onClick={() => setAdding(null)}>
+          <ActionIcon size="sm" variant="default" aria-label="Cancel" onClick={() => setAdding(null)}>
             ×
           </ActionIcon>
         </Group>

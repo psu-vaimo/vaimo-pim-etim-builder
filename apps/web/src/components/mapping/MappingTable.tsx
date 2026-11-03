@@ -1,7 +1,9 @@
-import { ETIM_FEATURE_TYPES, type EtimFeatureType, type FeatureKey, type MappingStatus } from '@akeneo-etim/core';
+import { type EtimFeatureType, type FeatureKey, type MappingStatus } from '@akeneo-etim/core';
 import { Badge, Button, Group, Pagination, SegmentedControl, Stack, Table, Text, TextInput, Tooltip } from '@mantine/core';
 import { Fragment, memo, useDeferredValue, useMemo, useState, type ReactNode } from 'react';
 import { ETIM_TYPE_LABELS } from '../../features/featureRows.js';
+import { KEEP_CASE } from '../../theme.js';
+import { ETIM_TYPE_OPTIONS, NARROW, NoUnit } from '../features/tableCells.js';
 import {
   filterMappingRows,
   formatSource,
@@ -68,7 +70,7 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
         <Table.Td>{row.label || <Text c="dimmed">No label</Text>}</Table.Td>
         <Table.Td>
           <Tooltip label={ETIM_TYPE_LABELS[row.type]}>
-            <Badge variant="light" color="gray">
+            <Badge variant="light" color="gray" styles={KEEP_CASE}>
               {row.type}
             </Badge>
           </Tooltip>
@@ -79,12 +81,10 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
               <Text size="sm">{row.unitLabel || row.unitId}</Text>
             </Tooltip>
           ) : (
-            <Text size="sm" c="dimmed">
-              None
-            </Text>
+            <NoUnit />
           )}
         </Table.Td>
-        <Table.Td ta="right">{row.classCount}</Table.Td>
+        <Table.Td>{row.classCount}</Table.Td>
         <Table.Td>
           <Badge {...STATUS_BADGES[row.status]} data-testid="mapping-status">
             {STATUS_BADGES[row.status].label}
@@ -109,8 +109,7 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
               <Tooltip label={row.status === 'skipped' ? 'Back to unmapped' : 'Not mapped on purpose, enriched by hand'}>
                 <Button
                   size="xs"
-                  variant="subtle"
-                  color="gray"
+                  variant="default"
                   onClick={() => onSkip(row.key, row.status !== 'skipped')}
                   data-testid={`skip-${row.key}`}
                 >
@@ -179,7 +178,7 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
           data-testid="mapping-view"
         />
         <SegmentedControl
-          data={[{ value: 'all', label: 'All types' }, ...ETIM_FEATURE_TYPES.map((t) => ({ value: t, label: `${t} ${ETIM_TYPE_LABELS[t]}` }))]}
+          data={ETIM_TYPE_OPTIONS}
           value={type}
           onChange={(v) => {
             setType(v as EtimFeatureType | 'all');
@@ -216,9 +215,7 @@ export const MappingTable = memo(function MappingTable({ rows, locale, errorKeys
             <Table.Th>Label{locale ? ` (${locale})` : ''}</Table.Th>
             <Table.Th w={60}>Type</Table.Th>
             <Table.Th w={110}>Unit</Table.Th>
-            <Table.Th w={80} ta="right">
-              Classes
-            </Table.Th>
+            <Table.Th {...NARROW}>Classes</Table.Th>
             <Table.Th w={110} miw={110}>Status</Table.Th>
             <Table.Th>Source</Table.Th>
             <Table.Th w={150} miw={140} />
