@@ -51,7 +51,8 @@ export const theme = createTheme({
 });
 
 /**
- * Higher text contrast than the Mantine defaults: dimmed text one or two steps darker (lighter in dark mode), placeholders faint,
+ * Higher text contrast than the Mantine defaults: dimmed text one or two steps darker (lighter in dark mode). Placeholders and
+ * idle drop area text (`--app-color-faint`) are faint,
  * and status text colors (`TEXT_COLORS`) dark enough to read on white.
  */
 export const cssVariablesResolver: CSSVariablesResolver = (t) => ({
@@ -59,6 +60,7 @@ export const cssVariablesResolver: CSSVariablesResolver = (t) => ({
   light: {
     '--mantine-color-dimmed': t.colors.gray[7],
     '--mantine-color-placeholder': t.colors.gray[4],
+    '--app-color-faint': t.colors.gray[5],
     '--app-color-ok': t.colors.teal[9],
     '--app-color-warning': t.colors.orange[9],
     '--app-color-error': t.colors.red[8],
@@ -68,6 +70,7 @@ export const cssVariablesResolver: CSSVariablesResolver = (t) => ({
     '--mantine-color-text': t.colors.gray[2],
     '--mantine-color-dimmed': t.colors.dark[0],
     '--mantine-color-placeholder': t.colors.dark[3],
+    '--app-color-faint': t.colors.dark[2],
     '--app-color-ok': t.colors.teal[4],
     '--app-color-warning': t.colors.orange[4],
     '--app-color-error': t.colors.red[4],

@@ -43,3 +43,12 @@ p.mantine-Text-root:not(td p, th p)[style*='text-align: center'] {
 input[style*='--mantine-font-family-monospace'] {
   font-size: calc(var(--input-fz, var(--mantine-font-size-sm)) * var(--app-mono-scale));
 }
+
+/* Drop areas: text in a faint gray until hovered or dragged over. */
+.mantine-Dropzone-root .mantine-Text-root {
+  transition: color 120ms;
+}
+
+.mantine-Dropzone-root:not(:hover, [data-accept], [data-reject]) .mantine-Text-root {
+  color: var(--app-color-faint);
+}

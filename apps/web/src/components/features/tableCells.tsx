@@ -14,14 +14,16 @@ export function NoUnit() {
   );
 }
 
-/** ETIM type letter in monospace and its name, as in the features by ETIM type table. */
+/** ETIM type letter in bold monospace and its name in regular weight, as in the features by ETIM type table. */
 export function EtimTypeLabel({ type }: { type: EtimFeatureType }) {
   return (
     <>
       <Text span inherit ff="monospace" fw={600} mr={6}>
         {type}
       </Text>
-      {ETIM_TYPE_LABELS[type]}
+      <Text span inherit fw={400}>
+        {ETIM_TYPE_LABELS[type]}
+      </Text>
     </>
   );
 }

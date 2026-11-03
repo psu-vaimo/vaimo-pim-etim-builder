@@ -60,7 +60,7 @@ export function EtimUploadForm({ mode, busy, existingLocales, submitLabel, onSub
       <Dropzone onDrop={(dropped) => setFiles((prev) => [...prev, ...dropped])} multiple data-testid={`${mode}-dropzone`}>
         <Stack gap={4} align="center" py="md" style={{ pointerEvents: 'none' }}>
           <Text fw={600}>Drop ETIM CSV files here, or click to choose</Text>
-          <Text size="sm" c="dimmed">
+          <Text size="sm">
             {mode === 'base'
               ? 'One file per table, named like the table (ETIMARTCLASS.csv and so on), ETIMARTGROUP is optional and gives group names'
               : 'The description tables ETIMARTCLASS, ETIMFEATURE, ETIMVALUE, ETIMUNIT and ETIMARTGROUP, any of them can be left out'}
