@@ -1,12 +1,10 @@
-import { ActionIcon, Badge, Group, List, Paper, Stack, Text, ThemeIcon, UnstyledButton } from '@mantine/core';
-import { useState } from 'react';
+import { Badge, Group, List, Paper, Stack, Text, ThemeIcon } from '@mantine/core';
 import { isFamilyStep } from '../export/exportFiles.js';
 import type { SectionId } from '../workspace/sections.js';
 import { openTasks, type StepTask } from '../workspace/stepTasks.js';
 import { useStepWork } from '../workspace/useStepWork.js';
 import { useAppState } from '../state/AppStateContext.js';
 import { TEXT_COLORS } from '../theme.js';
-import { loadWorkCollapsed, saveWorkCollapsed } from '../workspace/workCollapsed.js';
 
 /** Done, open, or work the app cannot check (the download, the steps in Akeneo). */
 function TaskIcon({ done }: { done: boolean | undefined }) {
@@ -46,19 +44,16 @@ function TaskRow({ task }: { task: StepTask }) {
   );
 }
 
-/**
- * The manual work of a step, in a box at the top right of the step: what is done and what is still open.
- * Collapsible to a slim tab with the open count, remembered for the viewer.
- */
-export function StepWorkBox({ id }: { id: SectionId }) {
+interface Props {
+  id: SectionId;
+  /** The side column is collapsed: a slim box with the open count. */
+  collapsed: boolean;
+}
+
+/** The manual work of a step, in a box at the top right of the step: what is done and what is still open. */
+export function StepWorkBox({ id, collapsed }: Props) {
   const work = useStepWork(useAppState(), id);
   const open = openTasks(work);
-  const [collapsed, setCollapsed] = useState(loadWorkCollapsed);
-  const toggle = () => {
-    setCollapsed(!collapsed);
-    saveWorkCollapsed(!collapsed);
-  };
-  const borderColor = open > 0 ? 'var(--mantine-color-orange-filled)' : 'var(--mantine-color-teal-filled)';
   const statusText = open > 0 ? `${open} to do` : 'All done';
   const status = (
     <Badge color={open > 0 ? 'orange' : 'teal'} variant="light" style={{ flexShrink: 0 }} data-testid="step-work-status">
@@ -68,23 +63,14 @@ export function StepWorkBox({ id }: { id: SectionId }) {
 
   if (collapsed) {
     return (
-      <UnstyledButton
-        onClick={toggle}
-        aria-expanded={false}
-        aria-label="Show manual work"
-        className="step-work-collapsed"
-        style={{ borderColor }}
-        data-testid="step-work"
-        data-open={open}
-        data-collapsed
-      >
+      <div className="side-collapsed" data-testid="step-work" data-open={open} data-collapsed>
         <Text fw={700} size="sm" span>
-          ‹ Manual work
+          Tasks
         </Text>
         <Text size="sm" fw={600} span c={open > 0 ? TEXT_COLORS.warning : TEXT_COLORS.ok} data-testid="step-work-status">
           {statusText}
         </Text>
-      </UnstyledButton>
+      </div>
     );
   }
 
@@ -92,24 +78,18 @@ export function StepWorkBox({ id }: { id: SectionId }) {
     <Paper
       withBorder
       p="sm"
-     
       w={340}
       maw="100%"
-      style={{ flexShrink: 0, borderColor, borderWidth: 2 }}
+      style={{ flexShrink: 0 }}
       data-testid="step-work"
       data-open={open}
     >
       <Stack gap="xs">
         <Group justify="space-between" gap="xs" wrap="nowrap">
           <Text fw={700} size="sm">
-            Manual work
+            Tasks
           </Text>
-          <Group gap={4} wrap="nowrap">
-            {status}
-            <ActionIcon variant="default" size="sm" onClick={toggle} aria-expanded aria-label="Hide manual work" data-testid="step-work-toggle">
-              ›
-            </ActionIcon>
-          </Group>
+          {status}
         </Group>
         <List spacing={6} center={false}>
           {work.tasks.map((t) => (

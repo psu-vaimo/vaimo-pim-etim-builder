@@ -1,4 +1,12 @@
-import { isRecordValueSkipped, mappingStatus, type MappingStatus, type Project, type ProjectFeature, type SourceEntityPlan } from '@akeneo-etim/core';
+import {
+  isRecordValueSkipped,
+  mappingStatus,
+  sourceEntityFor,
+  type MappingStatus,
+  type Project,
+  type ProjectFeature,
+  type SourceEntityPlan,
+} from '@akeneo-etim/core';
 
 /** The numbered steps of the workspace, opened from the sidebar in any order. */
 export const SECTIONS = [
@@ -44,6 +52,8 @@ export type StatusTone = 'ok' | 'warning' | 'error' | 'muted';
 export interface SectionStatus {
   text: string;
   tone: StatusTone;
+  /** A second line with its own tone, e.g. the L source values under the reference entity records on step 5. */
+  more?: SectionStatus;
 }
 
 export interface StatusInput extends GuardInput {
@@ -63,6 +73,8 @@ export interface StatusInput extends GuardInput {
   mappedRecordValues: number;
   /** Record values skipped on purpose, no ETIM value. */
   skippedRecordValues: number;
+  /** Source attributes of mapped A features without a reference entity, their records cannot be mapped. */
+  sourcesWithoutEntity: number;
   /** Source attributes providing L features, and the L features of non Yes/No sources without yes values. */
   logicalSources: number;
   logicalWithoutYes: number;
@@ -83,6 +95,40 @@ function issueText(errors: number, warnings: number): string {
   if (errors === 0 && warnings === 0) return 'No errors';
   if (errors === 0) return `No errors, ${plural(warnings, 'warning')}`;
   return warnings === 0 ? plural(errors, 'error') : `${plural(errors, 'error')}, ${plural(warnings, 'warning')}`;
+}
+
+/**
+ * Step 5 has two parts with their own status: reference entity records of A features first, source values of L features
+ * as the second line. A part with nothing to map is left out.
+ */
+function recordsStatus(s: StatusInput): SectionStatus {
+  const n = (v: number) => v.toLocaleString('en-US');
+  const withoutEntity = s.sourcesWithoutEntity > 0 ? `${plural(s.sourcesWithoutEntity, 'source')} without reference entity` : undefined;
+  let records: SectionStatus | undefined;
+  if (s.sourceEntities === 0) {
+    if (withoutEntity) records = { text: `A: ${withoutEntity}`, tone: 'warning' };
+  } else if (s.recordValues === 0) {
+    records = { text: ['A: ' + plural(s.sourceEntities, 'entity', 'entities') + ', no records', withoutEntity].filter(Boolean).join(', '), tone: 'warning' };
+  } else {
+    const done = s.mappedRecordValues + s.skippedRecordValues === s.recordValues;
+    records = {
+      text: [
+        `A: ${n(s.mappedRecordValues)} of ${n(s.recordValues)} values filled` + (s.skippedRecordValues > 0 ? `, ${n(s.skippedRecordValues)} skipped` : ''),
+        withoutEntity,
+      ]
+        .filter(Boolean)
+        .join(', '),
+      tone: done && !withoutEntity ? 'ok' : 'warning',
+    };
+  }
+  const values: SectionStatus | undefined =
+    s.logicalSources === 0
+      ? undefined
+      : s.logicalWithoutYes > 0
+        ? { text: `L: ${plural(s.logicalWithoutYes, 'feature')} without yes values`, tone: 'warning' }
+        : { text: `L: ${plural(s.logicalSources, 'source')} done`, tone: 'ok' };
+  if (records && values) return { ...records, more: values };
+  return records ?? values ?? { text: 'No reference entity or L sources', tone: 'muted' };
 }
 
 /** Short status per section for the workspace sidebar, in section order. */
@@ -121,23 +167,8 @@ export function sectionStatuses(s: StatusInput): SectionStatus[] {
             (s.skippedFeatures > 0 ? `, ${s.skippedFeatures.toLocaleString('en-US')} skipped` : ''),
           tone: s.mappedFeatures > 0 ? 'ok' : 'muted',
         };
-      case 'records': {
-        const logical: SectionStatus | undefined =
-          s.logicalWithoutYes > 0 ? { text: `${plural(s.logicalWithoutYes, 'L feature')} without yes values`, tone: 'warning' } : undefined;
-        if (s.sourceEntities === 0) {
-          if (s.logicalSources === 0) return { text: 'No reference entity or L sources', tone: 'muted' };
-          return logical ?? { text: `${plural(s.logicalSources, 'L source')} done`, tone: 'ok' };
-        }
-        if (s.recordValues === 0) return { text: plural(s.sourceEntities, 'entity', 'entities') + ', no records', tone: 'warning' };
-        const recordsDone = s.mappedRecordValues + s.skippedRecordValues === s.recordValues;
-        return {
-          text:
-            `${s.mappedRecordValues.toLocaleString('en-US')} of ${s.recordValues.toLocaleString('en-US')} values filled` +
-            (s.skippedRecordValues > 0 ? `, ${s.skippedRecordValues.toLocaleString('en-US')} skipped` : '') +
-            (logical ? `, ${logical.text}` : ''),
-          tone: recordsDone && !logical ? 'ok' : 'warning',
-        };
-      }
+      case 'records':
+        return recordsStatus(s);
       case 'review':
         return issues;
       case 'export':
@@ -155,6 +186,16 @@ export function clampSection(index: number): number {
 /** Features with at least one client source attribute. */
 export function countMapped(features: readonly ProjectFeature[], config: Project['features'], status: MappingStatus = 'mapped'): number {
   return features.filter((f) => mappingStatus(config[f.key]) === status).length;
+}
+
+/** Source attributes of mapped A features that link to no reference entity. */
+export function countSourcesWithoutEntity(features: readonly ProjectFeature[], project: Project): number {
+  return new Set(
+    features.flatMap((f) => {
+      const attribute = f.type === 'A' ? project.features[f.key]?.sources?.[0]?.attribute : undefined;
+      return attribute && !sourceEntityFor(project, attribute) ? [attribute] : [];
+    }),
+  ).size;
 }
 
 /** Record value counts for the status: one value per record and mapped feature of each reference entity. */

@@ -1,4 +1,5 @@
-import { Alert, Badge, Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Button, Collapse, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { CollapsibleTitle } from '../components/CollapsibleTitle.js';
 import type { EtimTableName } from '@akeneo-etim/core';
 import { useState } from 'react';
 import { EtimLibraryForm } from '../components/EtimLibraryForm.js';
@@ -27,6 +28,7 @@ export function ImportStep() {
   const [busy, setBusy] = useState<'base' | 'translation' | undefined>();
   const [failure, setFailure] = useState<string | undefined>();
   const [showReplace, setShowReplace] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
   // Remounts the forms after a successful upload so they start empty.
   const [formKey, setFormKey] = useState(0);
 
@@ -122,7 +124,7 @@ export function ImportStep() {
       {(!release || showReplace) && (
         <Paper withBorder p="md">
           <Title order={4} mb="xs">
-            {release ? 'Replace ETIM export' : 'ETIM export'}
+            {release ? 'Replace ETIM version' : 'ETIM export'}
           </Title>
           {release && (
             <Text size="sm" c="dimmed" mb="sm">
@@ -146,28 +148,29 @@ export function ImportStep() {
       )}
 
       {release && !baseErrors && (
-        <Paper withBorder p="md">
-          <Title order={4} mb="xs">
-            Add a language
-          </Title>
-          <Text size="sm" c="dimmed" mb="sm">
-            Upload the ETIM export in another language to add its labels to the release.
-          </Text>
-          <EtimUploadForm
-            key={`translation-${formKey}`}
-            mode="translation"
-            busy={busy === 'translation'}
-            existingLocales={release.locales}
-            submitLabel="Add language"
-            onSubmit={(locale, files) => void importTranslation(locale, files)}
-          />
+        <Paper withBorder p="md" data-testid="add-language">
+          <CollapsibleTitle title="Add a language" open={languageOpen} onToggle={() => setLanguageOpen((o) => !o)} testId="add-language-toggle" />
+          {/* Kept mounted while collapsed, so picked files survive closing the box. */}
+          <Collapse expanded={languageOpen}>
+            <Text size="sm" c="dimmed" mt="xs" mb="sm">
+              Upload the ETIM export in another language to add its labels to the release.
+            </Text>
+            <EtimUploadForm
+              key={`translation-${formKey}`}
+              mode="translation"
+              busy={busy === 'translation'}
+              existingLocales={release.locales}
+              submitLabel="Add language"
+              onSubmit={(locale, files) => void importTranslation(locale, files)}
+            />
+          </Collapse>
         </Paper>
       )}
 
       {release && !showReplace && (
         <Group>
           <Button variant="default" onClick={() => setShowReplace(true)}>
-            Replace ETIM export
+            Replace ETIM version
           </Button>
         </Group>
       )}

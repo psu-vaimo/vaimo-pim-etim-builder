@@ -78,7 +78,7 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
       ]);
     }
     case 'records': {
-      if (s.sourceEntities === 0 && s.logicalSources === 0) {
+      if (s.sourceEntities === 0 && s.logicalSources === 0 && s.sourcesWithoutEntity === 0) {
         return work([{ label: 'Map source values to ETIM values', done: true, detail: 'no source provides an A or L feature' }]);
       }
       const entityTasks: StepTask[] =
@@ -112,7 +112,11 @@ export function stepWork(id: SectionId, s: TaskInput): StepWork {
                 ...(s.logicalWithoutYes > 0 ? { detail: `${count(s.logicalWithoutYes)} open` } : {}),
               },
             ];
-      return work([...entityTasks, ...logicalTasks]);
+      const linkTasks: StepTask[] =
+        s.sourcesWithoutEntity === 0
+          ? []
+          : [{ label: 'Set the reference entity of each A feature source (step 4)', done: false, detail: `${count(s.sourcesWithoutEntity)} open` }];
+      return work([...linkTasks, ...entityTasks, ...logicalTasks]);
     }
     case 'review': {
       const errors = s.generatorErrors;

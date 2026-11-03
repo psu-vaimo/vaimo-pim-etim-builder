@@ -1,4 +1,4 @@
-import { Button, FileButton, Group, TextInput } from '@mantine/core';
+import { Button, FileButton, Group, Text, TextInput } from '@mantine/core';
 import { ThemeSwitch } from './ThemeSwitch.js';
 import { useState } from 'react';
 import { parseProjectFile, projectFileName, serializeProject } from '@akeneo-etim/core';
@@ -68,14 +68,19 @@ export function ProjectBar({ onNotice }: { onNotice: (notice: ProjectNotice) => 
     <Group gap="xs" wrap="nowrap">
       <Group gap="xs" wrap="nowrap" className="project-bar-name">
         <ThemeSwitch />
-        <TextInput
-          placeholder="Project name"
-          aria-label="Project name"
-          value={project.name}
-          onChange={(e) => dispatch({ type: 'setProjectName', name: e.currentTarget.value })}
-          size="xs"
-          w={220}
-        />
+        <Group gap={6} wrap="nowrap" ml="md" className="project-name-field">
+          <Text component="label" htmlFor="project-name" size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+            Project name
+          </Text>
+          <TextInput
+            id="project-name"
+            placeholder="Project name"
+            value={project.name}
+            onChange={(e) => dispatch({ type: 'setProjectName', name: e.currentTarget.value })}
+            size="xs"
+            w={220}
+          />
+        </Group>
       </Group>
       <Button size="xs" variant="default" onClick={() => setSettingsOpen(true)} data-testid="open-settings">
         Settings

@@ -1,6 +1,6 @@
 import { labelFor, type AkeneoDependency } from '@akeneo-etim/core';
-import { Badge, Group, Paper, SegmentedControl, Select, SimpleGrid, Stack, Tabs, Text } from '@mantine/core';
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { Badge, Group, SegmentedControl, Select, Stack, Tabs, Text } from '@mantine/core';
+import { useCallback, useMemo, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { PagedTable, type Column } from '../components/review/PagedTable.js';
 import { SourceEntityTable } from '../components/review/SourceEntityTable.js';
@@ -21,7 +21,7 @@ import {
   type RuleReviewRow,
   type SourceRecordReviewRow,
 } from '../review/reviewRows.js';
-import { CountTable } from '../components/CountTable.js';
+import { StepSummary, SummaryRow } from '../components/StepSummary.js';
 import { useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
 import { TEXT_COLORS } from '../theme.js';
@@ -29,20 +29,6 @@ import { CodeList } from '../components/CodeList.js';
 
 /** Restricted values listed per attribute in the dependency details. */
 const MAX_VALUES = 40;
-
-function Stat({ label, value, testId, color, children }: { label: string; value: number; testId: string; color?: string; children?: ReactNode }) {
-  return (
-    <Paper withBorder p="sm">
-      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-        {label}
-      </Text>
-      <Text size="xl" fw={700} {...(value > 0 && color ? { c: color } : {})} data-testid={testId}>
-        {value.toLocaleString('en-US')}
-      </Text>
-      {children}
-    </Paper>
-  );
-}
 
 const mono = (s: string) => (
   <Text ff="monospace" size="sm">
@@ -254,27 +240,20 @@ export function ReviewStep() {
       <Text size="sm" c="dimmed">
         Everything the export will contain, read only. Go back to a step to change it.
       </Text>
-      <SimpleGrid cols={{ base: 2, sm: 4, lg: 8 }} spacing="sm">
-        <Stat label="Attributes" value={model.attributes.length} testId="review-stat-attributes">
-          <CountTable
-            rows={countAttributeTypes(model.attributes).map(([type, count]) => ({ label: ATTRIBUTE_TYPE_LABELS[type], count }))}
-            testId="review-attribute-types"
-          />
-        </Stat>
-        <Stat label="Class records" value={model.classRecords.length} testId="review-stat-class-records" />
-        <Stat label="Value records" value={model.valueRecords.length} testId="review-stat-value-records" />
-        <Stat label="Source records" value={sourceRecordCount} testId="review-stat-source-records">
-          {entitySummaries.length > 0 && (
-            <Text size="xs" c="dimmed" mt={6}>
-              {entitySummaries.length === 1 ? '1 reference entity' : `${entitySummaries.length} reference entities`}
-            </Text>
-          )}
-        </Stat>
-        <Stat label="Rules" value={model.rules.length} testId="review-stat-rules" />
-        <Stat label="Dependencies" value={model.dependencies.length} testId="review-stat-dependencies" />
-        <Stat label="Errors" value={errors} color={TEXT_COLORS.error} testId="review-stat-errors" />
-        <Stat label="Warnings" value={warnings} color={TEXT_COLORS.warning} testId="review-stat-warnings" />
-      </SimpleGrid>
+      <StepSummary>
+        <SummaryRow label="Attributes" value={model.attributes.length} testId="review-stat-attributes" />
+        {countAttributeTypes(model.attributes).map(([type, count]) => (
+          <SummaryRow key={type} sub label={ATTRIBUTE_TYPE_LABELS[type]} value={count} />
+        ))}
+        <SummaryRow label="Class records" value={model.classRecords.length} testId="review-stat-class-records" />
+        <SummaryRow label="Value records" value={model.valueRecords.length} testId="review-stat-value-records" />
+        <SummaryRow label="Source records" value={sourceRecordCount} testId="review-stat-source-records" />
+        {entitySummaries.length > 0 && <SummaryRow sub label="Reference entities" value={entitySummaries.length} />}
+        <SummaryRow label="Rules" value={model.rules.length} testId="review-stat-rules" />
+        <SummaryRow label="Dependencies" value={model.dependencies.length} testId="review-stat-dependencies" />
+        <SummaryRow label="Errors" value={errors} color={TEXT_COLORS.error} testId="review-stat-errors" />
+        <SummaryRow label="Warnings" value={warnings} color={TEXT_COLORS.warning} testId="review-stat-warnings" />
+      </StepSummary>
 
       <GenerateIssues issues={model.issues} />
 

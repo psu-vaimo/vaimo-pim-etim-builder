@@ -5,13 +5,12 @@ import {
   collectSourceEntities,
   featureRecordAttributes,
   featuresWithoutYesValues,
-  sourceEntityFor,
 } from '@akeneo-etim/core';
 import { useDeferredValue, useMemo } from 'react';
 import { metricUnitRows } from '../features/featureRows.js';
 import { useGeneratedModel } from '../review/generated.js';
 import { displayLocale, hasSelectedClasses, isReleaseReady, type AppState } from '../state/appState.js';
-import { countMapped, recordCounts, type SectionId } from './sections.js';
+import { countMapped, countSourcesWithoutEntity, recordCounts, type SectionId } from './sections.js';
 import { stepWork, type StepWork } from './stepTasks.js';
 
 /**
@@ -38,12 +37,7 @@ export function useStepWork(state: AppState, id: SectionId): StepWork {
 
   return useMemo(() => {
     const units = release ? metricUnitRows(release, features, project, locale) : [];
-    const sourcesWithoutEntity = new Set(
-      features.flatMap((f) => {
-        const attribute = f.type === 'A' ? project.features[f.key]?.sources?.[0]?.attribute : undefined;
-        return attribute && !sourceEntityFor(project, attribute) ? [attribute] : [];
-      }),
-    ).size;
+    const sourcesWithoutEntity = countSourcesWithoutEntity(features, project);
     const errors = model?.issues.filter((i) => i.severity === 'error').length;
     const records = recordCounts(entities);
     return stepWork(id, {

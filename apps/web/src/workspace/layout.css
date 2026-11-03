@@ -37,6 +37,11 @@
     flex: 1 1 100%;
   }
 
+  .app-project-bar .project-name-field {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
   .app-project-bar .mantine-TextInput-root {
     flex: 1 1 0;
     min-width: 0;
@@ -75,7 +80,7 @@
 }
 
 /*
- * A step with its manual work box, below the step heading: the step on the left, the box in a column on the right that
+ * A step with its Tasks box, below the step heading: the step on the left, the box in a column on the right that
  * stays in view while the step scrolls. Narrow screens put the box between the heading and the step.
  */
 .step-layout {
@@ -112,19 +117,18 @@
   }
 }
 
-/* The collapsed manual work box: a slim tab with the open count, upright text in the right column. */
-.step-work-collapsed {
+/* The collapsed side column: slim Tasks (with the open count) and Summary boxes, upright text in the right column. */
+.side-collapsed {
   display: flex;
   align-items: center;
   gap: var(--mantine-spacing-xs);
   padding: var(--mantine-spacing-xs);
-  border: 2px solid;
-  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-default-border);
   background: var(--mantine-color-body);
 }
 
 @media (min-width: 75em) {
-  .step-work-collapsed {
+  .side-collapsed {
     writing-mode: vertical-rl;
     padding: var(--mantine-spacing-sm) var(--mantine-spacing-xs);
   }

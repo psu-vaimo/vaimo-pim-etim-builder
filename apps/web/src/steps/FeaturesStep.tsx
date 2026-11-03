@@ -7,29 +7,16 @@ import {
   type NumericSetup,
   type RangeSetup,
 } from '@akeneo-etim/core';
-import { Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Stack, Text, Title } from '@mantine/core';
 import { useMemo } from 'react';
 import { DefaultsPanel } from '../components/features/DefaultsPanel.js';
 import { FeatureTable } from '../components/features/FeatureTable.js';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { UnitMappingPanel } from '../components/features/UnitMappingPanel.js';
-import { CountTable } from '../components/CountTable.js';
+import { StepSummary, SummaryRow } from '../components/StepSummary.js';
 import { ATTRIBUTE_TYPE_LABELS, ETIM_TYPE_LABELS, countBy, featureRows, metricUnitRows } from '../features/featureRows.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
-
-function Stat({ label, value, testId }: { label: string; value: number; testId: string }) {
-  return (
-    <Paper withBorder p="sm">
-      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-        {label}
-      </Text>
-      <Text size="xl" fw={700} data-testid={testId}>
-        {value.toLocaleString('en-US')}
-      </Text>
-    </Paper>
-  );
-}
 
 export function FeaturesStep() {
   const state = useAppState();
@@ -65,31 +52,16 @@ export function FeaturesStep() {
 
   return (
     <Stack gap="lg" mt="md">
-      <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
-        <Stat label="Features" value={rows.length} testId="stat-features" />
-        <Stat label="Attributes" value={generated.attributes.length} testId="stat-attributes" />
-        <Paper withBorder p="sm">
-          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-            Features by ETIM type
-          </Text>
-          <CountTable
-            rows={ETIM_FEATURE_TYPES.map((t: EtimFeatureType) => ({ code: t, label: ETIM_TYPE_LABELS[t], count: byEtimType[t] ?? 0 }))}
-            testId="stat-feature-types"
-          />
-        </Paper>
-        <Paper withBorder p="sm">
-          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-            Attributes by type
-          </Text>
-          <CountTable
-            rows={Object.entries(byAttrType).map(([type, count]) => ({
-              label: ATTRIBUTE_TYPE_LABELS[type as keyof typeof ATTRIBUTE_TYPE_LABELS],
-              count: count ?? 0,
-            }))}
-            testId="stat-attribute-types"
-          />
-        </Paper>
-      </SimpleGrid>
+      <StepSummary>
+        <SummaryRow label="Features" value={rows.length} testId="stat-features" />
+        {ETIM_FEATURE_TYPES.map((t: EtimFeatureType) => (
+          <SummaryRow key={t} sub code={t} label={ETIM_TYPE_LABELS[t]} value={byEtimType[t] ?? 0} />
+        ))}
+        <SummaryRow label="Attributes" value={generated.attributes.length} testId="stat-attributes" />
+        {Object.entries(byAttrType).map(([type, count]) => (
+          <SummaryRow key={type} sub label={ATTRIBUTE_TYPE_LABELS[type as keyof typeof ATTRIBUTE_TYPE_LABELS]} value={count ?? 0} />
+        ))}
+      </StepSummary>
 
       <GenerateIssues issues={generated.issues} />
 

@@ -41,6 +41,12 @@ describe('stepWork', () => {
     expect(stepWork('review', input()).tasks).toEqual([{ label: 'Fix all errors', done: false, detail: '2 open' }]);
   });
 
+  it('lists A sources without reference entity on the records step', () => {
+    const work = stepWork('records', input({ sourceEntities: 0, sourcesWithoutEntity: 2 }));
+    expect(work.tasks).toEqual([{ label: 'Set the reference entity of each A feature source (step 4)', done: false, detail: '2 open' }]);
+    expect(openTasks(work)).toBe(1);
+  });
+
   it('adds the yes values of L features to the records step, also without reference entities', () => {
     expect(stepWork('records', input({ sourceEntities: 0, logicalSources: 2, logicalWithoutYes: 3 })).tasks).toEqual([
       { label: 'Tick the yes values of each L feature', done: false, detail: '3 open' },

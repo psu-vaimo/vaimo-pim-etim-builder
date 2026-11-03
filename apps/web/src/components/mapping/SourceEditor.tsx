@@ -221,7 +221,7 @@ function EditorBody({ row, release, project, locale, onClose, onSave, onDirtyCha
         <Text size="sm" c="dimmed">
           The client (data model) attribute that provides this feature. One source per feature, a source can provide many
           features: its rule gets one copy action per feature.
-          {known.size === 0 && ' Upload an Akeneo attribute export on the mapping screen to pick from a list.'}
+          {known.size === 0 && ' Upload an Akeneo attribute export in Add Akeneo attributes on this step to pick from a list.'}
         </Text>
         {drafts.map((d, i) => (
           <Paper key={i} withBorder p="sm" data-testid={`source-${i}`}>

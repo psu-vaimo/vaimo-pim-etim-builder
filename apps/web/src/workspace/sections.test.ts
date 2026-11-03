@@ -27,6 +27,7 @@ const input = (patch: Partial<StatusInput> = {}): StatusInput => ({
   recordValues: 10,
   mappedRecordValues: 4,
   skippedRecordValues: 0,
+  sourcesWithoutEntity: 0,
   logicalSources: 0,
   logicalWithoutYes: 0,
   ...patch,
@@ -74,7 +75,7 @@ describe('sectionStatuses', () => {
   const texts = (s: StatusInput) => sectionStatuses(s).map((x) => x.text);
 
   it('shows counts when everything is open', () => {
-    expect(texts(input())).toEqual(['Ready, 2 locales', '3 selected', '40 features', '5 of 40 mapped', '4 of 10 values filled', 'No errors', 'Ready']);
+    expect(texts(input())).toEqual(['Ready, 2 locales', '3 selected', '40 features', '5 of 40 mapped', 'A: 4 of 10 values filled', 'No errors', 'Ready']);
   });
 
   it('shows the guard reason for blocked sections', () => {
@@ -133,17 +134,31 @@ describe('records status', () => {
 
   it('shows mapped record values, muted without entities and a warning without records', () => {
     expect(status({ sourceEntities: 0, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: 'No reference entity or L sources', tone: 'muted' });
-    expect(status({ sourceEntities: 2, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: '2 entities, no records', tone: 'warning' });
-    expect(status({ recordValues: 6, mappedRecordValues: 6 })).toEqual({ text: '6 of 6 values filled', tone: 'ok' });
-    expect(status({ recordValues: 6, mappedRecordValues: 4, skippedRecordValues: 2 })).toEqual({ text: '4 of 6 values filled, 2 skipped', tone: 'ok' });
+    expect(status({ sourceEntities: 2, recordValues: 0, mappedRecordValues: 0 })).toEqual({ text: 'A: 2 entities, no records', tone: 'warning' });
+    expect(status({ recordValues: 6, mappedRecordValues: 6 })).toEqual({ text: 'A: 6 of 6 values filled', tone: 'ok' });
+    expect(status({ recordValues: 6, mappedRecordValues: 4, skippedRecordValues: 2 })).toEqual({ text: 'A: 4 of 6 values filled, 2 skipped', tone: 'ok' });
   });
 
-  it('adds L features without yes values', () => {
-    expect(status({ sourceEntities: 0, logicalSources: 2 })).toEqual({ text: '2 L sources done', tone: 'ok' });
-    expect(status({ sourceEntities: 0, logicalSources: 2, logicalWithoutYes: 1 })).toEqual({ text: '1 L feature without yes values', tone: 'warning' });
-    expect(status({ recordValues: 6, mappedRecordValues: 6, logicalSources: 1, logicalWithoutYes: 2 })).toEqual({
-      text: '6 of 6 values filled, 2 L features without yes values',
+  it('warns about A sources without reference entity', () => {
+    expect(status({ sourceEntities: 0, sourcesWithoutEntity: 6 })).toEqual({ text: 'A: 6 sources without reference entity', tone: 'warning' });
+    expect(status({ recordValues: 6, mappedRecordValues: 6, sourcesWithoutEntity: 1 })).toEqual({
+      text: 'A: 6 of 6 values filled, 1 source without reference entity',
       tone: 'warning',
+    });
+  });
+
+  it('keeps the L source values as their own line with their own tone', () => {
+    expect(status({ sourceEntities: 0, logicalSources: 2 })).toEqual({ text: 'L: 2 sources done', tone: 'ok' });
+    expect(status({ sourceEntities: 0, logicalSources: 2, logicalWithoutYes: 1 })).toEqual({ text: 'L: 1 feature without yes values', tone: 'warning' });
+    expect(status({ sourceEntities: 0, sourcesWithoutEntity: 6, logicalSources: 2 })).toEqual({
+      text: 'A: 6 sources without reference entity',
+      tone: 'warning',
+      more: { text: 'L: 2 sources done', tone: 'ok' },
+    });
+    expect(status({ recordValues: 6, mappedRecordValues: 6, logicalSources: 1, logicalWithoutYes: 2 })).toEqual({
+      text: 'A: 6 of 6 values filled',
+      tone: 'ok',
+      more: { text: 'L: 2 features without yes values', tone: 'warning' },
     });
   });
 

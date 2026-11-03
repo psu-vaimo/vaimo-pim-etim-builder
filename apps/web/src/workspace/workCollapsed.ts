@@ -13,7 +13,7 @@ function browserStorage(): Storage | undefined {
 
 export const WORK_COLLAPSED_STORAGE_KEY = 'akeneo-etim.workCollapsed';
 
-/** Whether the manual work column was collapsed, open by default. */
+/** Whether the side column (Tasks and Summary) was collapsed, open by default. */
 export function loadWorkCollapsed(storage: ReadStorage | undefined = browserStorage()): boolean {
   try {
     return storage?.getItem(WORK_COLLAPSED_STORAGE_KEY) === 'true';
@@ -22,7 +22,7 @@ export function loadWorkCollapsed(storage: ReadStorage | undefined = browserStor
   }
 }
 
-/** Remembers the manual work column state, silently does nothing when storage is not available. */
+/** Remembers the side column state, silently does nothing when storage is not available. */
 export function saveWorkCollapsed(collapsed: boolean, storage: WriteStorage | undefined = browserStorage()): void {
   try {
     storage?.setItem(WORK_COLLAPSED_STORAGE_KEY, String(collapsed));

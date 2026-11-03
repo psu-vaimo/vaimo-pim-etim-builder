@@ -1,12 +1,15 @@
 import {
+  ActionIcon,
   Alert,
   AppShell,
   Box,
   Burger,
+  Divider,
   Button,
   Group,
   NavLink,
   ScrollArea,
+  Stack,
   Text,
   ThemeIcon,
   Title,
@@ -29,6 +32,8 @@ import { useSectionStatuses } from './workspace/useSectionStatuses.js';
 import './workspace/layout.css';
 import { TEXT_COLORS } from './theme.js';
 import { StepWorkBox } from './components/StepWorkBox.js';
+import { SummarySlot } from './components/StepSummary.js';
+import { loadWorkCollapsed, saveWorkCollapsed } from './workspace/workCollapsed.js';
 
 function StepContent({ index, label }: { index: number; label: string }) {
   return (
@@ -72,6 +77,13 @@ export function App() {
   const state = useAppState();
   const [active, setActive] = useState(0);
   const [notice, setNotice] = useState<ProjectNotice | undefined>();
+  const [summarySlot, setSummarySlot] = useState<HTMLElement | null>(null);
+  // The side column (Tasks and Summary) collapses in one go, remembered for the viewer.
+  const [sideCollapsed, setSideCollapsed] = useState(loadWorkCollapsed);
+  const toggleSide = () => {
+    setSideCollapsed(!sideCollapsed);
+    saveWorkCollapsed(!sideCollapsed);
+  };
   const [navOpened, nav] = useDisclosure(false);
   const ready = isReleaseReady(state);
   const hasClasses = hasSelectedClasses(state);
@@ -85,7 +97,9 @@ export function App() {
   };
   const current = SECTIONS[active];
   const blocked = guardReason(active, guard);
-  const next = active + 1 < SECTIONS.length && canOpen(active + 1, guard) ? active + 1 : undefined;
+  const next = active + 1 < SECTIONS.length ? active + 1 : undefined;
+  // Why the next step cannot be opened yet, the Next button is then shown inactive.
+  const nextBlocked = next === undefined ? undefined : guardReason(next, guard);
 
   return (
     <AppShell
@@ -125,9 +139,13 @@ export function App() {
                 styles={NAV_LABEL}
                 description={
                   status && (
-                    <Text component="span" size="xs" c={TONE_COLORS[status.tone]} data-testid={`nav-status-${section.id}`}>
-                      {status.text}
-                    </Text>
+                    <span data-testid={`nav-status-${section.id}`}>
+                      {[status, ...(status.more ? [status.more] : [])].map((line) => (
+                        <Text key={line.text} component="span" display="block" size="xs" c={TONE_COLORS[line.tone]}>
+                          {line.text}
+                        </Text>
+                      ))}
+                    </span>
                   )
                 }
                 onClick={() => go(index)}
@@ -166,6 +184,7 @@ export function App() {
             <Text c="dimmed" size="sm">
               {current.description}
             </Text>
+            <SummarySlot.Provider value={{ element: summarySlot, collapsed: sideCollapsed }}>
             <div className="step-layout">
               <div className="step-layout-main">
                 {blocked ? (
@@ -176,21 +195,45 @@ export function App() {
                   <>
                     <StepContent index={active} label={current.label} />
                     {next !== undefined && (
-                      <Group mt="xl">
-                        <Button variant="light" onClick={() => go(next)} data-testid="next">
-                          Next: {next + 1}. {SECTIONS[next]!.label}
-                        </Button>
-                      </Group>
+                      <>
+                        <Divider mt="xl" mb="md" />
+                        <Group gap="sm">
+                          <Button variant="light" onClick={() => go(next)} disabled={nextBlocked !== undefined} data-testid="next">
+                            Next: {next + 1}. {SECTIONS[next]!.label}
+                          </Button>
+                          {nextBlocked && (
+                            <Text size="sm" c="dimmed" data-testid="next-blocked">
+                              {nextBlocked}
+                            </Text>
+                          )}
+                        </Group>
+                      </>
                     )}
                   </>
                 )}
               </div>
               {!blocked && (
                 <div className="step-layout-aside">
-                  <StepWorkBox id={current.id} />
+                  <Stack gap="sm" align="flex-end">
+                    <Tooltip label={sideCollapsed ? 'Show tasks and summary' : 'Hide tasks and summary'} position="left">
+                      <ActionIcon
+                        variant="default"
+                        size="sm"
+                        onClick={toggleSide}
+                        aria-expanded={!sideCollapsed}
+                        aria-label={sideCollapsed ? 'Show tasks and summary' : 'Hide tasks and summary'}
+                        data-testid="side-toggle"
+                      >
+                        {sideCollapsed ? '‹' : '›'}
+                      </ActionIcon>
+                    </Tooltip>
+                    <StepWorkBox id={current.id} collapsed={sideCollapsed} />
+                    <div ref={setSummarySlot} />
+                  </Stack>
                 </div>
               )}
             </div>
+            </SummarySlot.Provider>
           </Box>
         )}
       </AppShell.Main>

@@ -3,7 +3,7 @@ import { useDeferredValue, useMemo } from 'react';
 import { useGeneratedModel } from '../review/generated.js';
 import type { AppState } from '../state/appState.js';
 import { hasSelectedClasses, isReleaseReady } from '../state/appState.js';
-import { countMapped, recordCounts, sectionStatuses, type SectionStatus, type StatusInput } from './sections.js';
+import { countMapped, countSourcesWithoutEntity, recordCounts, sectionStatuses, type SectionStatus, type StatusInput } from './sections.js';
 
 /**
  * Sidebar statuses for the workspace. Generation runs on a deferred project,
@@ -45,11 +45,12 @@ export function useSectionStatuses(state: AppState): SectionStatus[] {
       mappedFeatures: countMapped(collected, state.project.features),
       skippedFeatures: countMapped(collected, state.project.features, 'skipped'),
       ...recordCounts(entities),
+      sourcesWithoutEntity: countSourcesWithoutEntity(collected, deferredProject),
       logicalSources: logical.length,
       logicalWithoutYes: featuresWithoutYesValues(logical).length,
       generatorErrors: errors,
       generatorWarnings: model && errors !== undefined ? model.issues.length - errors : undefined,
     };
     return sectionStatuses(input);
-  }, [state.imports, state.project.features, model, ready, hasClasses, release, classIds, collected, entities, logical]);
+  }, [state.imports, state.project.features, model, ready, hasClasses, release, classIds, collected, entities, logical, deferredProject]);
 }

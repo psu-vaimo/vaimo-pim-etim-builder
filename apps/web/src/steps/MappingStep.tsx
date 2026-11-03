@@ -1,5 +1,5 @@
 import { collectProjectFeatures, createProject, generateAttributes, generateRules, sourceEntityFor, type FeatureKey } from '@akeneo-etim/core';
-import { Button, Group, Modal, Paper, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Button, Group, Modal, Stack, Text, Title } from '@mantine/core';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
 import { MappingTable } from '../components/mapping/MappingTable.js';
@@ -10,19 +10,7 @@ import { mappingRows, orphanMappings } from '../mapping/sourceMappings.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale } from '../state/appState.js';
 import { CodeList } from '../components/CodeList.js';
-
-function Stat({ label, value, testId }: { label: string; value: number; testId: string }) {
-  return (
-    <Paper withBorder p="sm">
-      <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-        {label}
-      </Text>
-      <Text size="xl" fw={700} data-testid={testId}>
-        {value.toLocaleString('en-US')}
-      </Text>
-    </Paper>
-  );
-}
+import { StepSummary, SummaryRow } from '../components/StepSummary.js';
 
 export function MappingStep() {
   const state = useAppState();
@@ -95,13 +83,13 @@ export function MappingStep() {
         map so they no longer count as open.
       </Text>
       <SourceAttributesPanel />
-      <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
-        <Stat label="Features" value={rows.length} testId="stat-features" />
-        <Stat label="Mapped" value={mapped} testId="stat-mapped" />
-        <Stat label="Unmapped" value={rows.length - mapped - skipped} testId="stat-unmapped" />
-        <Stat label="Skipped" value={skipped} testId="stat-skipped" />
-        <Stat label="Rules" value={generated.rules.length} testId="stat-rules" />
-      </SimpleGrid>
+      <StepSummary>
+        <SummaryRow label="Features" value={rows.length} testId="stat-features" />
+        <SummaryRow sub label="Mapped" value={mapped} testId="stat-mapped" />
+        <SummaryRow sub label="Unmapped" value={rows.length - mapped - skipped} testId="stat-unmapped" />
+        <SummaryRow sub label="Skipped" value={skipped} testId="stat-skipped" />
+        <SummaryRow label="Rules" value={generated.rules.length} testId="stat-rules" />
+      </StepSummary>
 
       <GenerateIssues issues={generated.issues} />
 
