@@ -94,6 +94,3 @@ export const KEEP_CASE = { label: { textTransform: 'none' } } as const;
  * shown in the text color so the control looks active, not disabled. Use as `classNames={{ input: DEFAULT_VALUE_INPUT }}`.
  */
 export const DEFAULT_VALUE_INPUT = 'default-value-input';
-
-/** For an unstyled select acting as a button ("+ class value"): placeholder in the link color. */
-export const ACTION_INPUT = 'action-input';

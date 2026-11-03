@@ -122,3 +122,14 @@
     padding: var(--mantine-spacing-sm) var(--mantine-spacing-xs);
   }
 }
+
+/*
+ * A record value with class exceptions on step 5: a label column (Default or the class) and a value column. Add
+ * exception sits in the label column, also when there are no exceptions yet.
+ */
+.value-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 4px var(--mantine-spacing-xs);
+  align-items: center;
+}

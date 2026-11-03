@@ -12,14 +12,14 @@ import {
   type SourceEntityPlan,
   type SourceRecord,
 } from '@akeneo-etim/core';
-import { ActionIcon, Alert, Badge, Button, Group, Pagination, Paper, ScrollArea, Select, Stack, Table, Text, TextInput, Title, Tooltip, UnstyledButton } from '@mantine/core';
+import { ActionIcon, Alert, Badge, Button, Group, Pagination, Paper, Popover, ScrollArea, Select, Stack, Table, Text, TextInput, Title, Tooltip, UnstyledButton } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
-import { memo, useDeferredValue, useMemo, useState } from 'react';
+import { Fragment, memo, useDeferredValue, useMemo, useState, type ReactNode } from 'react';
 import { codeError } from '../mapping/sourceMappings.js';
 import type { Dispatch } from 'react';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { displayLocale, type AppAction } from '../state/appState.js';
-import { ACTION_INPUT, DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
+import { DEFAULT_VALUE_INPUT, TEXT_COLORS } from '../theme.js';
 import { RecordAttributeTable } from '../components/RecordAttributeTable.js';
 import { exceptionsText, filledText, isComplete, providesText, recordsText } from '../format/sourceEntityText.js';
 import { sourceEntitySummaries, type SourceEntityFeatureSummary } from '../review/reviewRows.js';
@@ -100,9 +100,6 @@ interface PanelProps {
   locale: string | undefined;
   dispatch: AppDispatch;
 }
-
-/** Class pill on a class value: code and description, as written, cut off when long (the tooltip has all of it). */
-const CLASS_PILL = { maw: '40%', style: { flexShrink: 0 } } as const;
 
 /**
  * One reference entity, collapsed by default: the header with the client attributes using it, its records and the
@@ -247,7 +244,7 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
                       <Table.Tr>
                         <Table.Th miw={180}>Record</Table.Th>
                         {plan.features.map((f, i) => (
-                          <Table.Th key={f.featureId} miw={240}>
+                          <Table.Th key={f.featureId} miw={320}>
                             <Text size="sm" fw={600} ff="monospace">
                               {f.featureId}
                             </Text>
@@ -321,19 +318,15 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
       </Table.Td>
       {plan.features.map((f, i) => (
         <Table.Td key={f.featureId} style={{ verticalAlign: 'top' }}>
-          <Stack gap={4}>
-            <Group gap={4} wrap="nowrap" align="center">
-              <div style={{ flex: 1 }}>
-                <ValueSelect
-                  value={record.values[f.featureId] ?? null}
-                  allowed={options[i]?.all ?? []}
-                  placeholder={isRecordValueSkipped(record, f.featureId) ? 'Skipped, no ETIM value' : 'Not mapped'}
-                  placeholderIsDefault
-                  onChange={(v) => setValue(f.featureId, undefined, v)}
-                  testId={`value-${record.code}-${f.featureId}`}
-                />
-              </div>
-              {!record.values[f.featureId] && (
+          <FeatureValues
+            record={record}
+            feature={f}
+            allowed={options[i]?.all ?? []}
+            byClass={options[i]?.byClass ?? {}}
+            classLabels={classLabels}
+            onChange={(classId, v) => setValue(f.featureId, classId, v)}
+            skip={
+              record.values[f.featureId] ? null : (
                 <SkipButton
                   skipped={isRecordValueSkipped(record, f.featureId)}
                   onChange={(skipped) =>
@@ -341,16 +334,9 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
                   }
                   testId={`skip-${record.code}-${f.featureId}`}
                 />
-              )}
-            </Group>
-            <ClassValues
-              record={record}
-              feature={f}
-              options={options[i]?.byClass ?? {}}
-              classLabels={classLabels}
-              onChange={(classId, v) => setValue(f.featureId, classId, v)}
-            />
-          </Stack>
+              )
+            }
+          />
         </Table.Td>
       ))}
       <Table.Td style={{ verticalAlign: 'top' }}>
@@ -367,21 +353,61 @@ const RecordRow = memo(function RecordRow({ record, plan, options, classLabels, 
               </Button>
             </Tooltip>
           )}
-          <Tooltip label="Remove record">
-            <ActionIcon
-              variant="default"
-              aria-label="Remove record"
-              onClick={() => dispatch({ type: 'removeSourceRecord', entity: plan.code, code: record.code })}
-              data-testid={`record-remove-${record.code}`}
-            >
-              ×
-            </ActionIcon>
-          </Tooltip>
+          <RemoveRecordButton
+            record={record}
+            onConfirm={() => dispatch({ type: 'removeSourceRecord', entity: plan.code, code: record.code })}
+          />
         </Group>
       </Table.Td>
     </Table.Tr>
   );
 });
+
+/** The × of a record row, asks before removing the record since its ETIM values go with it. */
+function RemoveRecordButton({ record, onConfirm }: { record: SourceRecord; onConfirm: () => void }) {
+  const [opened, setOpened] = useState(false);
+  const values = Object.keys(record.values).length + Object.values(record.classValues ?? {}).reduce((n, v) => n + Object.keys(v).length, 0);
+  return (
+    <Popover opened={opened} onChange={setOpened} position="bottom-end" withArrow shadow="md" trapFocus>
+      <Popover.Target>
+        <Tooltip label="Remove record" disabled={opened}>
+          <ActionIcon variant="default" aria-label="Remove record" onClick={() => setOpened((o) => !o)} data-testid={`record-remove-${record.code}`}>
+            ×
+          </ActionIcon>
+        </Tooltip>
+      </Popover.Target>
+      <Popover.Dropdown maw={300}>
+        <Stack gap="xs">
+          <Text size="sm">
+            Remove record{' '}
+            <Text span inherit ff="monospace">
+              {record.code}
+            </Text>
+            ?{' '}
+            {values === 0 ? 'It has no ETIM values yet.' : `Its ${values === 1 ? 'ETIM value is' : `${values} ETIM values are`} lost.`} The
+            record stays in Akeneo, it is only left out of the export.
+          </Text>
+          <Group gap="xs" justify="flex-end">
+            <Button size="xs" variant="default" onClick={() => setOpened(false)} data-testid="record-remove-cancel">
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              color="red"
+              onClick={() => {
+                setOpened(false);
+                onConfirm();
+              }}
+              data-testid="record-remove-confirm"
+            >
+              Remove
+            </Button>
+          </Group>
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
 
 /** Skips a record value on purpose (no ETIM value, done for the to do), or takes the skip back. */
 function SkipButton({ skipped, onChange, testId }: { skipped: boolean; onChange: (skipped: boolean) => void; testId: string }) {
@@ -425,17 +451,24 @@ function ValueSelect({ value, allowed, placeholder, placeholderIsDefault, onChan
   );
 }
 
-interface ClassValuesProps {
+interface FeatureValuesProps {
   record: SourceRecord;
   feature: SourceEntityFeature;
-  /** Allowed values per class. */
-  options: Record<string, Option[]>;
+  /** Allowed values over all selected classes, and per class. */
+  allowed: Option[];
+  byClass: Record<string, Option[]>;
   classLabels: Record<string, string>;
-  onChange: (classId: string, valueId: string | null) => void;
+  /** `classId` undefined for the default value. */
+  onChange: (classId: string | undefined, valueId: string | null) => void;
+  /** Skip button next to the default value, `null` when it has a value. */
+  skip: ReactNode;
 }
 
-/** Class exceptions of one record value: a value per class replacing the default in that class, and a picker to add one. */
-function ClassValues({ record, feature, options, classLabels, onChange }: ClassValuesProps) {
+/**
+ * The ETIM value of one record for one feature. Without class exceptions the default value takes the full width. With
+ * exceptions every value gets a label in front, Default first, then one row per class. Add exception picks a class.
+ */
+function FeatureValues({ record, feature, allowed, byClass, classLabels, onChange, skip }: FeatureValuesProps) {
   const [adding, setAdding] = useState<string | null>(null);
   const { featureId } = feature;
   const current = Object.entries(record.classValues ?? {})
@@ -444,65 +477,116 @@ function ClassValues({ record, feature, options, classLabels, onChange }: ClassV
   const free = feature.classIds.filter((c) => !current.some((e) => e.classId === c));
   const testId = `class-values-${record.code}-${featureId}`;
   const classText = (classId: string) => (classLabels[classId] ? `${classId} - ${classLabels[classId]}` : classId);
+  const withExceptions = current.length > 0 || adding !== null;
+
+  const defaultValue = (
+    <Group gap={4} wrap="nowrap" align="center">
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <ValueSelect
+          value={record.values[featureId] ?? null}
+          allowed={allowed}
+          placeholder={isRecordValueSkipped(record, featureId) ? 'Skipped, no ETIM value' : 'Not mapped'}
+          placeholderIsDefault
+          onChange={(v) => onChange(undefined, v)}
+          testId={`value-${record.code}-${featureId}`}
+        />
+      </div>
+      {skip}
+    </Group>
+  );
+  const addException =
+    adding === null && feature.classIds.length > 1 && free.length > 0 ? (
+      <Select
+        data={free.map((c) => ({ value: c, label: classText(c) }))}
+        value={null}
+        onChange={setAdding}
+        placeholder="Add exception"
+        searchable
+        size="xs"
+        comboboxProps={{ withinPortal: true, width: 'max-content' }}
+        data-testid={`${testId}-add`}
+      />
+    ) : null;
+
+  if (!withExceptions) {
+    return (
+      <Stack gap={4}>
+        {defaultValue}
+        {addException && (
+          <div className="value-grid">
+            {addException}
+          </div>
+        )}
+      </Stack>
+    );
+  }
+
   return (
-    <>
-      {current.map(({ classId, valueId }) => (
-        <Group key={classId} gap={4} wrap="nowrap" align="center">
-          <Tooltip label={feature.classIds.includes(classId) ? classLabels[classId] || classId : `${classId} is not a selected class using ${featureId}, ignored`}>
-            <Badge size="sm" variant="light" color={feature.classIds.includes(classId) ? 'grape' : 'red'} {...CLASS_PILL}>
-              {classText(classId)}
-            </Badge>
-          </Tooltip>
-          <div style={{ flex: 1 }}>
+    <div className="value-grid">
+      <ValueLabel text="Default" fw={500} />
+      {defaultValue}
+      {current.map(({ classId, valueId }) => {
+        const used = feature.classIds.includes(classId);
+        return (
+          <Fragment key={classId}>
+            <ValueLabel
+              text={classText(classId)}
+              tooltip={used ? classText(classId) : `${classId} is not a selected class using ${featureId}, ignored`}
+              color={used ? TEXT_COLORS.accent : TEXT_COLORS.error}
+            />
             <ValueSelect
               value={valueId}
-              allowed={options[classId] ?? []}
-              placeholder="Remove class value"
+              allowed={byClass[classId] ?? []}
+              placeholder="Remove exception"
               onChange={(v) => onChange(classId, v)}
               testId={`${testId}-${classId}`}
             />
-          </div>
-        </Group>
-      ))}
-      {adding !== null ? (
-        <Group gap={4} wrap="nowrap" align="center">
-          <Badge size="sm" variant="light" color="grape" {...CLASS_PILL}>
-            {classText(adding)}
-          </Badge>
-          <div style={{ flex: 1 }}>
-            <ValueSelect
-              value={null}
-              allowed={options[adding] ?? []}
-              placeholder={`Value in ${adding}`}
-              onChange={(v) => {
-                if (v) onChange(adding, v);
-                setAdding(null);
-              }}
-              testId={`${testId}-new-value`}
-            />
-          </div>
-          <ActionIcon size="sm" variant="default" aria-label="Cancel" onClick={() => setAdding(null)}>
-            ×
-          </ActionIcon>
-        </Group>
-      ) : (
-        feature.classIds.length > 1 &&
-        free.length > 0 && (
-          <Select
-            data={free.map((c) => ({ value: c, label: classLabels[c] ? `${c} - ${classLabels[c]}` : c }))}
-            value={null}
-            onChange={setAdding}
-            placeholder="+ class value"
-            searchable
-            size="xs"
-            variant="unstyled"
-            classNames={{ input: ACTION_INPUT }}
-            comboboxProps={{ withinPortal: true }}
-            data-testid={`${testId}-add`}
-          />
-        )
+          </Fragment>
+        );
+      })}
+      {adding !== null && (
+        <>
+          <ValueLabel text={classText(adding)} tooltip={classText(adding)} color={TEXT_COLORS.accent} />
+          <Group gap={4} wrap="nowrap" align="center">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <ValueSelect
+                value={null}
+                allowed={byClass[adding] ?? []}
+                placeholder={`Value in ${adding}`}
+                onChange={(v) => {
+                  if (v) onChange(adding, v);
+                  setAdding(null);
+                }}
+                testId={`${testId}-new-value`}
+              />
+            </div>
+            <ActionIcon size="sm" variant="default" aria-label="Cancel" onClick={() => setAdding(null)}>
+              ×
+            </ActionIcon>
+          </Group>
+        </>
       )}
-    </>
+      {addException}
+    </div>
+  );
+}
+
+/**
+ * Label in front of a value when a record value has class exceptions, cut off when long: Default slightly heavier, the
+ * classes in the accent color (red when ignored).
+ */
+function ValueLabel({ text, tooltip, color, fw }: { text: string; tooltip?: string; color?: string; fw?: number }) {
+  const label = (
+    <Text size="sm" truncate="end" {...(color ? { c: color } : {})} {...(fw ? { fw } : {})}>
+      {text}
+    </Text>
+  );
+  return tooltip ? (
+    <Tooltip label={tooltip} multiline maw={360}>
+      {label}
+    </Tooltip>
+  ) : (
+    label
   );
 }
 

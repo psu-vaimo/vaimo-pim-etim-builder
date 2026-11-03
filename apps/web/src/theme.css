@@ -3,11 +3,6 @@
   color: var(--mantine-color-text);
 }
 
-/* See ACTION_INPUT in theme.ts. */
-.action-input.action-input::placeholder {
-  color: var(--mantine-color-anchor);
-}
-
 /* Prose: paragraphs and alert texts stop at a readable line length. Table cells keep their column width. */
 p.mantine-Text-root:not(td p, th p),
 .mantine-Alert-message {
