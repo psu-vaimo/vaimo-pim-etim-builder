@@ -40,7 +40,9 @@ input[style*='--mantine-font-family-monospace'] {
 }
 
 /* Drop areas: text in a faint gray until hovered or dragged over. */
+/* Drop areas: all text 12px. */
 .mantine-Dropzone-root .mantine-Text-root {
+  font-size: 12px;
   transition: color 120ms;
 }
 
