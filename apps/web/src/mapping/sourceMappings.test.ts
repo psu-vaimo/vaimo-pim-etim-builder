@@ -1,4 +1,4 @@
-import { normalizeSources, type AkeneoRule, type ProjectFeature } from '@akeneo-etim/core';
+import { normalizeSources, type AkeneoRule, type ProjectFeature } from '@vaimo-pim-etim-builder/core';
 import { describe, expect, it } from 'vitest';
 import type { FeatureRow } from '../features/featureRows.js';
 import {

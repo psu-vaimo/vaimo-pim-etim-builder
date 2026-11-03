@@ -1,4 +1,4 @@
-import type { EtimRelease, Project } from '@akeneo-etim/core';
+import type { EtimRelease, Project } from '@vaimo-pim-etim-builder/core';
 import { Alert, Button, Group, Loader, Modal, Paper, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';

@@ -1,5 +1,5 @@
 import { Badge, Group } from '@mantine/core';
-import type { EtimRelease } from '@akeneo-etim/core';
+import type { EtimRelease } from '@vaimo-pim-etim-builder/core';
 import { KEEP_CASE } from '../theme.js';
 import { StepSummary, SummaryRow } from './StepSummary.js';
 

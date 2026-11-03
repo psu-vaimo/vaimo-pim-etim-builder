@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ETIM_LABEL_TABLES } from '@akeneo-etim/core';
+import { ETIM_LABEL_TABLES } from '@vaimo-pim-etim-builder/core';
 import { assignFiles, isOtherEtimTable, matchTableName, missingTables } from './tableFiles.js';
 
 describe('matchTableName', () => {

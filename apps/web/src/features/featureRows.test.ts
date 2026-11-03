@@ -1,4 +1,4 @@
-import { collectProjectFeatures, createProject, generateAttributes, type EtimRelease, type Project } from '@akeneo-etim/core';
+import { collectProjectFeatures, createProject, generateAttributes, type EtimRelease, type Project } from '@vaimo-pim-etim-builder/core';
 import { describe, expect, it } from 'vitest';
 import {
   countBy,
@@ -8,7 +8,7 @@ import {
   suggestUnitMapping,
   unitSuggestions,
 } from './featureRows.js';
-import { effectiveNumeric, effectiveRange, resolvesToMetric } from '@akeneo-etim/core';
+import { effectiveNumeric, effectiveRange, resolvesToMetric } from '@vaimo-pim-etim-builder/core';
 
 const release: EtimRelease = {
   locales: ['en_US', 'sv_SE'],

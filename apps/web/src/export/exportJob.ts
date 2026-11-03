@@ -1,4 +1,4 @@
-import { buildExport, zipExport, type EtimRelease, type ExportResult, type Project } from '@akeneo-etim/core';
+import { buildExport, zipExport, type EtimRelease, type ExportResult, type Project } from '@vaimo-pim-etim-builder/core';
 
 export interface ExportJobRequest {
   release: EtimRelease;

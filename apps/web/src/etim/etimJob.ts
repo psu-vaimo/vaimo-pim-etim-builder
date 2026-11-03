@@ -6,7 +6,7 @@ import {
   type EtimTableName,
   type EtimTables,
   type ParseResult,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 
 export interface EtimJobFile {
   table: EtimTableName;

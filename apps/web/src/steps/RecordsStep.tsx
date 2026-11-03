@@ -11,7 +11,7 @@ import {
   type SourceEntityFeature,
   type SourceEntityPlan,
   type SourceRecord,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { ActionIcon, Alert, Badge, Button, Group, Pagination, Paper, Popover, ScrollArea, Select, Stack, Table, Text, TextInput, Title, Tooltip, UnstyledButton } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import { Fragment, memo, useDeferredValue, useMemo, useState, type ReactNode } from 'react';

@@ -1,7 +1,7 @@
 import { Button, FileButton, Group, Text, TextInput } from '@mantine/core';
 import { ThemeSwitch } from './ThemeSwitch.js';
 import { useState } from 'react';
-import { parseProjectFile, projectFileName, serializeProject } from '@akeneo-etim/core';
+import { parseProjectFile, projectFileName, serializeProject } from '@vaimo-pim-etim-builder/core';
 import { importLibraryRelease, planEtimReload } from '../etim/importLibrary.js';
 import { fetchEtimLibrary } from '../etim/library.js';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';

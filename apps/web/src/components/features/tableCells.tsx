@@ -1,4 +1,4 @@
-import { ETIM_FEATURE_TYPES, type EtimFeatureType } from '@akeneo-etim/core';
+import { ETIM_FEATURE_TYPES, type EtimFeatureType } from '@vaimo-pim-etim-builder/core';
 import { Text } from '@mantine/core';
 import { ETIM_TYPE_LABELS } from '../../features/featureRows.js';
 

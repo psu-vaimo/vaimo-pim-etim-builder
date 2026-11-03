@@ -5,7 +5,7 @@ import {
   collectSourceEntities,
   featureRecordAttributes,
   featuresWithoutYesValues,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { useDeferredValue, useMemo } from 'react';
 import { metricUnitRows } from '../features/featureRows.js';
 import { useGeneratedModel } from '../review/generated.js';

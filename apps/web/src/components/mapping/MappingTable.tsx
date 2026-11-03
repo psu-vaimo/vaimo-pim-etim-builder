@@ -1,4 +1,4 @@
-import { type EtimFeatureType, type FeatureKey, type MappingStatus } from '@akeneo-etim/core';
+import { type EtimFeatureType, type FeatureKey, type MappingStatus } from '@vaimo-pim-etim-builder/core';
 import { Badge, Button, Group, Pagination, SegmentedControl, Stack, Table, Text, TextInput, Tooltip } from '@mantine/core';
 import { Fragment, memo, useDeferredValue, useMemo, useState, type ReactNode } from 'react';
 import { ETIM_TYPE_LABELS } from '../../features/featureRows.js';

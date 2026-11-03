@@ -1,4 +1,4 @@
-import type { EtimRelease, ParseResult } from '@akeneo-etim/core';
+import type { EtimRelease, ParseResult } from '@vaimo-pim-etim-builder/core';
 import { describe, expect, it } from 'vitest';
 import {
   appReducer,
@@ -11,7 +11,7 @@ import {
   isReleaseReady,
   unmatchedSearchTerms,
 } from './appState.js';
-import { createProject, labelFor } from '@akeneo-etim/core';
+import { createProject, labelFor } from '@vaimo-pim-etim-builder/core';
 
 const release: EtimRelease = {
   locales: ['en_US'],

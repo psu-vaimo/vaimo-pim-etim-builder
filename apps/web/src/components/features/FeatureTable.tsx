@@ -1,4 +1,4 @@
-import { type EtimFeatureType, type FeatureKey, type NumericSetup, type Project, type RangeSetup } from '@akeneo-etim/core';
+import { type EtimFeatureType, type FeatureKey, type NumericSetup, type Project, type RangeSetup } from '@vaimo-pim-etim-builder/core';
 import { Badge, Group, NativeSelect, Pagination, SegmentedControl, Stack, Table, Text, TextInput, Tooltip } from '@mantine/core';
 import { memo, useDeferredValue, useMemo, useState, type Dispatch } from 'react';
 import {

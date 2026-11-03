@@ -1,4 +1,4 @@
-import { collectLogicalSources, collectProjectFeatures, collectSourceEntities, createProject, featuresWithoutYesValues } from '@akeneo-etim/core';
+import { collectLogicalSources, collectProjectFeatures, collectSourceEntities, createProject, featuresWithoutYesValues } from '@vaimo-pim-etim-builder/core';
 import { useDeferredValue, useMemo } from 'react';
 import { useGeneratedModel } from '../review/generated.js';
 import type { AppState } from '../state/appState.js';

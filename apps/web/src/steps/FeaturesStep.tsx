@@ -6,7 +6,7 @@ import {
   type EtimFeatureType,
   type NumericSetup,
   type RangeSetup,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { Stack, Text } from '@mantine/core';
 import { useMemo } from 'react';
 import { DefaultsPanel } from '../components/features/DefaultsPanel.js';

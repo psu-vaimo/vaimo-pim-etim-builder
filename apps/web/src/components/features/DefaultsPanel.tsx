@@ -1,4 +1,4 @@
-import type { NumericSetup, RangeSetup } from '@akeneo-etim/core';
+import type { NumericSetup, RangeSetup } from '@vaimo-pim-etim-builder/core';
 import { Radio, SimpleGrid, Stack } from '@mantine/core';
 
 const NUMERIC_OPTIONS: { value: NumericSetup; label: string; description: string }[] = [

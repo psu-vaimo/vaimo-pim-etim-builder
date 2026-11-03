@@ -1,4 +1,4 @@
-import { defaultSettings, validateSettings } from '@akeneo-etim/core';
+import { defaultSettings, validateSettings } from '@vaimo-pim-etim-builder/core';
 import { describe, expect, it } from 'vitest';
 import { CODE_FIELDS, GROUP_FIELDS, codeExamples, errorsByField, labelTextsFor } from './settingsFields.js';
 

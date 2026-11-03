@@ -1,4 +1,4 @@
-import type { GenerateIssue } from '@akeneo-etim/core';
+import type { GenerateIssue } from '@vaimo-pim-etim-builder/core';
 import { ScrollArea, Stack, Text } from '@mantine/core';
 import { CollapsibleBox } from '../CollapsibleBox.js';
 import { TEXT_COLORS } from '../../theme.js';

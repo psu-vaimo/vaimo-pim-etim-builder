@@ -6,8 +6,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev:api": "pnpm --filter @akeneo-etim/api dev",
-    "dev:web": "pnpm --filter @akeneo-etim/web dev",
+    "dev:api": "pnpm --filter @vaimo-pim-etim-builder/api dev",
+    "dev:web": "pnpm --filter @vaimo-pim-etim-builder/web dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"

@@ -13,7 +13,7 @@ import {
   sourceRecordReviewRows,
   truncateList,
 } from './reviewRows.js';
-import { buildExport } from '@akeneo-etim/core';
+import { buildExport } from '@vaimo-pim-etim-builder/core';
 
 const mapped = project({ features: { EF000139: { sources: [{ attribute: 'att_surface_treatment' }] } } });
 

@@ -1,4 +1,4 @@
-import { projectFileName, type ExportFile, type ExportIssue, type Project } from '@akeneo-etim/core';
+import { projectFileName, type ExportFile, type ExportIssue, type Project } from '@vaimo-pim-etim-builder/core';
 
 export type FileGroupId = 'readme' | 'xlsx' | 'csv' | 'rules' | 'dependencies' | 'report' | 'project' | 'other';
 

@@ -12,7 +12,7 @@ import {
   type Project,
   type SourceEntityPlan,
   type SourceRecord,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { formatAction, ruleConditions } from '../mapping/sourceMappings.js';
 
 /** A row any review table can search. */

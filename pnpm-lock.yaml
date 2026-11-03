@@ -14,7 +14,7 @@ importers:
 
   apps/api:
     dependencies:
-      '@akeneo-etim/core':
+      '@vaimo-pim-etim-builder/core':
         specifier: workspace:*
         version: link:../../packages/core
       fastify:
@@ -36,9 +36,6 @@ importers:
 
   apps/web:
     dependencies:
-      '@akeneo-etim/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@mantine/core':
         specifier: ^9.7.3
         version: 9.7.3(@mantine/hooks@9.7.3(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -48,6 +45,9 @@ importers:
       '@mantine/hooks':
         specifier: ^9.7.3
         version: 9.7.3(react@19.3.1)
+      '@vaimo-pim-etim-builder/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       inter-ui:
         specifier: 4.1.1
         version: 4.1.1

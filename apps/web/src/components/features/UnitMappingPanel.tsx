@@ -1,4 +1,4 @@
-import type { AkeneoUnit, EtimRelease } from '@akeneo-etim/core';
+import type { AkeneoUnit, EtimRelease } from '@vaimo-pim-etim-builder/core';
 import { Alert, Autocomplete, Badge, Button, Table, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { MEASUREMENT_SUGGESTIONS, suggestUnitMapping, unitSuggestions, type MetricUnitRow } from '../../features/featureRows.js';

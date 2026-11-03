@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { decodeEtimFile, matchTableName, parseEtimExport, type EtimRelease, type EtimTables } from '@akeneo-etim/core';
+import { decodeEtimFile, matchTableName, parseEtimExport, type EtimRelease, type EtimTables } from '@vaimo-pim-etim-builder/core';
 
 export type LibraryResult = { ok: true; release: EtimRelease } | { ok: false; error: string };
 

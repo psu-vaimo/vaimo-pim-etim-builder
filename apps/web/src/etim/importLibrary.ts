@@ -1,4 +1,4 @@
-import { ETIM_LABEL_TABLES, ETIM_TABLES, type EtimSource, type EtimTableName, type ParseResult } from '@akeneo-etim/core';
+import { ETIM_LABEL_TABLES, ETIM_TABLES, type EtimSource, type EtimTableName, type ParseResult } from '@vaimo-pim-etim-builder/core';
 import type { Dispatch } from 'react';
 import type { AppAction } from '../state/appState.js';
 import type { EtimJobFile } from './etimJob.js';

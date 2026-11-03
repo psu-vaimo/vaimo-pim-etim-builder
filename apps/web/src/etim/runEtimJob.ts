@@ -1,4 +1,4 @@
-import type { ParseResult } from '@akeneo-etim/core';
+import type { ParseResult } from '@vaimo-pim-etim-builder/core';
 import type { EtimJobRequest, EtimJobResponse } from './etimJob.js';
 
 /** Runs decoding and parsing in a Web Worker so large exports do not block the UI. One worker per job. */

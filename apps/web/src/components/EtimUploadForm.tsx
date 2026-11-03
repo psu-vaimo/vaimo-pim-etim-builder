@@ -1,6 +1,6 @@
 import { Alert, Autocomplete, Badge, Button, Group, LoadingOverlay, Stack, Table, Text } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
-import { ETIM_LABEL_TABLES, ETIM_REQUIRED_TABLES, ETIM_TABLES, type EtimTableName } from '@akeneo-etim/core';
+import { ETIM_LABEL_TABLES, ETIM_REQUIRED_TABLES, ETIM_TABLES, type EtimTableName } from '@vaimo-pim-etim-builder/core';
 import { useMemo, useState } from 'react';
 import { isLocaleCode, LOCALE_SUGGESTIONS } from '../etim/locales.js';
 import { assignFiles, missingTables } from '../etim/tableFiles.js';

@@ -17,7 +17,7 @@ import {
   type SourceEntityLinkInput,
   type SourceRecordInput,
   type SourceRecordValueInput,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { etimLibrary, type LibraryResult } from './etimLibrary.js';
 
 /** The web app's pre-loaded ETIM exports. */

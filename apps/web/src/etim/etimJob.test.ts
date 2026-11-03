@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EtimJobFile } from './etimJob.js';
 import { processEtimJob } from './etimJob.js';
-import type { EtimTableName } from '@akeneo-etim/core';
+import type { EtimTableName } from '@vaimo-pim-etim-builder/core';
 
 /** UTF-16LE with BOM, like real ETIM exports. */
 function utf16le(text: string): ArrayBuffer {

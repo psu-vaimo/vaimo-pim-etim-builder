@@ -1,6 +1,6 @@
 import { Alert, Button, Group, Text } from '@mantine/core';
 import { useMemo } from 'react';
-import { missingClassIds, missingLocales } from '@akeneo-etim/core';
+import { missingClassIds, missingLocales } from '@vaimo-pim-etim-builder/core';
 import { useAppDispatch, useAppState } from '../state/AppStateContext.js';
 import { CodeList } from './CodeList.js';
 

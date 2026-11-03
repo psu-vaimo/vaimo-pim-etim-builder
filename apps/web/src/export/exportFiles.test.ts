@@ -1,4 +1,4 @@
-import { buildExport, type ExportFile, type ExportIssue } from '@akeneo-etim/core';
+import { buildExport, type ExportFile, type ExportIssue } from '@vaimo-pim-etim-builder/core';
 import { describe, expect, it } from 'vitest';
 import { project, release } from '../test/release.js';
 import { processExportJob, transferables } from './exportJob.js';

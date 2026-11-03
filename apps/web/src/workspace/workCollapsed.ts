@@ -11,7 +11,7 @@ function browserStorage(): Storage | undefined {
   }
 }
 
-export const WORK_COLLAPSED_STORAGE_KEY = 'akeneo-etim.workCollapsed';
+export const WORK_COLLAPSED_STORAGE_KEY = 'vaimo-pim-etim-builder.workCollapsed';
 
 /** Whether the side column (Tasks and Summary) was collapsed, open by default. */
 export function loadWorkCollapsed(storage: ReadStorage | undefined = browserStorage()): boolean {

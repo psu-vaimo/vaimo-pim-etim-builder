@@ -6,7 +6,7 @@ import {
   type LogicalSourceOption,
   type LogicalSourcePlan,
   type Project,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { ActionIcon, Alert, Badge, Button, Checkbox, Group, Pagination, Paper, ScrollArea, Stack, Table, Text, TextInput, Title, Tooltip, UnstyledButton } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import { memo, useDeferredValue, useMemo, useState, type Dispatch } from 'react';

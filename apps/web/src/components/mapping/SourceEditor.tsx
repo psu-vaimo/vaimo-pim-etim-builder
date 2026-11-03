@@ -10,7 +10,7 @@ import {
   type Project,
   type SourceAttribute,
   type SourceMapping,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import {
   ActionIcon,
   Alert,
@@ -42,7 +42,7 @@ import {
   type MappingRow,
   type SourceDraft,
 } from '../../mapping/sourceMappings.js';
-import { normalizeSources, withSources } from '@akeneo-etim/core';
+import { normalizeSources, withSources } from '@vaimo-pim-etim-builder/core';
 import { KEEP_CASE } from '../../theme.js';
 
 const MONO_INPUT = { input: { fontFamily: 'var(--mantine-font-family-monospace)' } };

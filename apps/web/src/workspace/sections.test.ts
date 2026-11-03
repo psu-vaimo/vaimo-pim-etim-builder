@@ -1,4 +1,4 @@
-import type { ProjectFeature } from '@akeneo-etim/core';
+import type { ProjectFeature } from '@vaimo-pim-etim-builder/core';
 import { describe, expect, it } from 'vitest';
 import {
   SECTIONS,

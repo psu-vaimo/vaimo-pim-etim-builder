@@ -1,6 +1,6 @@
-import { ETIM_TABLES, matchTableName, type EtimTableName } from '@akeneo-etim/core';
+import { ETIM_TABLES, matchTableName, type EtimTableName } from '@vaimo-pim-etim-builder/core';
 
-export { matchTableName, type TableMatch } from '@akeneo-etim/core';
+export { matchTableName, type TableMatch } from '@vaimo-pim-etim-builder/core';
 
 /** True for ETIM tables this app does not read, like ETIMARTCLASSSYNONYMMAP or ETIMFEATUREGROUP. */
 export function isOtherEtimTable(fileName: string): boolean {

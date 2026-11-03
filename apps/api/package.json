@@ -1,5 +1,5 @@
 {
-  "name": "@akeneo-etim/api",
+  "name": "@vaimo-pim-etim-builder/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@akeneo-etim/core": "workspace:*",
+    "@vaimo-pim-etim-builder/core": "workspace:*",
     "fastify": "^5.12.7"
   },
   "devDependencies": {

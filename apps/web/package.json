@@ -1,5 +1,5 @@
 {
-  "name": "@akeneo-etim/web",
+  "name": "@vaimo-pim-etim-builder/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
-    "@akeneo-etim/core": "workspace:*",
+    "@vaimo-pim-etim-builder/core": "workspace:*",
     "@mantine/core": "^9.7.3",
     "@mantine/dropzone": "^9.7.3",
     "@mantine/hooks": "^9.7.3",

@@ -6,7 +6,7 @@ import {
   type Project,
   type ProjectFeature,
   type SourceEntityPlan,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 
 /** The numbered steps of the workspace, opened from the sidebar in any order. */
 export const SECTIONS = [

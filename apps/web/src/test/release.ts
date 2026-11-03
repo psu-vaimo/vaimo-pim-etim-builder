@@ -1,4 +1,4 @@
-import { createProject, type EtimRelease, type Project } from '@akeneo-etim/core';
+import { createProject, type EtimRelease, type Project } from '@vaimo-pim-etim-builder/core';
 
 /** Small release for web tests: one class with an A, an N with unit and an L feature. */
 export const release: EtimRelease = {

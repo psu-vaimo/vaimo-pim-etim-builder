@@ -1,4 +1,4 @@
-import { labelFor, type AkeneoDependency } from '@akeneo-etim/core';
+import { labelFor, type AkeneoDependency } from '@vaimo-pim-etim-builder/core';
 import { Badge, Group, SegmentedControl, Select, Stack, Tabs, Text } from '@mantine/core';
 import { useCallback, useMemo, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';

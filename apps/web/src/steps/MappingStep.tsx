@@ -1,4 +1,4 @@
-import { collectProjectFeatures, createProject, generateAttributes, generateRules, sourceEntityFor, type FeatureKey } from '@akeneo-etim/core';
+import { collectProjectFeatures, createProject, generateAttributes, generateRules, sourceEntityFor, type FeatureKey } from '@vaimo-pim-etim-builder/core';
 import { Button, Group, Modal, Stack, Text } from '@mantine/core';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';

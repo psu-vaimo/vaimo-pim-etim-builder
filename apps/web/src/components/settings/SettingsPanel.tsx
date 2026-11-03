@@ -1,4 +1,4 @@
-import { validateSettings, type LabelTexts } from '@akeneo-etim/core';
+import { validateSettings, type LabelTexts } from '@vaimo-pim-etim-builder/core';
 import {
   Alert,
   Badge,

@@ -1,4 +1,4 @@
-import { parseAkeneoAttributeExport, type GenerateIssue, type SourceAttribute } from '@akeneo-etim/core';
+import { parseAkeneoAttributeExport, type GenerateIssue, type SourceAttribute } from '@vaimo-pim-etim-builder/core';
 import { Alert, Button, Group, Text } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import { useState } from 'react';

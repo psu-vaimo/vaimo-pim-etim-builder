@@ -1,4 +1,4 @@
-import { attributeCode, type LabelTexts, type ProjectSettings, type SettingsIssue } from '@akeneo-etim/core';
+import { attributeCode, type LabelTexts, type ProjectSettings, type SettingsIssue } from '@vaimo-pim-etim-builder/core';
 
 type CodeKey = keyof ProjectSettings['codes'];
 type GroupKey = keyof ProjectSettings['groups'];

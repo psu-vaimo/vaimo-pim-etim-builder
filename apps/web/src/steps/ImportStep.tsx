@@ -1,7 +1,7 @@
 import { Alert, Badge, Button, Group, Paper, Stack, Text } from '@mantine/core';
 import { SubStep } from '../components/SubStep.js';
 import { SUB_STEPS } from '../workspace/sections.js';
-import type { EtimTableName } from '@akeneo-etim/core';
+import type { EtimTableName } from '@vaimo-pim-etim-builder/core';
 import { useState } from 'react';
 import { EtimLibraryForm } from '../components/EtimLibraryForm.js';
 import { EtimUploadForm, type TableFiles } from '../components/EtimUploadForm.js';

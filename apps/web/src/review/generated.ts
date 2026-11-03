@@ -12,7 +12,7 @@ import {
   type GenerateIssue,
   type Project,
   type SourceEntityPlan,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { useMemo } from 'react';
 
 export type GeneratedIssue = GenerateIssue & { step: 'attributes' | 'records' | 'rules' };

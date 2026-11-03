@@ -9,7 +9,7 @@ import {
   type MappingStatus,
   type ProjectFeature,
   type SourceMapping,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import type { FeatureRow } from '../features/featureRows.js';
 
 /** A source while it is edited, every field a plain string so inputs stay controlled. */
@@ -73,7 +73,7 @@ export function hasDraftErrors(errors: readonly DraftErrors[]): boolean {
   return errors.some((e) => e.attribute !== undefined || e.second !== undefined);
 }
 
-export { formatAction, formatCondition, ruleConditions } from '@akeneo-etim/core';
+export { formatAction, formatCondition, ruleConditions } from '@vaimo-pim-etim-builder/core';
 
 /** Short summary of one source for the table, `att_a`, `att_a + att_b`, `att_a (yes: y, ja)`. */
 export function formatSource(s: SourceMapping): string {

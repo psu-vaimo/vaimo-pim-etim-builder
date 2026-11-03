@@ -10,7 +10,7 @@ import {
   type Project,
   type ProjectFeature,
   type RangeSetup,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 
 /** Short names for Akeneo attribute types in the UI. */
 export const ATTRIBUTE_TYPE_LABELS: Record<AkeneoAttributeType, string> = {

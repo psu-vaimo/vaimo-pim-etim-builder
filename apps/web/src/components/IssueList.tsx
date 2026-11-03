@@ -1,8 +1,8 @@
 import { Badge, Group, ScrollArea, Stack, Text } from '@mantine/core';
 import { CollapsibleBox } from './CollapsibleBox.js';
-import type { EtimTableName, ParseIssue } from '@akeneo-etim/core';
+import type { EtimTableName, ParseIssue } from '@vaimo-pim-etim-builder/core';
 import { useMemo } from 'react';
-import { ETIM_TABLES } from '@akeneo-etim/core';
+import { ETIM_TABLES } from '@vaimo-pim-etim-builder/core';
 import { TEXT_COLORS } from '../theme.js';
 
 /** Rows rendered per table, real exports can have thousands of warnings. */

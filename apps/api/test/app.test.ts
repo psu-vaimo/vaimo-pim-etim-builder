@@ -2,7 +2,7 @@ import { cpSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { createProject } from '@akeneo-etim/core';
+import { createProject } from '@vaimo-pim-etim-builder/core';
 import { buildApp } from '../src/app.js';
 
 describe('api', () => {

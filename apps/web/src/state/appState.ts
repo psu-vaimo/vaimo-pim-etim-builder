@@ -27,7 +27,7 @@ import {
   type SourceMapping,
   type SourceOption,
   type SourceRecord,
-} from '@akeneo-etim/core';
+} from '@vaimo-pim-etim-builder/core';
 import { withoutSources } from '../mapping/sourceMappings.js';
 
 /** One upload of ETIM files, the base export or a translation. */
