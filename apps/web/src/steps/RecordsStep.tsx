@@ -241,12 +241,13 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
                   data-testid="records-search"
                 />
                 <ScrollArea type="auto">
-                  <Table withTableBorder verticalSpacing={4} data-testid="records-table">
+                  {/* Not stretched to the full width: each feature column is about 600px, at least 320px. */}
+                  <Table withTableBorder verticalSpacing={4} w="auto" data-testid="records-table">
                     <Table.Thead>
                       <Table.Tr>
                         <Table.Th miw={180}>Record</Table.Th>
                         {plan.features.map((f, i) => (
-                          <Table.Th key={f.featureId} miw={320}>
+                          <Table.Th key={f.featureId} w={600} miw={320}>
                             <Text size="sm" fw={600} ff="monospace">
                               {f.featureId}
                             </Text>

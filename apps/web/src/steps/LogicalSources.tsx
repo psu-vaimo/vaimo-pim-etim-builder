@@ -208,12 +208,12 @@ const SourcePanel = memo(function SourcePanel({ plan, release, locale, dispatch 
                 {plan.options.length > 0 && (
                   <>
                     <ScrollArea type="auto">
-                      <Table withTableBorder verticalSpacing={4} data-testid="options-table">
+                      <Table withTableBorder verticalSpacing={4} w="auto" data-testid="options-table">
                         <Table.Thead>
                           <Table.Tr>
                             <Table.Th miw={180}>Source value</Table.Th>
                             {plan.features.map((f) => (
-                              <Table.Th key={f.key} miw={180}>
+                              <Table.Th key={f.key} miw={180} maw={600}>
                                 <Text size="sm" fw={600} ff="monospace">
                                   {f.key}
                                 </Text>
