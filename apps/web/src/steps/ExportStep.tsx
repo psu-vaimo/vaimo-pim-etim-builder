@@ -2,6 +2,7 @@ import type { EtimRelease, Project } from '@akeneo-etim/core';
 import { Alert, Button, Group, Loader, Modal, Paper, Stack, Table, Text, Title } from '@mantine/core';
 import { useEffect, useMemo, useState } from 'react';
 import { GenerateIssues } from '../components/features/GenerateIssues.js';
+import { CollapsibleBox } from '../components/CollapsibleBox.js';
 import { SourceEntityTable } from '../components/review/SourceEntityTable.js';
 import { downloadFile } from '../export/download.js';
 import {
@@ -104,6 +105,19 @@ export function ExportStep() {
 
   return (
     <Stack gap="lg" mt="md">
+      {error && (
+        <Alert color="red" title="The export could not be built" data-testid="export-error">
+          {error}
+        </Alert>
+      )}
+
+      {summary && summary.errors > 0 && (
+        <Text size="sm" c="red" fw={600} data-testid="export-has-errors">
+          The export has {summary.errors === 1 ? '1 error' : `${summary.errors} errors`}. Files are still generated, check them before
+          importing into Akeneo.
+        </Text>
+      )}
+      {shown && <GenerateIssues issues={shown.issues} />}
 
       <Paper withBorder p="md">
         <Group justify="space-between" align="center">
@@ -134,74 +148,71 @@ export function ExportStep() {
       </Paper>
 
       {entities.length > 0 && (
-        <Paper withBorder p="md" data-testid="export-source-records">
-          <Stack gap="xs">
-            <Title order={4}>Create source record attributes</Title>
-            <Text size="sm" c="dimmed">
-              Add the record attributes to each reference entity in Akeneo first, then import its 07_records file to fill them.
-              Unmapped values are exported empty.
-            </Text>
-            <SourceEntityTable summaries={entities} testId="export-source-entities" />
-          </Stack>
-        </Paper>
+        <CollapsibleBox title="Create source record attributes" testId="export-source-records">
+          <Text size="sm" c="dimmed">
+            Add the record attributes to each reference entity in Akeneo first, then import its 07_records file to fill them.
+            Unmapped values are exported empty.
+          </Text>
+          <SourceEntityTable summaries={entities} testId="export-source-entities" />
+        </CollapsibleBox>
       )}
 
-      {error && (
-        <Alert color="red" title="The export could not be built" data-testid="export-error">
-          {error}
-        </Alert>
-      )}
-
-      {summary && summary.errors > 0 && (
-        <Text size="sm" c="red" fw={600} data-testid="export-has-errors">
-          The export has {summary.errors === 1 ? '1 error' : `${summary.errors} errors`}. Files are still generated, check them before
-          importing into Akeneo.
-        </Text>
-      )}
-      {shown && <GenerateIssues issues={shown.issues} />}
 
       {groups.length > 0 && (
-        <Table withTableBorder verticalSpacing={6} data-testid="export-files" style={building ? { opacity: 0.6 } : undefined}>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>File</Table.Th>
-              <Table.Th w={110} ta="right">
-                Size
-              </Table.Th>
-              <Table.Th w={120} />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {groups.map((g) => [
-              <Table.Tr key={g.id} bg="var(--mantine-color-gray-light)">
-                <Table.Td colSpan={3}>
-                  <Text size="sm" fw={600}>
-                    {g.label}
-                  </Text>
-                </Table.Td>
-              </Table.Tr>,
-              ...g.files.map((f) => (
-                <Table.Tr key={f.file.path} data-testid="export-file">
-                  <Table.Td ff="monospace" pl="lg" data-testid="export-file-path">
-                    {f.file.path}
+        <CollapsibleBox
+          title="Files"
+          aside={
+            result && (
+              <Text size="sm" c="dimmed">
+                {result.files.length} files, {formatBytes(totalSize)}
+              </Text>
+            )
+          }
+          defaultOpen={false}
+          testId="export-files-box"
+        >
+          <Table withTableBorder verticalSpacing={6} data-testid="export-files" style={building ? { opacity: 0.6 } : undefined}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>File</Table.Th>
+                <Table.Th w={110} ta="right">
+                  Size
+                </Table.Th>
+                <Table.Th w={120} />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {groups.map((g) => [
+                <Table.Tr key={g.id} bg="var(--mantine-color-gray-light)">
+                  <Table.Td colSpan={3}>
+                    <Text size="sm" fw={600}>
+                      {g.label}
+                    </Text>
                   </Table.Td>
-                  <Table.Td ta="right">{formatBytes(f.size)}</Table.Td>
-                  <Table.Td ta="right">
-                    <Button
-                      size="xs"
-                      variant="default"
-                      disabled={!result || building}
-                      onClick={() => request({ kind: 'file', path: f.file.path })}
-                      data-testid={`download-${f.file.path}`}
-                    >
-                      Download
-                    </Button>
-                  </Table.Td>
-                </Table.Tr>
-              )),
-            ])}
-          </Table.Tbody>
-        </Table>
+                </Table.Tr>,
+                ...g.files.map((f) => (
+                  <Table.Tr key={f.file.path} data-testid="export-file">
+                    <Table.Td ff="monospace" pl="lg" data-testid="export-file-path">
+                      {f.file.path}
+                    </Table.Td>
+                    <Table.Td ta="right">{formatBytes(f.size)}</Table.Td>
+                    <Table.Td ta="right">
+                      <Button
+                        size="xs"
+                        variant="default"
+                        disabled={!result || building}
+                        onClick={() => request({ kind: 'file', path: f.file.path })}
+                        data-testid={`download-${f.file.path}`}
+                      >
+                        Download
+                      </Button>
+                    </Table.Td>
+                  </Table.Tr>
+                )),
+              ])}
+            </Table.Tbody>
+          </Table>
+        </CollapsibleBox>
       )}
 
       <Modal

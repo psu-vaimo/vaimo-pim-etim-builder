@@ -1,5 +1,6 @@
 import type { GenerateIssue } from '@akeneo-etim/core';
-import { Accordion, Alert, ScrollArea, Stack, Text } from '@mantine/core';
+import { ScrollArea, Stack, Text } from '@mantine/core';
+import { CollapsibleBox } from '../CollapsibleBox.js';
 import { TEXT_COLORS } from '../../theme.js';
 
 /** Rows rendered per list, a big selection can give thousands of warnings. */
@@ -24,7 +25,7 @@ function IssueRows({ issues }: { issues: readonly GenerateIssue[] }) {
   );
 }
 
-/** Generator issues: errors always visible, warnings collapsed. */
+/** Generator issues, in collapsible boxes: errors open, warnings closed. */
 export function GenerateIssues({ issues }: { issues: readonly GenerateIssue[] }) {
   const errors = issues.filter((i) => i.severity === 'error');
   const warnings = issues.filter((i) => i.severity === 'warning');
@@ -33,24 +34,27 @@ export function GenerateIssues({ issues }: { issues: readonly GenerateIssue[] })
   return (
     <Stack gap="sm">
       {errors.length > 0 && (
-        <Alert color="red" title={errors.length === 1 ? '1 error' : `${errors.length} errors`} data-testid="generate-errors">
+        <CollapsibleBox title={<IssueTitle color={TEXT_COLORS.error} count={errors.length} word="error" />} testId="generate-errors">
           <IssueRows issues={errors} />
-        </Alert>
+        </CollapsibleBox>
       )}
       {warnings.length > 0 && (
-        <Accordion variant="contained" chevronPosition="left" data-testid="generate-warnings">
-          <Accordion.Item value="warnings">
-            <Accordion.Control>
-              <Text size="sm" c={TEXT_COLORS.warning} fw={600}>
-                {warnings.length === 1 ? '1 warning' : `${warnings.length} warnings`}
-              </Text>
-            </Accordion.Control>
-            <Accordion.Panel>
-              <IssueRows issues={warnings} />
-            </Accordion.Panel>
-          </Accordion.Item>
-        </Accordion>
+        <CollapsibleBox
+          title={<IssueTitle color={TEXT_COLORS.warning} count={warnings.length} word="warning" />}
+          defaultOpen={false}
+          testId="generate-warnings"
+        >
+          <IssueRows issues={warnings} />
+        </CollapsibleBox>
       )}
     </Stack>
+  );
+}
+
+function IssueTitle({ color, count, word }: { color: string; count: number; word: string }) {
+  return (
+    <Text fw={700} c={color}>
+      {count === 1 ? `1 ${word}` : `${count.toLocaleString('en-US')} ${word}s`}
+    </Text>
   );
 }

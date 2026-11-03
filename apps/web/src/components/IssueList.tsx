@@ -1,4 +1,5 @@
-import { Accordion, Badge, Group, ScrollArea, Stack, Text } from '@mantine/core';
+import { Badge, Group, ScrollArea, Stack, Text } from '@mantine/core';
+import { CollapsibleBox } from './CollapsibleBox.js';
 import type { EtimTableName, ParseIssue } from '@akeneo-etim/core';
 import { useMemo } from 'react';
 import { ETIM_TABLES } from '@akeneo-etim/core';
@@ -46,53 +47,52 @@ export function IssueCounts({ issues }: { issues: readonly ParseIssue[] }) {
   );
 }
 
-/** Parse issues grouped by table. Tables with errors start expanded. */
+/** Parse issues grouped by table, in collapsible boxes. Tables with errors start open. */
 export function IssueList({ issues }: { issues: readonly ParseIssue[] }) {
   const groups = useMemo(() => groupByTable(issues), [issues]);
   if (groups.length === 0) return null;
-  const withErrors = groups.filter((g) => g.errors.length > 0).map((g) => g.table);
 
   return (
-    <Accordion multiple defaultValue={withErrors} variant="contained" chevronPosition="left">
+    <Stack gap="xs">
       {groups.map((g) => {
         const rows = [...g.errors, ...g.warnings];
         return (
-          <Accordion.Item key={g.table} value={g.table}>
-            <Accordion.Control>
-              <Group justify="space-between" wrap="nowrap" pr="sm">
-                <Text ff="monospace" size="sm">
-                  {g.table}
-                </Text>
-                <IssueCounts issues={rows} />
-              </Group>
-            </Accordion.Control>
-            <Accordion.Panel>
-              <ScrollArea.Autosize mah={220} type="auto">
-                <Stack gap={2}>
-                  {rows.slice(0, MAX_ROWS).map((issue, i) => (
-                    <Group key={i} gap="xs" wrap="nowrap" align="flex-start">
-                      <Text size="xs" fw={700} c={issue.severity === 'error' ? TEXT_COLORS.error : TEXT_COLORS.warning} w={56} style={{ flexShrink: 0 }}>
-                        {issue.severity === 'error' ? 'Error' : 'Warning'}
-                      </Text>
-                      <Text size="xs" c="dimmed" w={64} style={{ flexShrink: 0 }}>
-                        {issue.row === undefined ? '' : `row ${issue.row}`}
-                      </Text>
-                      <Text size="xs" fw={issue.severity === 'error' ? 600 : 400}>
-                        {issue.message}
-                      </Text>
-                    </Group>
-                  ))}
-                  {rows.length > MAX_ROWS && (
-                    <Text size="xs" c="dimmed">
-                      {rows.length - MAX_ROWS} more not shown
+          <CollapsibleBox
+            key={g.table}
+            title={
+              <Text ff="monospace" size="sm">
+                {g.table}
+              </Text>
+            }
+            aside={<IssueCounts issues={rows} />}
+            defaultOpen={g.errors.length > 0}
+            p="sm"
+          >
+            <ScrollArea.Autosize mah={220} type="auto">
+              <Stack gap={2}>
+                {rows.slice(0, MAX_ROWS).map((issue, i) => (
+                  <Group key={i} gap="xs" wrap="nowrap" align="flex-start">
+                    <Text size="xs" fw={700} c={issue.severity === 'error' ? TEXT_COLORS.error : TEXT_COLORS.warning} w={56} style={{ flexShrink: 0 }}>
+                      {issue.severity === 'error' ? 'Error' : 'Warning'}
                     </Text>
-                  )}
-                </Stack>
-              </ScrollArea.Autosize>
-            </Accordion.Panel>
-          </Accordion.Item>
+                    <Text size="xs" c="dimmed" w={64} style={{ flexShrink: 0 }}>
+                      {issue.row === undefined ? '' : `row ${issue.row}`}
+                    </Text>
+                    <Text size="xs" fw={issue.severity === 'error' ? 600 : 400}>
+                      {issue.message}
+                    </Text>
+                  </Group>
+                ))}
+                {rows.length > MAX_ROWS && (
+                  <Text size="xs" c="dimmed">
+                    {rows.length - MAX_ROWS} more not shown
+                  </Text>
+                )}
+              </Stack>
+            </ScrollArea.Autosize>
+          </CollapsibleBox>
         );
       })}
-    </Accordion>
+    </Stack>
   );
 }

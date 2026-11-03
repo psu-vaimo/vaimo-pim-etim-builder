@@ -1,6 +1,7 @@
 import { Collapse, Group, Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { useState, type ReactNode } from 'react';
 import type { SubStepInfo } from '../workspace/sections.js';
+import { ToggleIcon } from './ToggleIcon.js';
 
 interface Props {
   step: SubStepInfo;
@@ -39,12 +40,15 @@ export function SubStep({ step, description, aside, collapsible = false, default
     <section className="sub-step" data-testid={testId}>
       <Group justify="space-between" gap="sm" wrap="nowrap">
         {collapsible ? (
-          <UnstyledButton onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={testId && `${testId}-toggle`}>
-            <Group gap="xs" wrap="nowrap">
+          <UnstyledButton
+            className="toggle-trigger"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            data-testid={testId && `${testId}-toggle`}
+          >
+            <Group gap="sm" wrap="nowrap">
               {heading}
-              <Text c="dimmed" aria-hidden>
-                {open ? '▾' : '▸'}
-              </Text>
+              <ToggleIcon open={open} />
             </Group>
           </UnstyledButton>
         ) : (

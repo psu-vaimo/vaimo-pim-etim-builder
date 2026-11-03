@@ -12,6 +12,7 @@ import { Dropzone } from '@mantine/dropzone';
 import { memo, useDeferredValue, useMemo, useState, type Dispatch } from 'react';
 import { codeError } from '../mapping/sourceMappings.js';
 import { SubStep } from '../components/SubStep.js';
+import { ToggleIcon } from '../components/ToggleIcon.js';
 import { SUB_STEPS } from '../workspace/sections.js';
 import type { AppAction } from '../state/appState.js';
 import { TEXT_COLORS } from '../theme.js';
@@ -136,11 +137,9 @@ const SourcePanel = memo(function SourcePanel({ plan, release, locale, dispatch 
   return (
     <Paper withBorder p="md" data-testid={`logical-${plan.attribute}`}>
       <Stack gap="sm">
-        <UnstyledButton onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`logical-toggle-${plan.attribute}`}>
-          <Group gap="xs">
-            <Text c="dimmed" w={14} aria-hidden>
-              {open ? '▾' : '▸'}
-            </Text>
+        <UnstyledButton className="toggle-trigger" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`logical-toggle-${plan.attribute}`}>
+          <Group gap="sm">
+            <ToggleIcon open={open} />
             <Title order={4} ff="monospace">
               {plan.attribute}
             </Title>

@@ -157,3 +157,36 @@
   border-top: 1px solid var(--mantine-color-default-border);
   padding-top: var(--mantine-spacing-md);
 }
+
+/* Open and close button (ToggleIcon) of sub steps and step 5 panels: round, highlighted when its title is hovered. */
+.toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 50%;
+  color: var(--mantine-color-dimmed);
+  transition:
+    background-color 120ms,
+    border-color 120ms,
+    color 120ms;
+}
+
+/* The chevron points right when closed and down when open. */
+.toggle-icon svg {
+  transition: transform 120ms;
+}
+
+.toggle-icon[data-open] svg {
+  transform: rotate(90deg);
+}
+
+.toggle-trigger:hover .toggle-icon,
+.toggle-trigger:focus-visible .toggle-icon {
+  background: var(--mantine-color-default-hover);
+  border-color: var(--mantine-color-dimmed);
+  color: var(--mantine-color-text);
+}

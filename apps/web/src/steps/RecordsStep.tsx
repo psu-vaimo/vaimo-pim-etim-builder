@@ -25,6 +25,8 @@ import { exceptionsText, filledText, isComplete, providesText, recordsText } fro
 import { sourceEntitySummaries, type SourceEntityFeatureSummary } from '../review/reviewRows.js';
 import { LogicalSources } from './LogicalSources.js';
 import { SubStep } from '../components/SubStep.js';
+import { GenerateIssues } from '../components/features/GenerateIssues.js';
+import { ToggleIcon } from '../components/ToggleIcon.js';
 import { SUB_STEPS } from '../workspace/sections.js';
 
 type AppDispatch = Dispatch<AppAction>;
@@ -67,13 +69,7 @@ export function RecordsStep() {
             source attribute (or upload the Akeneo attribute export in step 4.1, which has it).
           </Alert>
         )}
-        {collected.issues
-          .filter((i) => i.featureKey !== undefined)
-          .map((issue, i) => (
-            <Alert key={i} color="yellow" p="xs">
-              <Text size="sm">{issue.message}</Text>
-            </Alert>
-          ))}
+        <GenerateIssues issues={collected.issues.filter((i) => i.featureKey !== undefined)} />
         {collected.entities.map((plan) => (
           <EntityPanel key={plan.code} plan={plan} release={release} project={project} locale={locale} dispatch={dispatch} />
         ))}
@@ -167,11 +163,9 @@ const EntityPanel = memo(function EntityPanel({ plan, release, project, locale, 
   return (
     <Paper withBorder p="md" data-testid={`entity-${plan.code}`}>
       <Stack gap="sm">
-        <UnstyledButton onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`entity-toggle-${plan.code}`}>
-          <Group gap="xs">
-            <Text c="dimmed" w={14} aria-hidden>
-              {open ? '▾' : '▸'}
-            </Text>
+        <UnstyledButton className="toggle-trigger" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`entity-toggle-${plan.code}`}>
+          <Group gap="sm">
+            <ToggleIcon open={open} />
             <Title order={4} ff="monospace">
               {plan.code}
             </Title>
