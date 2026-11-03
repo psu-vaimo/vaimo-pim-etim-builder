@@ -63,6 +63,9 @@ function StepScreen({ index, label }: { index: number; label: string }) {
   }
 }
 
+/** Step names in the sidebar, heavier than their status line. */
+const NAV_LABEL = { label: { fontWeight: 600 } } as const;
+
 const TONE_COLORS: Record<StatusTone, string> = { ok: TEXT_COLORS.ok, warning: TEXT_COLORS.warning, error: TEXT_COLORS.error, muted: 'dimmed' };
 
 export function App() {
@@ -119,6 +122,7 @@ export function App() {
                 aria-current={active === index ? 'page' : undefined}
                 leftSection={<StepNumber n={index + 1} active={active === index} />}
                 label={section.label}
+                styles={NAV_LABEL}
                 description={
                   status && (
                     <Text component="span" size="xs" c={TONE_COLORS[status.tone]} data-testid={`nav-status-${section.id}`}>
@@ -131,10 +135,10 @@ export function App() {
               />
             );
             return reason === undefined ? (
-              <Box key={section.id}>{link}</Box>
+              <Box key={section.id} className="nav-step">{link}</Box>
             ) : (
               <Tooltip key={section.id} label={reason} position="right" withArrow events={{ hover: true, focus: true, touch: true }}>
-                <Box>{link}</Box>
+                <Box className="nav-step">{link}</Box>
               </Tooltip>
             );
           })}

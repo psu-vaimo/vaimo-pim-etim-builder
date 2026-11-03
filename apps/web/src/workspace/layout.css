@@ -25,20 +25,27 @@
   overflow-x: auto;
 }
 
-/* Below sm the project bar wraps, the name input takes the first row and the buttons the second. */
+/* Below sm the project bar wraps: theme switch and name input on the first row, the buttons on the second. */
 @media (max-width: 47.99em) {
   .app-project-bar > .mantine-Group-root {
     flex-wrap: wrap;
     row-gap: 6px;
   }
 
-  .app-project-bar .mantine-TextInput-root {
+  /* The theme switch and the name input share the first row, the buttons the second. */
+  .app-project-bar .project-bar-name {
     flex: 1 1 100%;
+  }
+
+  .app-project-bar .mantine-TextInput-root {
+    flex: 1 1 0;
+    min-width: 0;
     width: auto !important;
   }
 }
 
-.app-project-bar .mantine-Button-root {
+.app-project-bar .mantine-Button-root,
+.app-project-bar .theme-switch {
   flex-shrink: 0;
 }
 
@@ -132,4 +139,11 @@
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   gap: 4px var(--mantine-spacing-xs);
   align-items: center;
+}
+
+/* Steps in the sidebar: a thin line and a little space between them. */
+.nav-step + .nav-step {
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px solid var(--mantine-color-default-border);
 }
