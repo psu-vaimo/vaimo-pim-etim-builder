@@ -1,4 +1,4 @@
-/* Header: one row from md up, two rows below (burger and title, then the project bar). */
+/* Header: one row from lg up (the app name is long), two rows below (burger and title, then the project bar). */
 .app-header {
   height: 100%;
   padding: 6px var(--mantine-spacing-md);
@@ -54,7 +54,7 @@
   flex-shrink: 0;
 }
 
-@media (min-width: 62em) {
+@media (min-width: 75em) {
   .app-header {
     flex-direction: row;
     align-items: center;

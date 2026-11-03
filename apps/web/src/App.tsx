@@ -68,6 +68,10 @@ function StepScreen({ index, label }: { index: number; label: string }) {
   }
 }
 
+/** The app name in the header and the browser tab, the sub title in a light weight after it. */
+const APP_NAME = 'Vaimo PIM ETIM Builder';
+const APP_SUBTITLE = 'Akeneo';
+
 /** Step names in the sidebar, heavier than their status line. */
 const NAV_LABEL = { label: { fontWeight: 600 } } as const;
 
@@ -103,7 +107,7 @@ export function App() {
 
   return (
     <AppShell
-      header={{ height: { base: 132, sm: 96, md: 56 } }}
+      header={{ height: { base: 132, sm: 96, lg: 56 } }}
       navbar={{ width: 260, breakpoint: 'sm', collapsed: { mobile: !navOpened } }}
       padding="md"
     >
@@ -112,7 +116,10 @@ export function App() {
           <Group gap="xs" wrap="nowrap" className="app-header-main">
             <Burger opened={navOpened} onClick={nav.toggle} hiddenFrom="sm" size="sm" aria-label="Show steps" data-testid="nav-burger" />
             <Title order={3} className="app-title">
-              Akeneo ETIM
+              {APP_NAME}{' '}
+              <Text span inherit fw={300}>
+                {APP_SUBTITLE}
+              </Text>
             </Title>
           </Group>
           <div className="app-project-bar">

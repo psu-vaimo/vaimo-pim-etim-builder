@@ -2,7 +2,7 @@
 
 ## Project
 
-Web app (Node + React) for configuring an Akeneo PIM data model from ETIM: classes, features, values and units become Akeneo attributes, reference entity records, attribute dependencies and enrichment rules. The goal is to replace the manual spreadsheet workflow with a guided UI.
+Vaimo PIM ETIM Builder (sub title Akeneo): a web app (Node + React) for configuring an Akeneo PIM data model from ETIM: classes, features, values and units become Akeneo attributes, reference entity records, attribute dependencies and enrichment rules. The goal is to replace the manual spreadsheet workflow with a guided UI.
 
 - Users: Vaimo consultants, one project per client.
 - Target: Akeneo SaaS (Serenity).
