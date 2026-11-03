@@ -18,6 +18,15 @@
   font-size: var(--mantine-font-size-lg);
 }
 
+/* A long project name in the header is cut off with an ellipsis. */
+.app-title-project {
+  display: inline-block;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
 /* The project bar scrolls inside its own box rather than widening the page. */
 .app-project-bar {
   min-width: 0;

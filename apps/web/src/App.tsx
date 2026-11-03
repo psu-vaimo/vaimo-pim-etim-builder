@@ -79,6 +79,7 @@ const TONE_COLORS: Record<StatusTone, string> = { ok: TEXT_COLORS.ok, warning: T
 
 export function App() {
   const state = useAppState();
+  const projectName = state.project.name.trim();
   const [active, setActive] = useState(0);
   const [notice, setNotice] = useState<ProjectNotice | undefined>();
   const [summarySlot, setSummarySlot] = useState<HTMLElement | null>(null);
@@ -120,6 +121,16 @@ export function App() {
               <Text span inherit fw={300}>
                 {APP_SUBTITLE}
               </Text>
+              {projectName && (
+                <>
+                  <Text span inherit fw={300} c="dimmed">
+                    {' · '}
+                  </Text>
+                  <Text span inherit fw={300} c="blue" className="app-title-project" data-testid="header-project-name">
+                    {projectName}
+                  </Text>
+                </>
+              )}
             </Title>
           </Group>
           <div className="app-project-bar">
